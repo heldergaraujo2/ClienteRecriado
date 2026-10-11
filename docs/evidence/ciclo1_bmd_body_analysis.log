@@ -1,0 +1,44 @@
+# Evidencia bruta - analise estrutural do corpo BMD (ciclo 1, tarefa 1a)
+# Gerado em: 2026-10-11T22:50:14Z
+# Comando de origem da lista de arquivos claros:
+#   ./build/mutool bmdreport /home/user/Cliente_ref/Data --list-clear
+#
+======================================================================
+RESULTADO 1 - classes de acesso, contadas pela propria ferramenta
+======================================================================
+  PLAINTEXT             1365
+  BUX_DECRYPTABLE        100
+  total listado       1465
+
+======================================================================
+RESULTADO 2 - campo de nome ASCII no inicio do payload
+======================================================================
+  arquivos cuja 1a palavra nao e 'BMD' apos decifrar bux: 100
+  versoes entre os claros: {'v0A': 1194, 'v0C': 171}
+  payload comeca com string ASCII imprimivel : 433
+    dos quais contem separador de caminho    : 351
+    dos quais terminam em .SMD               : 433
+
+======================================================================
+RESULTADO 3 - passo dos vertices: AMBIGUO, layout NAO determinado
+======================================================================
+Teste: maior sequencia de registros consecutivos cujos 3 primeiros
+floats sao coordenadas plausiveis (|v| < 1e4, nao todos zero), para
+cada passo candidato e cada offset base.
+
+  Sword40.bmd (92.541 B):
+     passo 12 B -> 220 registros   passo 16 B -> 334
+     passo 24 B -> 223             passo 32 B -> 244
+     passo 48 B -> 654  <-- maior neste arquivo
+  PrickleGlove_left.bmd (84.144 B):
+     passo 12 B -> 1407 registros  <-- maior neste arquivo
+     passo 16 B -> 1356            passo 32 B -> 824
+     passo 48 B -> 1083
+
+CONCLUSAO: nenhum passo vence nos dois arquivos. O teste e ambiguo e
+nao determina o layout. Registrar 12 ou 16 bytes aqui seria adivinhar,
+e produziria geometria silenciosamente errada. Layout: NAO DETERMINADO.
+
+Uma busca por (offset, largura, tamanho_de_registro) que dividisse o
+restante do payload exatamente tambem nao fechou para nenhum dos 433
+arquivos com nome .SMD.

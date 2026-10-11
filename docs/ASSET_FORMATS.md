@@ -261,6 +261,49 @@ One useful consequence of the split: the 1,396 plaintext-payload files are
 enough to **write and test a BMD body parser today**, without waiting for the
 cipher. That is a concrete unblocked path.
 
+### What has been established about the body, and what has not
+
+Task 1a was started. Full raw output in
+[`evidence/ciclo1_bmd_body_analysis.log`](evidence/ciclo1_bmd_body_analysis.log),
+over the list of clear files emitted by
+`mutool bmdreport <dir> --list-clear` (1,465 entries) so that classification
+comes from the tool rather than from a re-derived heuristic.
+
+**Established, measured:**
+
+- The clear set is 1,365 `PLAINTEXT` plus 100 `BUX_DECRYPTABLE`. The 100 bux
+  files do **not** begin with `BMD` once decrypted, confirming they are bux
+  containers and not models.
+- Among the clear files: 1,194 are v0x0A and 171 are v0x0C.
+- **433 of them open with a 32-byte ASCII field holding the source model's
+  name**, and all 433 end in `.SMD`. 351 of those contain a path separator, so
+  the field holds an authoring path such as `Data2\Item\Bow\...`, not just a
+  bare filename. Examples: `Sword40.bmd` opens with `Sword40.SMD`,
+  `PrickleGlove_left.bmd` with `PrickleGlove_left.SMD`.
+
+That last point is a real structural finding and it is worth stating precisely:
+**433 of 1,465 clear files, not all of them.** The remaining 932 do not begin
+with printable ASCII, so the name field is not universal to the format and any
+parser must not assume it.
+
+**Not established — layout NOT determined:**
+
+- A search for an (offset, width, record size) triple that divides the payload
+  remainder exactly found **no** candidate across all 433 named files.
+- A vertex-stride test — longest run of consecutive records whose first three
+  floats are plausible coordinates — is **ambiguous**. For `PrickleGlove_left`
+  a 12-byte stride wins (1,407 records); for `Sword40` a 48-byte stride wins
+  (654). No stride wins on both. Recording either number here would be a guess,
+  and a guessed vertex layout produces silently wrong geometry, which is worse
+  than no geometry.
+
+The one paired `.smd`/`.bmd` in the tree, `Object40` (3,847,871 B of plain-text
+SMD beside a 1,041,808 B **opaque** BMD), does not currently close the
+arithmetic either: 15,390 triangles and 2,234 unique positions leave a remainder
+of 58–65 bytes per triangle for every plausible record size. It remains the
+best known-plaintext candidate for the cipher itself, and that pairing was
+checked explicitly — it is 1 of 10 `.smd` files, not 10 of 10.
+
 ### The payload cipher is not recovered — BLOCKED
 
 8,570 of the 10,090 files have a payload with entropy above 7.5 bits/byte.

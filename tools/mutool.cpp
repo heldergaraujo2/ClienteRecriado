@@ -373,6 +373,15 @@ int CmdBmdReport(int argc, char** argv) {
               return a.path < b.path;
             });
 
+  // --list-clear prints one line per file whose payload is obtainable in the
+  // clear, so that downstream analysis consumes the classifier's own verdict
+  // instead of re-deriving it. Re-implementing the entropy test in a script is
+  // how the project already got one wrong answer this cycle.
+  bool list_clear = false;
+  for (int i = 3; i < argc; ++i) {
+    if (std::string(argv[i]) == "--list-clear") list_clear = true;
+  }
+
   mu::BmdSummary sum;
   std::vector<mu::BmdFileReport> opaque_samples;
   std::vector<mu::BmdFileReport> plaintext_samples;
@@ -388,7 +397,14 @@ int CmdBmdReport(int argc, char** argv) {
       plaintext_samples.push_back(r);
     if (!r.structure_valid && invalid_samples.size() < 10)
       invalid_samples.push_back(r);
+    if (list_clear && r.access != mu::PayloadAccess::kOpaque &&
+        r.structure_valid) {
+      std::printf("%s\t%llu\t%.4f\t%s\n", r.path.c_str(),
+                  static_cast<unsigned long long>(r.size), r.payload_entropy,
+                  mu::PayloadAccessName(r.access));
+    }
   }
+  if (list_clear) return 0;
 
   std::printf("BMD usability report for %s\n\n", argv[2]);
   std::printf("Three separate questions, three separate answers. A container\n"
