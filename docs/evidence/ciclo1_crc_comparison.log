@@ -1,0 +1,235 @@
+========================================================================
+EVIDENCIA CICLO 1 - CRC-32: MEU CALCULO vs. ListaPatch.txt
+Data UTC: 2026-10-11T22:33:14Z
+========================================================================
+
+Metodo: para cada entrada de ListaPatch.txt cujo arquivo existe na arvore,
+o CRC-32 e recalculado pelo mutool e comparado com o valor do manifesto.
+O manifesto e o proprio cliente que o produziu, portanto e uma fonte
+independente da minha implementacao.
+
+$ ./build/mutool verify /home/user/Cliente_ref/ListaPatch.txt /home/user/Cliente_ref
+
+manifest /home/user/Cliente_ref/ListaPatch.txt: 188 entries, 0 skipped
+
+verified against /home/user/Cliente_ref
+  total          188
+  match          116
+  size mismatch  9
+  crc mismatch   11
+  missing        52
+  unreadable     0
+    CRC_MISMATCH  3D.Premium
+    SIZE_MISMATCH  License.hinet
+    SIZE_MISMATCH  main.premium
+    CRC_MISMATCH  Data/gate.bmd
+    SIZE_MISMATCH  Data/InGameShopScript/512.2011.006/IBSCategory.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2011.006/IBSPackage.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2011.006/IBSProduct.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2025.005/IBSCategory.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2025.005/IBSPackage.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2025.005/IBSProduct.txt
+    MISSING  Data/Item/ArmorMale232.bmd
+    MISSING  Data/Item/ArmorMale233.bmd
+    MISSING  Data/Item/axe10.ozj
+    MISSING  Data/Item/Axe12.bmd
+    MISSING  Data/Item/BootMale232.bmd
+    MISSING  Data/Item/BootMale233.bmd
+    MISSING  Data/Item/bUYDmBaXdvBQMtx.ozj
+    MISSING  Data/Item/DarkHammer.bmd
+    MISSING  Data/Item/DarkSpear.bmd
+    MISSING  Data/Item/DcMakerFragPetCustom04.ozj
+    MISSING  Data/Item/DcMakerFragPetCustom04x.ozj
+    MISSING  Data/Item/DcMakerFragPetCustom04y.ozj
+    MISSING  Data/Item/ddsinflag1.bmd
+    MISSING  Data/Item/flag_Twitch.bmd
+    MISSING  Data/Item/flag_Youtube.bmd
+    MISSING  Data/Item/Foice.ozj
+    MISSING  Data/Item/Frag01sDcMaker.ozj
+    MISSING  Data/Item/Frag09DcMaker.ozj
+    MISSING  Data/Item/Frag10DcMaker.ozj
+    MISSING  Data/Item/FragDemonDcMaker.ozj
+    MISSING  Data/Item/Frags01DcMaker.ozj
+    MISSING  Data/Item/GloveMale232.bmd
+    MISSING  Data/Item/GloveMale233.bmd
+    MISSING  Data/Item/HelmMale232.bmd
+    MISSING  Data/Item/HelmMale233.bmd
+    MISSING  Data/Item/PantMale233.bmd
+    MISSING  Data/Item/PantMale322.bmd
+    MISSING  Data/Item/RongDoX2.bmd
+    MISSING  Data/Item/RongHongX2.bmd
+    MISSING  Data/Item/RongTrangX2.bmd
+    MISSING  Data/Item/Screen(07_25-14-50)-0000.jpg
+    MISSING  Data/Item/Wing327.bmd
+    MISSING  Data/Item/WingSaffe.ozj
+    CRC_MISMATCH  Data/Local/Eng/ItemTooltip_eng.bmd
+    CRC_MISMATCH  Data/Local/Eng/Item_eng.bmd
+    CRC_MISMATCH  Data/Local/Eng/movereq_eng.bmd
+    CRC_MISMATCH  Data/Local/Por/ItemTooltip_por.bmd
+    CRC_MISMATCH  Data/Local/Por/Item_por.bmd
+    CRC_MISMATCH  Data/Local/Por/movereq_por.bmd
+    CRC_MISMATCH  Data/Local/Spn/ItemTooltip_spn.bmd
+    CRC_MISMATCH  Data/Local/Spn/Item_spn.bmd
+    CRC_MISMATCH  Data/Local/Spn/movereq_spn.bmd
+    MISSING  Data/Player/ArmorMale232.bmd
+    MISSING  Data/Player/ArmorMale233.bmd
+    MISSING  Data/Player/axe10.ozj
+    MISSING  Data/Player/Axe12.bmd
+    MISSING  Data/Player/BootMale232.bmd
+    MISSING  Data/Player/BootMale233.bmd
+    MISSING  Data/Player/DarkHammer.bmd
+    MISSING  Data/Player/DarkSpear.bmd
+    MISSING  Data/Player/Foice.ozj
+    MISSING  Data/Player/GloveMale232.bmd
+    MISSING  Data/Player/GloveMale233.bmd
+    MISSING  Data/Player/HelmMale232.bmd
+    ... (8 more)
+
+exit code: 0
+
+========================================================================
+COMPARACAO EXPLORITA ARQUIVO A ARQUIVO (amostra de correspondencias)
+========================================================================
+
+ARQUIVO                                              MEU_CRC    MANIFESTO  IGUAL?
+Data/Item/AXDC_1906.ozj                              e52aefdb   e52aefdb   SIM   (tamanho real 350878, manifesto 350878)
+Data/Item/ArmorMale231.bmd                           d37c2d2e   d37c2d2e   SIM   (tamanho real 119296, manifesto 119296)
+Data/Item/Axe11.bmd                                  2ea99050   2ea99050   SIM   (tamanho real 227762, manifesto 227762)
+Data/Item/BootMale231.bmd                            4a5034f7   4a5034f7   SIM   (tamanho real 33711, manifesto 33711)
+Data/Item/CkPDMKRD260855.ozj                         bb14849f   bb14849f   SIM   (tamanho real 168995, manifesto 168995)
+Data/Item/CkPDMKRD260855.ozt                         b307e0b0   b307e0b0   SIM   (tamanho real 4194326, manifesto 4194326)
+Data/Item/DeusDragao.bmd                             04657514   04657514   SIM   (tamanho real 1276711, manifesto 1276711)
+Data/Item/GloveMale230.bmd                           879d8aac   879d8aac   SIM   (tamanho real 31196, manifesto 31196)
+Data/Item/HelmMale231.bmd                            468d2e8a   468d2e8a   SIM   (tamanho real 64838, manifesto 64838)
+Data/Item/HlmLgHalDcMaker1m.ozj                      96d56df7   96d56df7   SIM   (tamanho real 83128, manifesto 83128)
+Data/Item/HlmLgHalDcMakerm.ozj                       b83e0a84   b83e0a84   SIM   (tamanho real 35217, manifesto 35217)
+Data/Item/HrsAngelNovoDaniela.ozt                    42a0a8b9   42a0a8b9   SIM   (tamanho real 262192, manifesto 262192)
+Data/Item/HrsAngelNovoDaniela1.ozj                   79d42dcb   79d42dcb   SIM   (tamanho real 83930, manifesto 83930)
+Data/Item/LightMount.bmd                             ee1735d4   ee1735d4   SIM   (tamanho real 773191, manifesto 773191)
+Data/Item/MCDGB_PDMK.ozj                             a0b6e6ad   a0b6e6ad   SIM   (tamanho real 104207, manifesto 104207)
+Data/Item/Mace36.bmd                                 f20d34fc   f20d34fc   SIM   (tamanho real 52690, manifesto 52690)
+Data/Item/Mace37.bmd                                 344b02ff   344b02ff   SIM   (tamanho real 106896, manifesto 106896)
+Data/Item/Mace38.bmd                                 52b4360d   52b4360d   SIM   (tamanho real 813992, manifesto 813992)
+Data/Item/McDcmaker.ozj                              bd2ee3db   bd2ee3db   SIM   (tamanho real 38545, manifesto 38545)
+Data/Item/MtLghHalkDcMaker.ozt                       783a1e1b   783a1e1b   SIM   (tamanho real 524310, manifesto 524310)
+Data/Item/P3RS3UMakersSETGREENM0512.ozt              1ab007f3   1ab007f3   SIM   (tamanho real 1048598, manifesto 1048598)
+Data/Item/PantMale321.bmd                            1d2bd7c5   1d2bd7c5   SIM   (tamanho real 47824, manifesto 47824)
+Data/Item/SDPDMK_GBLORD.ozj                          45871d1c   45871d1c   SIM   (tamanho real 108217, manifesto 108217)
+Data/Item/SWPDMKAL_0109.ozj                          d1ad9da4   d1ad9da4   SIM   (tamanho real 175970, manifesto 175970)
+Data/Item/SdlighDcmaker.ozt                          2838ec86   2838ec86   SIM   (tamanho real 65558, manifesto 65558)
+Data/Item/Shield47.bmd                               cb50a567   cb50a567   SIM   (tamanho real 79353, manifesto 79353)
+Data/Item/StMHalkDcMaker.ozj                         d8d2d58d   d8d2d58d   SIM   (tamanho real 282426, manifesto 282426)
+Data/Item/StMHalkDcMaker1.ozj                        e4e1a5e7   e4e1a5e7   SIM   (tamanho real 123898, manifesto 123898)
+Data/Item/Sword131.bmd                               65019cff   65019cff   SIM   (tamanho real 20410, manifesto 20410)
+Data/Item/Sword132.bmd                               ab52ff74   ab52ff74   SIM   (tamanho real 36343, manifesto 36343)
+Data/Item/Sword133.bmd                               2ad4c25b   2ad4c25b   SIM   (tamanho real 344628, manifesto 344628)
+Data/Item/WGGB_PDMK.ozj                              b7eca4dd   b7eca4dd   SIM   (tamanho real 655201, manifesto 655201)
+Data/Item/WgLighDcMaker.ozt                          66085a96   66085a96   SIM   (tamanho real 1048598, manifesto 1048598)
+Data/Item/Wing321.bmd                                19d6144d   19d6144d   SIM   (tamanho real 74342, manifesto 74342)
+Data/Item/Wing323.bmd                                d6bc8b4a   d6bc8b4a   SIM   (tamanho real 109976, manifesto 109976)
+Data/Item/Wing324.bmd                                e7b7fcbf   e7b7fcbf   SIM   (tamanho real 382058, manifesto 382058)
+Data/Item/Wing325.bmd                                80a6040d   80a6040d   SIM   (tamanho real 276092, manifesto 276092)
+Data/Item/Wing326.bmd                                0c5771f1   0c5771f1   SIM   (tamanho real 1624588, manifesto 1624588)
+Data/Item/armorsnowflakelucasnuut.ozj                b633fd07   b633fd07   SIM   (tamanho real 90669, manifesto 90669)
+Data/Item/bootsnowflakelucasnuut.ozj                 d18b7454   d18b7454   SIM   (tamanho real 30206, manifesto 30206)
+Data/Item/capesnowlucasnuut01.ozj                    0b0b835d   0b0b835d   SIM   (tamanho real 90191, manifesto 90191)
+Data/Item/capesnowlucasnuut02.ozt                    f2db1635   f2db1635   SIM   (tamanho real 262192, manifesto 262192)
+Data/Item/cksHalkDcMaker.ozj                         72775bea   72775bea   SIM   (tamanho real 208079, manifesto 208079)
+Data/Item/glovesnowflakelucasnuut.ozj                1af95bc9   1af95bc9   SIM   (tamanho real 21940, manifesto 21940)
+Data/Item/gorrosnowflakelucasnuut.ozj                a5c0f36b   a5c0f36b   SIM   (tamanho real 45121, manifesto 45121)
+Data/Item/macesnowflakelucasnuut.ozt                 a5ce94c8   a5ce94c8   SIM   (tamanho real 262192, manifesto 262192)
+Data/Item/macesnowflakelucasnuut02.ozt               a5ce94c8   a5ce94c8   SIM   (tamanho real 262192, manifesto 262192)
+Data/Item/n2797.ozj                                  9693b540   9693b540   SIM   (tamanho real 284682, manifesto 284682)
+Data/Item/pantsnowflakelucasnuut.ozj                 e2d225f3   e2d225f3   SIM   (tamanho real 53330, manifesto 53330)
+Data/Item/sWMHalkDcMaker.ozj                         b958d197   b958d197   SIM   (tamanho real 45959, manifesto 45959)
+Data/Item/shield46.bmd                               8e4312df   8e4312df   SIM   (tamanho real 7120, manifesto 7120)
+Data/Item/shield48.bmd                               60a228bb   60a228bb   SIM   (tamanho real 527237, manifesto 527237)
+Data/Item/shieldsnowflakelucasnuut.ozt               a5ce94c8   a5ce94c8   SIM   (tamanho real 262192, manifesto 262192)
+Data/Item/swordsnowflakelucasnuut.ozj                44ffc2db   44ffc2db   SIM   (tamanho real 50875, manifesto 50875)
+Data/Item/wing322.bmd                                e8f09e84   e8f09e84   SIM   (tamanho real 33087, manifesto 33087)
+Data/Item/wingsnowflakelucasnuut.ozt                 443b1505   443b1505   SIM   (tamanho real 262192, manifesto 262192)
+Data/Local/Eng/ItemTooltipText_eng.bmd               95e92526   95e92526   SIM   (tamanho real 266244, manifesto 266244)
+Data/Local/Por/ItemTooltipText_por.bmd               9af94ea9   9af94ea9   SIM   (tamanho real 266244, manifesto 266244)
+Data/Local/Spn/ItemTooltipText_spn.bmd               95e92526   95e92526   SIM   (tamanho real 266244, manifesto 266244)
+Data/Player/AXDC_1906.ozj                            e52aefdb   e52aefdb   SIM   (tamanho real 350878, manifesto 350878)
+Data/Player/ArmorMale231.bmd                         d37c2d2e   d37c2d2e   SIM   (tamanho real 119296, manifesto 119296)
+Data/Player/Axe11.bmd                                2ea99050   2ea99050   SIM   (tamanho real 227762, manifesto 227762)
+Data/Player/BootMale231.bmd                          4a5034f7   4a5034f7   SIM   (tamanho real 33711, manifesto 33711)
+Data/Player/CkPDMKRD260855.ozj                       bb14849f   bb14849f   SIM   (tamanho real 168995, manifesto 168995)
+Data/Player/CkPDMKRD260855.ozt                       b307e0b0   b307e0b0   SIM   (tamanho real 4194326, manifesto 4194326)
+Data/Player/DeusDragao.bmd                           04657514   04657514   SIM   (tamanho real 1276711, manifesto 1276711)
+Data/Player/GloveMale230.bmd                         879d8aac   879d8aac   SIM   (tamanho real 31196, manifesto 31196)
+Data/Player/HelmMale231.bmd                          468d2e8a   468d2e8a   SIM   (tamanho real 64838, manifesto 64838)
+Data/Player/HlmLgHalDcMaker1m.ozj                    96d56df7   96d56df7   SIM   (tamanho real 83128, manifesto 83128)
+Data/Player/HlmLgHalDcMakerm.ozj                     b83e0a84   b83e0a84   SIM   (tamanho real 35217, manifesto 35217)
+Data/Player/HrsAngelNovoDaniela.ozt                  42a0a8b9   42a0a8b9   SIM   (tamanho real 262192, manifesto 262192)
+Data/Player/HrsAngelNovoDaniela1.ozj                 79d42dcb   79d42dcb   SIM   (tamanho real 83930, manifesto 83930)
+Data/Player/LightMount.bmd                           ee1735d4   ee1735d4   SIM   (tamanho real 773191, manifesto 773191)
+Data/Player/MCDGB_PDMK.ozj                           a0b6e6ad   a0b6e6ad   SIM   (tamanho real 104207, manifesto 104207)
+Data/Player/Mace36.bmd                               f20d34fc   f20d34fc   SIM   (tamanho real 52690, manifesto 52690)
+Data/Player/Mace37.bmd                               344b02ff   344b02ff   SIM   (tamanho real 106896, manifesto 106896)
+Data/Player/Mace38.bmd                               52b4360d   52b4360d   SIM   (tamanho real 813992, manifesto 813992)
+Data/Player/McDcmaker.ozj                            bd2ee3db   bd2ee3db   SIM   (tamanho real 38545, manifesto 38545)
+Data/Player/MtLghHalkDcMaker.ozt                     783a1e1b   783a1e1b   SIM   (tamanho real 524310, manifesto 524310)
+Data/Player/P3RS3UMakersSETGREENM0512.ozt            1ab007f3   1ab007f3   SIM   (tamanho real 1048598, manifesto 1048598)
+Data/Player/PantMale321.bmd                          1d2bd7c5   1d2bd7c5   SIM   (tamanho real 47824, manifesto 47824)
+Data/Player/SDPDMK_GBLORD.ozj                        45871d1c   45871d1c   SIM   (tamanho real 108217, manifesto 108217)
+Data/Player/SWPDMKAL_0109.ozj                        d1ad9da4   d1ad9da4   SIM   (tamanho real 175970, manifesto 175970)
+Data/Player/SdlighDcmaker.ozt                        2838ec86   2838ec86   SIM   (tamanho real 65558, manifesto 65558)
+Data/Player/Shield47.bmd                             cb50a567   cb50a567   SIM   (tamanho real 79353, manifesto 79353)
+Data/Player/StMHalkDcMaker.ozj                       d8d2d58d   d8d2d58d   SIM   (tamanho real 282426, manifesto 282426)
+Data/Player/StMHalkDcMaker1.ozj                      e4e1a5e7   e4e1a5e7   SIM   (tamanho real 123898, manifesto 123898)
+Data/Player/Sword131.bmd                             65019cff   65019cff   SIM   (tamanho real 20410, manifesto 20410)
+Data/Player/Sword132.bmd                             ab52ff74   ab52ff74   SIM   (tamanho real 36343, manifesto 36343)
+Data/Player/Sword133.bmd                             2ad4c25b   2ad4c25b   SIM   (tamanho real 344628, manifesto 344628)
+Data/Player/WGGB_PDMK.ozj                            b7eca4dd   b7eca4dd   SIM   (tamanho real 655201, manifesto 655201)
+Data/Player/WgLighDcMaker.ozt                        66085a96   66085a96   SIM   (tamanho real 1048598, manifesto 1048598)
+Data/Player/Wing321.bmd                              19d6144d   19d6144d   SIM   (tamanho real 74342, manifesto 74342)
+Data/Player/Wing323.bmd                              d6bc8b4a   d6bc8b4a   SIM   (tamanho real 109976, manifesto 109976)
+Data/Player/Wing324.bmd                              e7b7fcbf   e7b7fcbf   SIM   (tamanho real 382058, manifesto 382058)
+Data/Player/Wing325.bmd                              80a6040d   80a6040d   SIM   (tamanho real 276092, manifesto 276092)
+Data/Player/Wing326.bmd                              0c5771f1   0c5771f1   SIM   (tamanho real 1624588, manifesto 1624588)
+Data/Player/armorsnowflakelucasnuut.ozj              b633fd07   b633fd07   SIM   (tamanho real 90669, manifesto 90669)
+Data/Player/bootsnowflakelucasnuut.ozj               d18b7454   d18b7454   SIM   (tamanho real 30206, manifesto 30206)
+Data/Player/capesnowlucasnuut01.ozj                  0b0b835d   0b0b835d   SIM   (tamanho real 90191, manifesto 90191)
+Data/Player/capesnowlucasnuut02.ozt                  f2db1635   f2db1635   SIM   (tamanho real 262192, manifesto 262192)
+Data/Player/cksHalkDcMaker.ozj                       72775bea   72775bea   SIM   (tamanho real 208079, manifesto 208079)
+Data/Player/glovesnowflakelucasnuut.ozj              1af95bc9   1af95bc9   SIM   (tamanho real 21940, manifesto 21940)
+Data/Player/gorrosnowflakelucasnuut.ozj              a5c0f36b   a5c0f36b   SIM   (tamanho real 45121, manifesto 45121)
+Data/Player/macesnowflakelucasnuut.ozt               a5ce94c8   a5ce94c8   SIM   (tamanho real 262192, manifesto 262192)
+Data/Player/macesnowflakelucasnuut02.ozt             a5ce94c8   a5ce94c8   SIM   (tamanho real 262192, manifesto 262192)
+Data/Player/n2797.ozj                                9693b540   9693b540   SIM   (tamanho real 284682, manifesto 284682)
+Data/Player/pantsnowflakelucasnuut.ozj               e2d225f3   e2d225f3   SIM   (tamanho real 53330, manifesto 53330)
+Data/Player/sWMHalkDcMaker.ozj                       b958d197   b958d197   SIM   (tamanho real 45959, manifesto 45959)
+Data/Player/shield46.bmd                             8e4312df   8e4312df   SIM   (tamanho real 7120, manifesto 7120)
+Data/Player/shield48.bmd                             60a228bb   60a228bb   SIM   (tamanho real 527237, manifesto 527237)
+Data/Player/shieldsnowflakelucasnuut.ozt             a5ce94c8   a5ce94c8   SIM   (tamanho real 262192, manifesto 262192)
+Data/Player/swordsnowflakelucasnuut.ozj              44ffc2db   44ffc2db   SIM   (tamanho real 50875, manifesto 50875)
+Data/Player/wing322.bmd                              e8f09e84   e8f09e84   SIM   (tamanho real 33087, manifesto 33087)
+Data/Player/wingsnowflakelucasnuut.ozt               443b1505   443b1505   SIM   (tamanho real 262192, manifesto 262192)
+Data/Skill/musign.bmd                                a40e00c8   a40e00c8   SIM   (tamanho real 2853305, manifesto 2853305)
+3D.Premium                                           b7c26e2c   4108e84d   NAO   (tamanho real 142688, manifesto 142688)
+Data/InGameShopScript/512.2011.006/IBSCategory.txt   1dab3338   bab7f199   NAO   (tamanho real 351, manifesto 281)
+Data/InGameShopScript/512.2011.006/IBSPackage.txt    c8fe4a3e   9f16c59e   NAO   (tamanho real 11213, manifesto 11532)
+Data/InGameShopScript/512.2011.006/IBSProduct.txt    f5dbce3c   ec49ebe0   NAO   (tamanho real 32611, manifesto 33150)
+Data/InGameShopScript/512.2025.005/IBSCategory.txt   1dab3338   bab7f199   NAO   (tamanho real 351, manifesto 281)
+Data/InGameShopScript/512.2025.005/IBSPackage.txt    c8fe4a3e   9f16c59e   NAO   (tamanho real 11213, manifesto 11532)
+Data/InGameShopScript/512.2025.005/IBSProduct.txt    f5dbce3c   ec49ebe0   NAO   (tamanho real 32611, manifesto 33150)
+Data/Local/Eng/ItemTooltip_eng.bmd                   a7109801   ef246fc9   NAO   (tamanho real 1015812, manifesto 1015812)
+Data/Local/Eng/Item_eng.bmd                          d8722eb2   2fc95c27   NAO   (tamanho real 688132, manifesto 688132)
+Data/Local/Eng/movereq_eng.bmd                       f7e277f6   10b9bca4   NAO   (tamanho real 6220, manifesto 6220)
+Data/Local/Por/ItemTooltip_por.bmd                   a7109801   ef246fc9   NAO   (tamanho real 1015812, manifesto 1015812)
+Data/Local/Por/Item_por.bmd                          d8722eb2   2fc95c27   NAO   (tamanho real 688132, manifesto 688132)
+Data/Local/Por/movereq_por.bmd                       f7e277f6   10b9bca4   NAO   (tamanho real 6220, manifesto 6220)
+Data/Local/Spn/ItemTooltip_spn.bmd                   a7109801   ef246fc9   NAO   (tamanho real 1015812, manifesto 1015812)
+Data/Local/Spn/Item_spn.bmd                          d8722eb2   2fc95c27   NAO   (tamanho real 688132, manifesto 688132)
+Data/Local/Spn/movereq_spn.bmd                       f7e277f6   10b9bca4   NAO   (tamanho real 6220, manifesto 6220)
+Data/gate.bmd                                        6f27c565   05d2a7b8   NAO   (tamanho real 7168, manifesto 7168)
+License.hinet                                        8d2f2f32   086214e9   NAO   (tamanho real 1216, manifesto 1241)
+PS/License.ps                                        9a5bf21c   08f5861f   NAO   (tamanho real 361, manifesto 33523)
+main.premium                                         f72f08f9   96913ae6   NAO   (tamanho real 2775700, manifesto 2479888)
+
+RESUMO: 136 arquivos comparados, 116 IGUAIS, 20 DIFERENTES
+Nota: os DIFERENTES sao divergencias entre a arvore e o proprio manifesto do
+cliente, nao falhas do calculo de CRC. Cada caso esta listado acima com os
+dois valores e os dois tamanhos, para que a causa seja verificavel.

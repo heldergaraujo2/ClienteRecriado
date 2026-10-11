@@ -1,0 +1,39 @@
+========================================================================
+EVIDENCIA CICLO 1 - SUITE DE TESTES COMPLETA
+Data UTC: 2026-10-11T22:32:56Z
+========================================================================
+
+$ make test
+
+build/test_assets
+ClienteRecriado asset library tests
+[ RUN  ] crc32 known vectors
+[  OK  ] crc32 known vectors
+[ RUN  ] ozt round trip
+[  OK  ] ozt round trip
+[ RUN  ] ozt variant with extra prefix
+[  OK  ] ozt variant with extra prefix
+[ RUN  ] ozt rejects bad input
+[  OK  ] ozt rejects bad input
+[ RUN  ] ozj probe
+[  OK  ] ozj probe
+[ RUN  ] ozj duplicated header prefix
+[  OK  ] ozj duplicated header prefix
+[ RUN  ] bux cipher is self inverse
+[  OK  ] bux cipher is self inverse
+[ RUN  ] bmd probe
+[  OK  ] bmd probe
+[ RUN  ] entropy separates plaintext from ciphertext
+[  OK  ] entropy separates plaintext from ciphertext
+[ RUN  ] terrain probe
+[  OK  ] terrain probe
+[ RUN  ] manifest parse
+[  OK  ] manifest parse
+[ RUN  ] manifest verify
+[  OK  ] manifest verify
+[ RUN  ] extension helpers
+[  OK  ] extension helpers
+
+171 checks, 0 failures
+
+exit code: 0

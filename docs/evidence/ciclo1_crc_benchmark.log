@@ -1,0 +1,41 @@
+========================================================================
+EVIDENCIA CICLO 1 - BENCHMARK CRC-32
+Data UTC: 2026-10-11T22:34:36Z
+Compilador: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Flags: -std=c++17 -O2
+Metodo: warm-up descartado; N repeticoes; steady_clock; mediana + P95/P99
+        + desvio padrao populacional.
+IMPORTANTE: as tres primeiras linhas usam um buffer em memoria (residente
+em cache). A ultima le o arquivo do disco a cada repeticao, que e o que o
+'mutool verify' faz de fato. Os dois numeros NAO sao comparaveis entre si.
+========================================================================
+
+$ MU_BENCH_FILE=/home/user/Cliente_ref/Data/Interface/lo_back_02.OZJ ./build/bench_assets
+
+ClienteRecriado asset micro-benchmarks
+CPU-side decode cost only. Not a frame rate measurement.
+
+benchmark                            med us   p95 us   p99 us  mean us         MB      MB/s
+---------                            ------   ------   ------  -------         --      ----
+OztProbe 256x256                        0.0      0.0      0.0      0.0       0.25 8930206.3
+OztRead 256x256 (copy pixels)           6.0      6.0      6.5      6.2       0.25   41862.7
+OztToRgbaTopDown 256x256               64.6     88.4    102.1     66.6       0.25    3872.0
+OztRead 512x512                        61.2     90.5    102.6     66.5       1.00   16341.2
+OztRead 1024x1024                     269.1    323.2    350.3    286.4       4.00   14866.5
+BuxCrypt 1 MiB                       1133.3   1299.3   1648.8   1168.0       1.00     882.4
+ByteEntropy 1 MiB                     656.3    685.5    712.2    655.9       1.00    1523.6
+Crc32 64 KiB (in cache)                30.4     30.4     53.2     31.3       0.06    2056.3
+    reps=300  mean=31.3 us  stddev=4.5 us (14.53% of mean)  min=30.4  max=74.2
+Crc32 1024 KiB (in cache)             511.2    523.4    541.9    505.0       1.00    1956.0
+    reps=300  mean=505.0 us  stddev=14.7 us (2.91% of mean)  min=486.0  max=555.4
+Crc32 16384 KiB (in cache)           8306.8   8458.6   8458.6   8308.9      16.00    1926.1
+    reps=20  mean=8308.9 us  stddev=109.7 us (1.32% of mean)  min=8167.6  max=8564.5
+Crc32 + disk read each rep          12823.9  13429.9  13429.9  12802.3      17.43    1358.9
+    reps=20  mean=12802.3 us  stddev=439.8 us  file=/home/user/Cliente_ref/Data/Interface/lo_back_02.OZJ
+ManifestParse 5000 entries            988.1   1241.1   1689.4   1028.8       0.19     193.0
+  (parsed 5000 entries)
+OzjProbe 512x512 + 200KB scan         117.7    144.1    224.4    125.0       0.19    1620.4
+  (geometry 512x512)
+
+Run twice and compare the medians; a shift of more than a few
+percent on the same machine means something changed.

@@ -1,0 +1,72 @@
+========================================================================
+EVIDENCIA CICLO 1 - PROVA DA CIFRA XOR-3 {0xFC,0xCF,0xAB}
+Data UTC: 2026-10-11T22:33:36Z
+========================================================================
+
+Metodo: o cliente referencia contem arquivos de terreno cifrados E em claro.
+Aplicar XOR-3 ao cifrado deve reproduzir o em claro. Se reproduzir, a chave
+esta confirmada por duas observacoes independentes (o prefixo do cabecalho e
+a sequencia repetida do corpo).
+
+Chave: FC CF AB repetindo, fase 0, aplicada desde o byte 0.
+
+========================================================================
+ARQUIVO CIFRADO : /home/user/Cliente_ref/Data/World1/Terrain1.att  (65539 bytes)
+ARQUIVO EM CLARO: /home/user/Cliente_ref/Data/World1/Lorencia.att  (65539 bytes)
+========================================================================
+
+  [A] bytes cifrados      (offset 0x00):
+      fc 30 54 f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af
+  [B] bytes decifrados    (XOR FC CF AB):
+      00 ff ff 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04
+  [C] arquivo em claro    (referencia independente):
+      00 ff ff 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04
+
+  [B] == [C] nos primeiros 48 bytes? SIM
+  Prefixo identico ate o byte: 256
+  Bytes identicos em todo o arquivo comparado: 62862 de 65539 (95.9154%)
+
+  Evidencia adicional - corpo repetido:
+    cifrado  [0x03..0x17]: f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af
+    decifrado[0x03..0x17]: 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04
+    em claro [0x03..0x17]: 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04
+
+    F8 CB AF repetido decifra para 04 04 04, que e exatamente o
+    valor que se repete no arquivo em claro. Dois fatos independentes
+    (cabecalho 00 FF FF e corpo 04) coincidem com a mesma chave.
+
+========================================================================
+ARQUIVO CIFRADO : /home/user/Cliente_ref/Data/World1/Terrain1.att  (65539 bytes)
+ARQUIVO EM CLARO: /home/user/Cliente_ref/Data/World1/Lorencia1.att  (65539 bytes)
+========================================================================
+
+  [A] bytes cifrados      (offset 0x00):
+      fc 30 54 f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af
+  [B] bytes decifrados    (XOR FC CF AB):
+      00 ff ff 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04
+  [C] arquivo em claro    (referencia independente):
+      00 ff ff 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04
+
+  [B] == [C] nos primeiros 48 bytes? SIM
+  Prefixo identico ate o byte: 256
+  Bytes identicos em todo o arquivo comparado: 63649 de 65539 (97.1162%)
+
+  Evidencia adicional - corpo repetido:
+    cifrado  [0x03..0x17]: f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af f8 cb af
+    decifrado[0x03..0x17]: 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04
+    em claro [0x03..0x17]: 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04 04
+
+    F8 CB AF repetido decifra para 04 04 04, que e exatamente o
+    valor que se repete no arquivo em claro. Dois fatos independentes
+    (cabecalho 00 FF FF e corpo 04) coincidem com a mesma chave.
+
+========================================================================
+CONCLUSAO
+========================================================================
+  Terrain1.att -> Lorencia.att : prefixo identico ate o byte 256; 62862/65539 bytes identicos (95.9154%)
+  Terrain1.att -> Lorencia1.att : prefixo identico ate o byte 256; 63649/65539 bytes identicos (97.1162%)
+
+A chave XOR-3 {0xFC,0xCF,0xAB} esta confirmada para os arquivos de terreno
+da familia NAO-'Enc'. Ela NAO se aplica a familia EncTerrain*: decifrar 60
+desses arquivos com a mesma chave melhorou a densidade de bytes baixos em
+apenas 1 dos 60, e a entropia medida e 7.99 (dado uniforme).

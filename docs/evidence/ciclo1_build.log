@@ -1,0 +1,36 @@
+========================================================================
+EVIDENCIA CICLO 1 - BUILD COMPLETO
+Data UTC: 2026-10-11T22:32:32Z
+Host: Linux 6.1.158+ x86_64
+Compilador: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+========================================================================
+
+$ make clean && make 2>&1
+
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tools/mutool.cpp -o build/tools/mutool.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/format.cpp -o build/src/mu/assets/format.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozt.cpp -o build/src/mu/assets/ozt.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozj.cpp -o build/src/mu/assets/ozj.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd.cpp -o build/src/mu/assets/bmd.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_report.cpp -o build/src/mu/assets/bmd_report.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/terrain.cpp -o build/src/mu/assets/terrain.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/tga.cpp -o build/src/mu/assets/tga.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/manifest.cpp -o build/src/mu/assets/manifest.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/fs.cpp -o build/src/mu/fs.o
+ar rcs build/libmuassets.a build/src/mu/assets/format.o build/src/mu/assets/ozt.o build/src/mu/assets/ozj.o build/src/mu/assets/bmd.o build/src/mu/assets/bmd_report.o build/src/mu/assets/terrain.o build/src/mu/assets/tga.o build/src/mu/assets/manifest.o build/src/mu/fs.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc build/tools/mutool.o -Lbuild -lmuassets -o build/mutool 
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tests/test_assets.cpp -o build/tests/test_assets.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc build/tests/test_assets.o -Lbuild -lmuassets -o build/test_assets 
+
+exit code: 0
+
+=== CONTAGEM DE AVISOS E ERROS (deve ser 0) ===
+0
+(o numero acima e a contagem de linhas com 'warning:' ou 'error:')
+
+=== FLAGS DE AVISO EM USO ===
+WARN     := -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion \
+            -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual \
+            -Wcast-align -Wdouble-promotion -Wformat=2
+CXXFLAGS ?= $(CXXSTD) $(OPT) $(WARN) -Isrc
+LDFLAGS  ?=
