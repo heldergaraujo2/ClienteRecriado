@@ -115,8 +115,42 @@ before retrying, because two of them look like they should work:
    hypothesis you have not verified** — the result is inconclusive even when it
    looks like it closes.
 
-**The working hypothesis, from evidence rather than guessing: the remainder is
-organised in per-mesh blocks, not flat sections.** Two things point there:
+**The record-size line of attack is closed.** Four separate attempts to
+determine the face section by searching for a record size have failed, and all
+four are recorded with their numbers in
+[`evidence/ciclo1_bmd_layout.log`](evidence/ciclo1_bmd_layout.log):
+
+1. Uniform vertex stride across the file — ambiguous (12 B wins one file, 48 B
+   another).
+2. `nc*8` UV array followed by faces — ambiguous (8 B wins 4 files, 16 B wins 4,
+   12 B wins 2).
+3. UV region by consecutive float pairs in `[0,1]` — `pairs/nc` ranges
+   0.146–0.824, so it is not an array of `nc` pairs.
+4. Dual vertex+normal constraint `[v0 v1 v2 n0 n1 n2]` — inconsistent: 629
+   records in `Monster263` against 5 in `Sword40`.
+
+Attempting a fifth record size is not a reasonable next step. What is missing is
+not a better guess but the meaning of the fields, and search does not produce
+that. Two notes for whoever resumes:
+
+- The weak tests stop discriminating exactly where their numbers look best. In
+  `Monster263`, `nc = 1872`, so a random u16 has a high probability of being
+  below `nc` and long runs of "triplets < nc" arise by chance in a large file.
+- Do not anchor a search on an offset derived from an unconfirmed hypothesis.
+  Attempts 2 and 4 both started from `nc*8`, which was never verified.
+
+**What would actually unblock this**, in order:
+
+1. An open-source implementation of the format under a compatible licence. This
+   is the normal route and it is **blocked by the development environment having
+   no outbound access to a code host** — not by the difficulty of the format.
+2. Documentation of the format from its author or community.
+3. A reference `.smd`/`.bmd` pair where the BMD is in the clear. Only 1 of the
+   10 `.smd` files in the tree has a same-name `.bmd`, and that one
+   (`Object40`) is encrypted.
+
+**The remaining hypothesis, untested:** the remainder is organised in per-mesh
+blocks rather than flat sections. Two things point there:
 
 - Texture names are NUL-terminated strings, not fixed-width fields. In
   `Monster263.bmd`, `RsylvesterB.jpg` and `RsylvesterA.jpg` sit at 200000 and
