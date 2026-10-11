@@ -29,7 +29,8 @@ CAND-001).
 | 4 testes novos fixando as 3 métricas como contadores separados | **CONCLUÍDO** |
 | `bench_assets`: desvio padrão, min/max, 3 tamanhos de buffer, leitura de disco por repetição | **CONCLUÍDO** |
 | Target `make test-san` (ASan+UBSan) | **CONCLUÍDO** |
-| Parser do corpo BMD | **NÃO DETERMINADO** — ver §9 |
+| Parser do corpo BMD v0x0A (vértices + normais) | **CONCLUÍDO** — 1.191 arquivos reais |
+| Faces, UV e ossos BMD | **NÃO DETERMINADO** — ver §9 |
 
 ## 3. Problemas resolvidos
 
@@ -62,9 +63,9 @@ todos por verificação e não por relato:
 
 | Teste | Comando | Resultado |
 |---|---|---|
-| Unitários | `make test` | **203 checks, 0 failures** — `PASS` ([`ciclo1_test.log`](ciclo1_test.log)) |
+| Unitários | `make test` | **231 checks, 0 failures** — `PASS` ([`ciclo1_test.log`](ciclo1_test.log)) |
 | Build limpo | `make clean && make` | **0** `warning:`/`error:` sob 12 flags `-W` — `PASS` |
-| Sanitizadores | `make test-san` | 203 checks, 0 failures, **0 reports**, exit 0 — `PASS` ([`ciclo1_test_san.log`](ciclo1_test_san.log)) |
+| Sanitizadores | `make test-san` | 231 checks, 0 failures, **0 reports**, exit 0 — `PASS` ([`ciclo1_test_san.log`](ciclo1_test_san.log)) |
 | Scan da árvore real | `mutool scan` (29.060 arquivos) | exit 0, 1,65 s — `PASS` |
 | Relatório BMD | `mutool bmdreport` | exit **2** (esperado; sem geometria) |
 | Build/execução no Windows | — | **BLOQUEADO** — sem Windows, GPU ou mingw |
@@ -81,7 +82,7 @@ BMD, três níveis, sobre os 10.090 arquivos (não amostra):
 | ↳ plaintext | já claro | 1.396 | 13,84% |
 | ↳ bux-decifrável | XOR-3 `{0xFC,0xCF,0xAB}` | 100 | 0,99% |
 | ↳ **OPAQUE** | cifra não recuperada | **8.594** | **85,17%** |
-| 3. Geometria extraída | vértices/faces/ossos lidos | **0** | **0,00%** |
+| 3. Geometria extraída | posições de vértice e normais lidas | **1.191** | **11,80%** |
 
 CRC-32 (mediana ± desvio padrão):
 
@@ -131,7 +132,12 @@ igual ao local — ver seção final.
 
 ## 9. Problemas restantes
 
-1. **Corpo BMD não determinado (novo, medido).** Entre os 1.465 claros: os 100
+1. **Corpo BMD: duas seções decodificadas, o resto não (medido).** O parser
+   v0x0A foi implementado e extrai posições de vértice e normais de **1.191 dos
+   1.194** arquivos v0x0A — o nível 3 do `bmdreport` saiu de 0 (estrutural) para
+   **1.191 (11,80%) medido**. O teto é 11,83% porque v0x0C é cifrado e nunca é
+   parseado. **Índices de face, coordenadas de textura e ossos continuam não
+   decodificados, então nenhum desses 1.191 arquivos é um modelo renderizável.** Entre os 1.465 claros: os 100
    bux não começam com `BMD` após decifrar (são contêineres, não modelos); 433
    abrem com um campo ASCII de 32 bytes contendo o nome do modelo de origem,
    todos terminando em `.SMD`, 351 com separador de caminho (`Data2\Item\Bow\`).
