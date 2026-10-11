@@ -85,7 +85,7 @@ Use `i686-w64-mingw32-g++` for a 32-bit build matching the reference client.
 make test
 ```
 
-Expected: `203 checks, 0 failures`, and **no compiler warnings**. The warning
+Expected: `231 checks, 0 failures`, and **no compiler warnings**. The warning
 set is `-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion
 -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual
 -Wcast-align -Wdouble-promotion -Wformat=2`. Do not narrow it to silence a
@@ -97,7 +97,7 @@ warning.
 make test-san        # separate instrumented binary in build-san/
 ```
 
-Expected: `203 checks, 0 failures` with no AddressSanitizer,
+Expected: `231 checks, 0 failures` with no AddressSanitizer,
 UndefinedBehaviorSanitizer or LeakSanitizer reports, and exit code 0.
 It is a separate target rather than a flag, so `make test` never silently runs
 an instrumented build.

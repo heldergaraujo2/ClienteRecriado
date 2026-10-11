@@ -4,7 +4,7 @@ Every result is classified `PASS`, `FAIL`, `BLOCKED`, `NOT EXECUTED` or
 `NOT APPLICABLE`, with evidence or a reason. A blank is never left where a
 classification belongs.
 
-Last run: `make test` — **203 checks, 0 failures**.
+Last run: `make test` — **231 checks, 0 failures**.
 
 ## 1. Unit tests
 
@@ -27,12 +27,15 @@ Fixtures are generated at run time; no original asset bytes are involved.
 | manifest parse | 14 | `PASS` | CRLF, blank lines, spaces in paths, malformed lines, bad hex |
 | manifest verify | 7 | `PASS` | Match, size mismatch, missing, unreadable, exit classification |
 | extension helpers | 6 | `PASS` | Case folding, dot-in-directory, no extension |
+| bmd body parses verified layout | 14 | `PASS` | **New.** Round-trips a synthetic v0x0A body through the parser: 5 vertices and 7 normals, source name recovered, trailing aux fields preserved rather than dropped |
+| bmd body rejects bad input | 13 | `PASS` | **New.** Truncated header, counts exceeding the payload, non-printable name (geometry must still parse — 932 real files have no name), non-finite coordinate, null output |
+| bmd geometry needs a real body | 3 | `PASS` | **New.** Level 3 must be earned: a clear payload with filler body stays 0, v0x0C is never parsed, a real body is counted |
 | bmd report levels are separate | 19 | `PASS` | **New.** Structure-valid vs cleartext vs geometry are three separate counters; a v0x0C file with high-entropy payload is valid at level 1 and opaque at level 2; a lying length field is rejected at level 1 |
 | bmd geometry parsed is always zero | 2 | `PASS` | **New.** Pins the honest zero. Must be changed deliberately when a body parser is written |
 | bmd report percent helper | 5 | `PASS` | **New.** Division by zero, 0%, 100%, 1/3 to two decimals |
 | bmd report accumulates kinds | 6 | `PASS` | **New.** v0x0A / v0x0C / other version / unrecognised bucketed separately |
 
-Total: **203 checks, 0 failures.**
+Total: **231 checks, 0 failures.** The column sums to 231, matching the binary.
 
 **Correction recorded.** The per-test counts in the previous revision of this
 table were wrong: they summed to 163 while the total line said 171, and neither
@@ -48,7 +51,7 @@ The build is warning-clean under `-Wall -Wextra -Wpedantic -Wshadow -Wconversion
 -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2`.
 
 Also run under AddressSanitizer and UndefinedBehaviorSanitizer:
-**203 checks, 0 failures, 0 sanitizer reports, exit code 0.**
+**231 checks, 0 failures, 0 sanitizer reports, exit code 0.**
 
 Reproduce with `make test-san`, which builds a separate instrumented binary in
 `build-san/` (`-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer`). It

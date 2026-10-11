@@ -1,8 +1,9 @@
 # make test  (suite unitaria, ciclo 1)
-# Gerado em: 2026-10-11T22:52:14Z
-# Regenerado apos a adicao dos 4 testes de bmd_report: o log anterior
-# registrava 171 checks e estava desatualizado em relacao ao relatorio.
+# Gerado em: 2026-10-11T23:12:30Z
+# Regenerado apos a adicao do parser de corpo BMD v0x0A e seus testes.
 #=====================================================================
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tests/test_assets.cpp -o build/tests/test_assets.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc build/tests/test_assets.o -Lbuild -lmuassets -o build/test_assets 
 build/test_assets
 ClienteRecriado asset library tests
 [ RUN  ] crc32 known vectors
@@ -31,14 +32,18 @@ ClienteRecriado asset library tests
 [  OK  ] manifest verify
 [ RUN  ] extension helpers
 [  OK  ] extension helpers
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
 [ RUN  ] bmd report levels are separate
 [  OK  ] bmd report levels are separate
-[ RUN  ] bmd geometry parsed is always zero
-[  OK  ] bmd geometry parsed is always zero
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
 [ RUN  ] bmd percent helper
 [  OK  ] bmd percent helper
 [ RUN  ] bmd report accumulates kinds
 [  OK  ] bmd report accumulates kinds
 
-203 checks, 0 failures
+231 checks, 0 failures
 exit code: 0

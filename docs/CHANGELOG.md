@@ -25,7 +25,7 @@ implementations.
 Exit status distinguishes clean (0), usage error (1) and problems found (2), so
 CI can tell "you invoked me wrong" from "verification failed".
 
-**Tests** — `tests/test_assets.cpp`, 203 checks, self-generating fixtures, no
+**Tests** — `tests/test_assets.cpp`, 231 checks, self-generating fixtures, no
 framework dependency.
 
 **Benchmarks** — `bench/bench_assets.cpp` with median and P95/P99 reporting.

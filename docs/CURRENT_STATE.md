@@ -13,6 +13,7 @@ An honest snapshot. What exists, what works, what does not.
 | `mu/assets/tga` | TGA probe and uncompressed read | 15 of 15 real files |
 | `mu/assets/bmd` | BMD container classification, bux cipher, entropy | 10,023 of 10,090 structurally valid; **0 with geometry parsed** |
 | `mu/assets/bmd_report` | Three-level usability reporting (structure / cleartext / geometry) | the full 10,090-file BMD set |
+| `mu/assets/bmd_body` | v0x0A body parser: vertex positions and normals | 1,191 real files, layout verified 145/145 |
 | `mu/assets/terrain` | Terrain classification, bux auto-detect | 265 of 265 real files |
 | `mu/assets/manifest` | Patch manifest parse and CRC verify | the client's own 188-entry manifest |
 | `mu/assets/format` | CRC-32 (slice-by-8), status, byte views | zlib-derived known answers |
@@ -23,7 +24,7 @@ An honest snapshot. What exists, what works, what does not.
 `bmdreport` exits 2, because a report that cannot deliver geometry should not
 claim success.
 
-**A test suite**, 203 checks, 0 failures, self-generating fixtures, also clean
+**A test suite**, 231 checks, 0 failures, self-generating fixtures, also clean
 under ASan and UBSan.
 
 **A micro-benchmark harness** with median, standard deviation, min/max and
@@ -59,10 +60,15 @@ level 2  payload in the clear    1,496 / 10,090  (14.83%)
            plaintext             1,396  (13.84%)
            bux-decryptable         100  ( 0.99%)
            OPAQUE                8,594  (85.17%)
-level 3  geometry extracted          0 / 10,090  ( 0.00%)
+level 3  geometry extracted      1,191 / 10,090  ( 11.80%)
 ```
 
-**Level 3 is the number that matters for rendering, and it is zero.**
+**Level 3 is the number that matters for rendering.** It rose from 0 to 1,191
+during cycle 1, when a v0x0A body parser was written against the verified
+layout. It counts **vertex positions and normals only** — face indices, texture
+coordinates and bones are still undecoded, so none of those 1,191 files is a
+renderable model. v0x0C is excluded from level 3 entirely, which caps it at
+11.83%.
 
 ```
 Theoretical maximum texture footprint: 2,893.80 MB
@@ -76,7 +82,7 @@ Integrity vs ListaPatch.txt (188 entries, evidence/ciclo1_crc_comparison.log):
 
 mutool scan  29,060 files : 1,641–1,674 ms
 mutool verify 188 entries : 42–49 ms   (I/O bound: 1,358.9 MB/s incl. disk read)
-make test                 : 203 checks, 0 failures
+make test                 : 231 checks, 0 failures
 ```
 
 ## 3. What does not exist
@@ -91,7 +97,7 @@ layer, not a client.
 | Window / input / main loop | NOT STARTED |
 | Resource cache and manager | NOT STARTED |
 | Texture upload to GPU | NOT STARTED |
-| Model loading | BLOCKED — BMD cipher |
+| Model loading | **PARTIAL** — vertex positions and normals for 1,191 files; faces/UV/bones not decoded |
 | Skeletal animation | BLOCKED — BMD cipher |
 | Terrain rendering | BLOCKED — `Enc*` cipher |
 | Particles and effects | NOT STARTED |

@@ -51,6 +51,17 @@ struct BmdFileReport {
   double payload_entropy = 0.0;
   double bux_gain = 0.0;
   std::string problem;  ///< Empty when nothing is wrong.
+
+  /// Level 3. Set only when a body parser actually extracted geometry, and
+  /// only for the versions whose layout is verified (v0x0A). Counts are the
+  /// parser's own tally, not the header's, so a mismatch cannot hide.
+  bool geometry_parsed = false;
+  std::size_t vertex_count = 0;
+  std::size_t normal_count = 0;
+  /// Non-empty when a body parse was attempted and failed. Kept separate from
+  /// |problem| so a container-level fault and a body-level fault are not
+  /// confused with each other.
+  std::string body_problem;
 };
 
 struct BmdSummary {

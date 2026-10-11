@@ -3,6 +3,8 @@
 
 #include <cstring>
 
+#include "mu/assets/bmd_body.hpp"
+
 namespace mu {
 
 const char* PayloadAccessName(PayloadAccess a) {
@@ -60,9 +62,27 @@ BmdFileReport Classify(ByteView data, const std::string& label) {
   r.access = ClassifyAccess(payload, info.payload_entropy, &gain);
   r.bux_gain = gain;
 
-  // Level 3 is deliberately never set to true: no BMD body parser exists in
-  // this project. If one is written, this is the line that has to change, and
-  // it should change only when vertex data has actually been extracted.
+  // Level 3: geometry. Attempted only where the layout is verified and the
+  // payload is in the clear. v0x0C is skipped because its payload is
+  // encrypted; parsing it would produce noise, not vertices.
+  //
+  // The counts recorded are the parser's own tally of what it extracted, not
+  // the header's declared counts, so a file whose header lies cannot be
+  // counted as parsed.
+  const bool body_readable =
+      r.structure_valid && r.access != PayloadAccess::kOpaque &&
+      r.kind == BmdKind::kPlainV0A;
+  if (body_readable) {
+    BmdBody body;
+    const Status bs = BmdParseBodyV0A(payload, &body);
+    if (bs && body.complete && !body.vertices.empty()) {
+      r.geometry_parsed = true;
+      r.vertex_count = body.vertices.size();
+      r.normal_count = body.normals.size();
+    } else {
+      r.body_problem = body.problem.empty() ? bs.message : body.problem;
+    }
+  }
   return r;
 }
 
@@ -108,7 +128,7 @@ void BmdAccumulate(const BmdFileReport& r, BmdSummary* s) {
     case PayloadAccess::kOpaque: ++s->opaque; break;
   }
 
-  // geometry_parsed is never incremented; see Classify().
+  if (r.geometry_parsed) ++s->geometry_parsed;
 
   if (r.payload_entropy > s->max_entropy) s->max_entropy = r.payload_entropy;
   if (r.payload_entropy > kEncryptedEntropyThreshold) ++s->entropy_above_7_5;

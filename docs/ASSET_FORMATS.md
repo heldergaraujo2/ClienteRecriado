@@ -235,11 +235,24 @@ misread again. Measured over the whole tree (full output in
 | ↳ plaintext | already clear | 1,396 | 13.84% |
 | ↳ bux-decryptable | XOR-3 `{0xFC,0xCF,0xAB}` | 100 | 0.99% |
 | ↳ **OPAQUE** | **cipher not recovered** | **8,594** | **85.17%** |
-| **3. Geometry extracted** | vertices / faces / bones actually parsed | **0** | **0.00%** |
+| **3. Geometry extracted** | vertex positions and normals actually parsed | **1,191** | **11.80%** |
 
-Level 3 is zero because **no BMD body parser exists**. It is reported as an
-explicit zero rather than omitted, because omitting it is exactly what made the
-earlier percentage misleading.
+Level 3 was zero for most of cycle 1 because no body parser existed. It is now
+**measured rather than structural**: a v0x0A body parser was written against the
+verified layout and extracts vertex positions and normals from 1,191 of the
+1,194 v0x0A files.
+
+Two qualifications that must travel with the number:
+
+- It counts **vertex positions and normals only**. Face indices, texture
+  coordinates and bones are not decoded, so a file counted here is **not a
+  renderable model**.
+- v0x0C is excluded entirely, because its payload is encrypted and parsing
+  ciphertext would produce noise rather than vertices. That is why the ceiling
+  for level 3 is 11.83%, not 100%.
+
+The column is still reported explicitly rather than omitted, because omitting it
+is what made the earlier single percentage misleading.
 
 Container kinds, for completeness:
 

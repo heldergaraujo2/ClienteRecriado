@@ -1,10 +1,8 @@
 # make test-san  (AddressSanitizer + UndefinedBehaviorSanitizer, ciclo 1)
-# Gerado em: 2026-10-11T22:52:20Z
+# Gerado em: 2026-10-11T23:12:41Z
 # Flags: SAN_FLAGS := -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer
-# Este log nao existia antes. A limpeza sob sanitizadores era afirmada em
-# tres documentos sem target nem saida que a comprovasse.
 #=====================================================================
-g++ -std=c++17 -Wall -Wextra -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc tests/test_assets.cpp src/mu/assets/format.cpp src/mu/assets/ozt.cpp src/mu/assets/ozj.cpp src/mu/assets/bmd.cpp src/mu/assets/bmd_report.cpp src/mu/assets/terrain.cpp src/mu/assets/tga.cpp src/mu/assets/manifest.cpp src/mu/fs.cpp -o build-san/test_assets
+g++ -std=c++17 -Wall -Wextra -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc tests/test_assets.cpp src/mu/assets/format.cpp src/mu/assets/ozt.cpp src/mu/assets/ozj.cpp src/mu/assets/bmd.cpp src/mu/assets/bmd_body.cpp src/mu/assets/bmd_report.cpp src/mu/assets/terrain.cpp src/mu/assets/tga.cpp src/mu/assets/manifest.cpp src/mu/fs.cpp -o build-san/test_assets
 build-san/test_assets
 ClienteRecriado asset library tests
 [ RUN  ] crc32 known vectors
@@ -33,16 +31,20 @@ ClienteRecriado asset library tests
 [  OK  ] manifest verify
 [ RUN  ] extension helpers
 [  OK  ] extension helpers
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
 [ RUN  ] bmd report levels are separate
 [  OK  ] bmd report levels are separate
-[ RUN  ] bmd geometry parsed is always zero
-[  OK  ] bmd geometry parsed is always zero
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
 [ RUN  ] bmd percent helper
 [  OK  ] bmd percent helper
 [ RUN  ] bmd report accumulates kinds
 [  OK  ] bmd report accumulates kinds
 
-203 checks, 0 failures
+231 checks, 0 failures
 exit code: 0
 #=====================================================================
 contagem de relatorios de sanitizador: 0

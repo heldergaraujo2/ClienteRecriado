@@ -79,7 +79,7 @@ after counts are not verifiable and are deliberately not restated here**: the
 per-test counts published in the previous revision of
 [`TEST_RESULTS.md`](TEST_RESULTS.md) were wrong (they summed to 163 against a
 stated total of 171), so any figure derived from them is unreliable. The count
-that is measured today is 203 checks, 0 failures, and every per-test number in
+that is measured today is 231 checks, 0 failures, and every per-test number in
 that file now comes from instrumented output rather than from source reading.
 
 ### Side effects

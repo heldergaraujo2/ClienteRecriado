@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "mu/assets/bmd.hpp"
+#include "mu/assets/bmd_body.hpp"
 #include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
@@ -435,8 +436,11 @@ int CmdBmdReport(int argc, char** argv) {
   std::printf("    parsed                                 %8zu  (%6.2f%%)\n",
               sum.geometry_parsed,
               mu::PercentOf(sum.geometry_parsed, sum.total));
-  std::printf("    No BMD body parser exists in this project. This line is 0\n");
-  std::printf("    by construction, not by omission.\n\n");
+  std::printf("    Counts vertex positions and normals only. Face indices,\n");
+  std::printf("    texture coordinates and bones are NOT decoded, so a file\n");
+  std::printf("    counted here is not a renderable model.\n");
+  std::printf("    v0x0C is excluded: its payload is encrypted, so parsing it\n");
+  std::printf("    would yield noise rather than vertices.\n\n");
 
   std::printf("container kinds\n");
   std::printf("    BMD v0x0C                              %8zu  (%6.2f%%)\n",

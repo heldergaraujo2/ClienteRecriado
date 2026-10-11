@@ -15,6 +15,7 @@
 #endif
 
 #include "mu/assets/bmd.hpp"
+#include "mu/assets/bmd_body.hpp"
 #include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
@@ -570,8 +571,13 @@ void TestExtensionHelpers() {
   CHECK_EQ(mu::AsciiLower("AbC.OzT"), std::string("abc.ozt"));
 }
 
+void TestBmdBodyParsesVerifiedLayout();
+void TestBmdBodyRejectsBadInput();
 void TestBmdReportLevelsAreSeparate();
-void TestBmdReportGeometryIsAlwaysZero();
+std::vector<std::uint8_t> MakeBmdBody(
+    const char* name, const std::vector<mu::BmdVertex>& verts,
+    const std::vector<mu::BmdNormal>& norms);
+void TestBmdReportGeometryNeedsRealBody();
 void TestBmdReportPercent();
 void TestBmdReportAccumulatesKinds();
 
@@ -590,8 +596,10 @@ const Test kTests[] = {
     {"manifest parse", TestManifestParse},
     {"manifest verify", TestManifestVerify},
     {"extension helpers", TestExtensionHelpers},
+    {"bmd body parses verified layout", TestBmdBodyParsesVerifiedLayout},
+    {"bmd body rejects bad input", TestBmdBodyRejectsBadInput},
     {"bmd report levels are separate", TestBmdReportLevelsAreSeparate},
-    {"bmd geometry parsed is always zero", TestBmdReportGeometryIsAlwaysZero},
+    {"bmd geometry needs a real body", TestBmdReportGeometryNeedsRealBody},
     {"bmd percent helper", TestBmdReportPercent},
     {"bmd report accumulates kinds", TestBmdReportAccumulatesKinds},
 };
@@ -711,13 +719,33 @@ void TestBmdReportLevelsAreSeparate() {
   CHECK_EQ(0u, broken.geometry_parsed);
 }
 
-void TestBmdReportGeometryIsAlwaysZero() {
-  // The honest zero. No BMD body parser exists, so level 3 is zero for every
-  // input including a perfectly clear payload. If a parser is ever written
-  // this test must be updated deliberately rather than silently start passing.
+void TestBmdReportGeometryNeedsRealBody() {
+  // Level 3 must be earned, not assumed. A well-formed container with a clear
+  // payload is NOT enough: the body has to actually parse into vertices.
+  // These payloads are low-entropy filler, so the body parse must fail and
+  // level 3 must stay zero for both versions.
   const std::vector<std::uint8_t> payload = LowEntropyBytes(64);
   CHECK_EQ(0u, SummarizeOne(FakeBmd(0x0A, 64, payload), "a.bmd").geometry_parsed);
+
+  // v0x0C is never parsed at all, because its payload is encrypted and parsing
+  // ciphertext would produce noise rather than vertices.
   CHECK_EQ(0u, SummarizeOne(FakeBmd(0x0C, 64, payload), "c.bmd").geometry_parsed);
+
+  // A real body must be counted, with the parser's own tally rather than the
+  // header's claim.
+  std::vector<mu::BmdVertex> verts(4);
+  for (std::size_t i = 0; i < verts.size(); ++i) {
+    verts[i].x = static_cast<float>(i);
+    verts[i].y = 0.0f;
+    verts[i].z = 0.0f;
+  }
+  std::vector<mu::BmdNormal> norms(3);
+  for (std::size_t i = 0; i < norms.size(); ++i) norms[i].ny = 1.0f;
+  const std::vector<std::uint8_t> body = MakeBmdBody("Real.SMD", verts, norms);
+  const mu::BmdSummary parsed =
+      SummarizeOne(FakeBmd(0x0A, static_cast<std::uint32_t>(body.size()), body),
+                   "real.bmd");
+  CHECK_EQ(1u, parsed.geometry_parsed);
 }
 
 void TestBmdReportPercent() {
@@ -759,6 +787,166 @@ void TestBmdReportAccumulatesKinds() {
   CHECK_EQ(1u, s2.kind_other_version);
   CHECK_EQ(1u, s2.kind_unknown);
   CHECK_EQ(0u, s2.kind_bux_container);
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// BMD v0x0A body parser. The layout under test was verified on 145 of 145 real
+// files (docs/evidence/ciclo1_bmd_layout.log); these fixtures reproduce it in
+// miniature so the parser is checked without touching original assets.
+// ---------------------------------------------------------------------------
+namespace {
+
+void PutF32Le(std::vector<std::uint8_t> &out, float v) {
+  std::uint32_t bits;
+  std::memcpy(&bits, &v, sizeof(bits));
+  out.push_back(static_cast<std::uint8_t>(bits & 0xff));
+  out.push_back(static_cast<std::uint8_t>((bits >> 8) & 0xff));
+  out.push_back(static_cast<std::uint8_t>((bits >> 16) & 0xff));
+  out.push_back(static_cast<std::uint8_t>((bits >> 24) & 0xff));
+}
+
+void PutU16Le(std::vector<std::uint8_t> &out, std::uint16_t v) {
+  out.push_back(static_cast<std::uint8_t>(v & 0xff));
+  out.push_back(static_cast<std::uint8_t>((v >> 8) & 0xff));
+}
+
+/// Builds a v0x0A body matching the verified layout: 32-byte name field, header
+/// words, vertex array at 52, normal array immediately after.
+std::vector<std::uint8_t> MakeBmdBody(const char *name,
+                                      const std::vector<mu::BmdVertex> &verts,
+                                      const std::vector<mu::BmdNormal> &norms) {
+  std::vector<std::uint8_t> out;
+  const std::size_t nlen = std::strlen(name);
+  for (std::size_t i = 0; i < mu::kBmdNameSize; ++i) {
+    out.push_back(i < nlen ? static_cast<std::uint8_t>(name[i]) : 0);
+  }
+  // Offsets 32, 34, 36 are undecoded in the real format; zeros are fine here
+  // because the parser must not depend on them.
+  PutU16Le(out, 0);
+  PutU16Le(out, 0);
+  PutU16Le(out, 0);
+  PutU16Le(out, static_cast<std::uint16_t>(verts.size()));   // offset 38
+  PutU16Le(out, static_cast<std::uint16_t>(norms.size()));   // offset 40
+  PutU16Le(out, 0);                                          // offset 42
+  PutU16Le(out, 0);                                          // offset 44
+  PutU16Le(out, 0);                                          // offset 46
+  PutU16Le(out, 0);                                          // offset 48
+  PutU16Le(out, 0);                                          // offset 50
+  for (const mu::BmdVertex &v : verts) {
+    PutF32Le(out, v.x);
+    PutF32Le(out, v.y);
+    PutF32Le(out, v.z);
+    PutU16Le(out, v.aux0);
+    PutU16Le(out, v.aux1);
+  }
+  for (const mu::BmdNormal &n : norms) {
+    PutF32Le(out, n.nx);
+    PutF32Le(out, n.ny);
+    PutF32Le(out, n.nz);
+    PutF32Le(out, n.aux0);
+    PutF32Le(out, n.aux1);
+  }
+  return out;
+}
+
+void PutU16LeAt(std::vector<std::uint8_t> &out, std::size_t off, std::uint16_t v) {
+  out[off] = static_cast<std::uint8_t>(v & 0xff);
+  out[off + 1] = static_cast<std::uint8_t>((v >> 8) & 0xff);
+}
+
+void TestBmdBodyParsesVerifiedLayout() {
+  std::vector<mu::BmdVertex> verts;
+  for (int i = 0; i < 5; ++i) {
+    mu::BmdVertex v;
+    v.x = static_cast<float>(i) * 1.5f;
+    v.y = static_cast<float>(i) * -0.25f;
+    v.z = 3.0f;
+    v.aux0 = 0;
+    v.aux1 = static_cast<std::uint16_t>(600 + i);
+    verts.push_back(v);
+  }
+  std::vector<mu::BmdNormal> norms;
+  for (int i = 0; i < 7; ++i) {
+    mu::BmdNormal n;
+    n.nx = 0.0f;
+    n.ny = 1.0f;
+    n.nz = 0.0f;
+    norms.push_back(n);
+  }
+
+  const std::vector<std::uint8_t> body = MakeBmdBody("Test.SMD", verts, norms);
+
+  // The fixture must place the arrays where the verified layout says.
+  CHECK_EQ(body.size(),
+           52u + verts.size() * mu::kBmdVertexRecordSize +
+               norms.size() * mu::kBmdNormalRecordSize);
+
+  mu::BmdBody parsed;
+  const mu::Status st =
+      mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  CHECK(st.ok());
+  CHECK(parsed.complete);
+  CHECK(parsed.problem.empty());
+  CHECK(parsed.has_source_name);
+  CHECK(parsed.source_name == "Test.SMD");
+  CHECK_EQ(5u, parsed.vertices.size());
+  CHECK_EQ(7u, parsed.normals.size());
+
+  // Round-trip the values, including the trailing fields the format does not
+  // explain. They must survive rather than be silently dropped.
+  CHECK(parsed.vertices[3].x == 4.5f);
+  CHECK(parsed.vertices[3].y == -0.75f);
+  CHECK(parsed.vertices[3].z == 3.0f);
+  CHECK_EQ(603u, parsed.vertices[3].aux1);
+  CHECK(parsed.normals[6].ny == 1.0f);
+  CHECK(parsed.normals[6].aux0 == 0.0f);
+}
+
+void TestBmdBodyRejectsBadInput() {
+  std::vector<mu::BmdVertex> verts(3);
+  std::vector<mu::BmdNormal> norms(2);
+  const std::vector<std::uint8_t> good = MakeBmdBody("Ok.SMD", verts, norms);
+
+  // Truncated below the 52-byte body header.
+  mu::BmdBody b;
+  CHECK(!mu::BmdParseBodyV0A(mu::ByteView(good.data(), 40), &b).ok());
+  CHECK(!b.complete);
+  CHECK(!b.problem.empty());
+
+  // Counts larger than the payload allows. This is the check that makes the
+  // verified arithmetic load-bearing.
+  std::vector<std::uint8_t> lying = good;
+  PutU16LeAt(lying, 38, 5000);
+  mu::BmdBody b2;
+  CHECK(!mu::BmdParseBodyV0A(mu::ByteView(lying.data(), lying.size()), &b2).ok());
+  CHECK(!b2.complete);
+
+  // A non-printable name field must not be reported as a name, but the
+  // geometry must still parse: 932 of the clear files have no name.
+  std::vector<std::uint8_t> noname = good;
+  noname[0] = 0x01;
+  mu::BmdBody b3;
+  CHECK(mu::BmdParseBodyV0A(mu::ByteView(noname.data(), noname.size()), &b3).ok());
+  CHECK(!b3.has_source_name);
+  CHECK(b3.source_name.empty());
+  CHECK_EQ(3u, b3.vertices.size());
+  CHECK(b3.complete);
+
+  // A non-finite coordinate is corruption, not data.
+  std::vector<std::uint8_t> nanbody = good;
+  const std::uint32_t nan_bits = 0x7FC00000u;
+  for (std::size_t i = 0; i < 4; ++i) {
+    nanbody[52 + i] = static_cast<std::uint8_t>(
+        (nan_bits >> static_cast<unsigned>(8 * i)) & 0xff);
+  }
+  mu::BmdBody b4;
+  CHECK(!mu::BmdParseBodyV0A(mu::ByteView(nanbody.data(), nanbody.size()), &b4).ok());
+  CHECK(!b4.complete);
+
+  // Null output must not crash.
+  CHECK(!mu::BmdParseBodyV0A(mu::ByteView(good.data(), good.size()), nullptr).ok());
 }
 
 }  // namespace

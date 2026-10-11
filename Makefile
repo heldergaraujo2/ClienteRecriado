@@ -24,6 +24,7 @@ LIB_SRCS := src/mu/assets/format.cpp \
             src/mu/assets/ozt.cpp \
             src/mu/assets/ozj.cpp \
             src/mu/assets/bmd.cpp \
+            src/mu/assets/bmd_body.cpp \
             src/mu/assets/bmd_report.cpp \
             src/mu/assets/terrain.cpp \
             src/mu/assets/tga.cpp \

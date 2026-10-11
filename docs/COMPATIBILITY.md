@@ -15,11 +15,13 @@ official scale:
 
 ## BLOQUEIO Nº 1 DO PROJETO — geometria BMD
 
-> ### **BLOQUEADO — geometria BMD utilizável: 0 de 10.090 arquivos (0,00%)**
+> ### **BLOQUEADO — geometria BMD utilizável: 1.191 de 10.090 arquivos (11,80%)**
 >
 > **8.594 arquivos (85,17%) têm payload cifrado cuja cifra não foi recuperada.**
-> Os 1.496 restantes (14,83%) estão em claro, mas **não existe parser do corpo
-> BMD**, então nenhum vértice, face ou osso é extraído de nenhum arquivo.
+> Um parser do corpo v0x0A foi implementado no ciclo 1 e extrai **posições de
+> vértice e normais** de 1.191 dos 1.194 arquivos v0x0A. Isso **não** é um modelo
+> renderizável: **índices de face, coordenadas de textura e ossos continuam não
+> decodificados**. Os 8.594 arquivos v0x0C (85,17%) seguem inteiramente opacos.
 >
 > Este é o bloqueio mais importante do projeto. Ele impede: renderização de
 > personagens, monstros, itens, asas, objetos de mundo, terreno decorado e toda
@@ -49,7 +51,7 @@ produzidas por ferramenta em vez de afirmadas em prosa.
 | ↳ plaintext | já está em claro | 1.396 | 13,84% |
 | ↳ decifrável por bux | XOR-3 `{0xFC,0xCF,0xAB}` | 100 | 0,99% |
 | ↳ **OPACO** | **cifra não recuperada** | **8.594** | **85,17%** |
-| **3. Geometria extraída** | vértices/faces/ossos realmente lidos | **0** | **0,00%** |
+| **3. Geometria extraída** | posições de vértice e normais realmente lidas | **1.191** | **11,80%** |
 
 Entropia máxima de payload observada: **7,9980 bits/byte**; 8.570 arquivos acima
 de 7,5.
@@ -60,11 +62,13 @@ O algoritmo da cifra, obtido legitimamente — por exemplo de uma implementaçã
 open-source de cliente MU sob licença compatível, ou do autor do formato.
 **Não** por desempacotamento do módulo protegido. Ver `AGENTS.md`.
 
-### O que já é possível sem destravar
+### O que já foi possível sem destravar
 
-Os 1.396 arquivos com payload em claro permitem **escrever e testar o parser do
-corpo BMD hoje**, sem esperar pela cifra. Esse é um caminho concreto e está na
-fila de tarefas.
+Os arquivos com payload em claro permitiram implementar e verificar duas seções
+do corpo v0x0A **sem esperar pela cifra**. Isso foi feito no ciclo 1: 1.191
+arquivos agora têm posições de vértice e normais extraídas, com o layout
+confirmado em 145 de 145 arquivos por aritmética exata. É um resultado real, mas
+parcial — não habilita renderização.
 
 ---
 
