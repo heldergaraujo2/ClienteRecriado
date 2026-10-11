@@ -376,8 +376,59 @@ offset  size   field
   `[0, 1]` often, so the test cannot discriminate. Without that control the
   95.5% would have been reported as confirmation.
 
-**Layout: NOT DETERMINED.** One field and one record size are verified; that is
-not a parser.
+### The v0x0A body layout, partially decoded and verified
+
+Two sections are now verified with exact arithmetic across **145 of 145**
+testable files, zero exceptions. Full output in
+[`evidence/ciclo1_bmd_layout.log`](evidence/ciclo1_bmd_layout.log).
+
+```
+offset    size    field                                status
+0         32      source model name, ASCII, NUL-padded verified (433/1465)
+32         2      u16, undecoded
+34         2      u16, undecoded
+36         2      u16, undecoded
+38         2      u16 VERTEX COUNT                     VERIFIED
+40         2      u16 NORMAL COUNT                     VERIFIED
+42        ...     undecoded
+52        vc*16   vertex array, 16 B each              VERIFIED
+                  [f32 x][f32 y][f32 z][u16][u16]
+52+vc*16  nc*20   normal array, 20 B each              VERIFIED
+                  [f32 nx][f32 ny][f32 nz][f32][f32]
+...               remainder NOT decoded
+```
+
+The two predictions that were tested, both falsifiable:
+
+- `52 + u16@38 * 16 == start of the normals region` — **145 of 145 (100.0%)**
+- `normals region size == u16@40 * 20` — **145 of 145 (100.0%)**
+
+Both hold because the normals offset and count were derived geometrically first
+(unit-norm float triples) and only then compared against the header, so the
+agreement is evidence rather than circularity.
+
+Worked example, `Sword40.bmd`: name `Sword40.SMD`, `u16@38 = 88`, `u16@40 = 129`,
+vertices at 52..1460 (88*16), normals at 1460..4040 (129*20).
+
+**Still not established:**
+
+- The 2 trailing u16 of each vertex record are unidentified. In `Sword40` the
+  first is always 0 and the second varies (670, 681, 0, 512).
+- The 2 trailing f32 of each normal record are 0.0000 in `Sword40`. The (u,v)
+  reading was tested and **rejected** (see above).
+- The section after the normals is **not decoded**. A `nc*8` UV array was
+  tested: 92.65% of its floats fall in `[0,1]`, but that is barely above the
+  ~87% baseline already measured, and only 28 of 145 files have the whole
+  region inside `[0,1]`. Record sizes of 8/12/16/20 bytes were then tested
+  against a following face-index array with indices `< max(nc, vc)`: only 12 to
+  18 of 99 files passed, so **no size holds**.
+- 9 of 154 files disagree on the normal count; 46 of 200 show no detectable
+  region.
+
+**Classification: two sections verified (vertex positions and normals) with
+exact offsets, counts and record sizes. A parser that extracts vertex positions
+and normals is now possible for the 145 confirmed files. Face indices, texture
+coordinates and bones are not.** Layout as a whole: **PARTIAL**.
 
 The one paired `.smd`/`.bmd` in the tree, `Object40` (3,847,871 B of plain-text
 SMD beside a 1,041,808 B **opaque** BMD), does not currently close the
