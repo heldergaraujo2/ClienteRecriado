@@ -95,3 +95,47 @@ Layout completo: NAO DETERMINADO. Um parser que extraia posicoes de
 vertices e normais ja e possivel para os 145 arquivos confirmados;
 indices de faces, UV e ossos nao sao.
 
+
+======================================================================
+TENTATIVA SOBRE A SECAO DE FACES - NAO DETERMINADA
+======================================================================
+Metodo: a partir do fim presumido da regiao de UV, procurar a maior
+sequencia de registros em que os 3 primeiros u16 sao indices de vertice
+validos (< contagem de vertices), para tamanhos de registro de
+8/10/12/14/16 bytes.
+
+Resultado em 10 arquivos (melhor contagem por tamanho de registro):
+
+  arquivo                 vc    nc    8B   10B  12B  14B  16B
+  PrickleGlove_left      332   452    95    6   15   22   47
+  PrickleGlove_right     332   452     7    7    6    7   32
+  Sword40                 88   129     6    6    5    8    -
+  Sword40_L               88   129     8    6    5    8  167
+  Sword40_R               88   129     8    6    5    8    -
+  Monster263            1183  1872  1834  721  607    - 1186
+  Monster277            1561  1570  3257 2055 2171    - 1628
+  Monster290              93    93     8    6   25    8    -
+  Monster299            1518  1791    19   15   15    -  888
+  Monster300             363   426    18   15   14    - 1590
+
+CONCLUSAO: AMBIGUO. Nenhum tamanho de registro vence de forma consistente.
+8 B vence em 4 arquivos, 16 B em 4, 12 B em 2. O mesmo padrao de
+ambiguidade que ja havia derrubado a busca por um passo uniforme de
+vertice no inicio do ciclo.
+
+FALHA DE METODO REGISTRADA: a busca partia de uv_end = 52 + vc*16 + nc*20
++ nc*8, que depende da hipotese de uma regiao de UV com nc entradas de 8
+bytes. Essa hipotese NAO foi confirmada (92,65% dos floats em [0,1] contra
+baseline de ~87%, e apenas 28 de 145 arquivos com a regiao inteira em
+[0,1]). Procurar faces a partir de um offset derivado de uma hipotese nao
+confirmada propaga o erro: qualquer resultado seria inconclusivo mesmo que
+parecesse fechar.
+
+PROXIMO PASSO CORRETO: nao tentar adivinhar a secao de faces. Decodificar
+primeiro a secao imediatamente apos as normais de forma independente -
+por exemplo, testando se o seu comprimento e determinado por algum dos
+u16 ainda nao decodificados nos offsets 32/34/36/42/44 - e so entao
+procurar faces a partir de um offset verificado.
+
+CLASSIFICACAO: secao de faces NAO DETERMINADA. Nenhuma alteracao foi
+feita no parser com base nesta tentativa.
