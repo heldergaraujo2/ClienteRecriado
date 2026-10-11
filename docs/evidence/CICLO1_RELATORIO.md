@@ -149,7 +149,15 @@ igual ao local — ver seção final.
    positivo do teste foi medida primeiro — **4,480×10⁻⁴** em 2.000.000 amostras
    — o que torna 250 acertos consecutivos probabilidade ~0. Isso é evidência,
    não plausibilidade.
-   **Não é layout determinado.** O offset absoluto varia de 4 a 358.808 bytes e
+   **Avanço subsequente, verificado:** usada como medida *independente*, a
+   varredura confirmou um campo de cabeçalho — o **u16 no offset 40 do corpo é a
+   contagem de registros de normais**, igual à contagem derivada geometricamente
+   em **145 de 154** (94,2%), com a região medindo **exatamente `contagem × 20`
+   bytes em 145 de 145**. O registro tem 20 bytes (5 floats), os 3 primeiros
+   sendo a normal unitária. Como a contagem vem de uma propriedade geométrica e
+   não do próprio campo, a concordância é evidência e não circularidade.
+   Evidência em `ciclo1_bmd_normals_field.log`.
+   **Ainda não é layout determinado:** O offset absoluto varia de 4 a 358.808 bytes e
    a fase entre 0/4/8/12/16, então não se sabe onde a seção começa sem os
    contadores do cabeçalho, que seguem não decodificados. **25 de 41 (61,0%)**
    não apresentam a região. E o passo de 20 bytes tem 2 floats finais **não

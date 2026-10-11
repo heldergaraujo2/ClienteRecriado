@@ -324,9 +324,56 @@ follows:
   test. The remaining two floats are **not identified**. Coordinate pair (u, v)
   is the natural hypothesis; it is unverified and must not be assumed.
 
-Classification: **strongly evidenced hypothesis for 39.0% of named files, not a
-determined layout.** Raw output in
+Classification of that scan alone: **strongly evidenced hypothesis for 39.0% of
+named files, not a determined layout.** Raw output in
 [`evidence/ciclo1_bmd_normals.log`](evidence/ciclo1_bmd_normals.log).
+
+**Established — a verified header field and record size:**
+
+The scan was then used as an *independent* measurement to test a header field,
+which is what turns a hypothesis into a finding. The normals count was **not**
+read from the header; it was derived geometrically from the longest run of
+unit-norm triples. The two were then compared:
+
+- **The u16 little-endian at body offset 40 is the count of normal records.**
+  It equals the geometrically derived count in **145 of 154** testable files
+  (**94.2%**).
+- **The normals region is exactly `count * 20` bytes** — 145 of 145 of the
+  agreeing files, zero exceptions.
+- **The record is 20 bytes (5 floats): the first three are the unit normal
+  (x, y, z).** The trailing two floats remain **unidentified**.
+
+Because the count comes from a geometric property rather than from the field
+being interpreted, the agreement is evidence and not circularity. Raw output in
+[`evidence/ciclo1_bmd_normals_field.log`](evidence/ciclo1_bmd_normals_field.log).
+
+So the v0x0A body layout is now known up to this point:
+
+```
+offset  size   field
+0       32     source model name, ASCII, NUL-padded   (433 of 1,465 files)
+32       8     header words, partly undecoded
+40       2     u16 normal-record count                (verified, 94.2%)
+42      ...    undecoded: spans up to 357,308 bytes before the normals region
+?       n*20   normal records, 5 floats each, first 3 unit-length
+```
+
+**Still not established, and these are what block a parser:**
+
+- 9 of 154 files disagree (e.g. `Monster290`: derived 599 against u16@40 of
+  93). Whether the scan caught a different section or those files use another
+  layout is unresolved.
+- 46 of 200 files show no detectable run at all; cause not determined.
+- The bytes between offset 42 and the start of the normals region are
+  undecoded, and that gap ranges from 852 to 357,308 bytes. Reaching the
+  normals in an arbitrary file therefore still requires fields this project has
+  not read.
+- The trailing 2 floats of each record are unidentified. Coordinate pair (u, v)
+  is plausible and **unverified**; assuming it would put wrong texture
+  coordinates into every model.
+
+**Layout: NOT DETERMINED.** One field and one record size are verified; that is
+not a parser.
 
 The one paired `.smd`/`.bmd` in the tree, `Object40` (3,847,871 B of plain-text
 SMD beside a 1,041,808 B **opaque** BMD), does not currently close the
