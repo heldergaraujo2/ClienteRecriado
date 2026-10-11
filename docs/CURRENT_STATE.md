@@ -11,19 +11,25 @@ An honest snapshot. What exists, what works, what does not.
 | `mu/assets/ozt` | OZT read, write, probe, RGBA conversion | 3,404 of 3,470 real files |
 | `mu/assets/ozj` | OZJ container + JPEG marker parsing | 13,832 of 13,928 real files |
 | `mu/assets/tga` | TGA probe and uncompressed read | 15 of 15 real files |
-| `mu/assets/bmd` | BMD container classification, bux cipher, entropy | 10,066 of 10,090 real files |
+| `mu/assets/bmd` | BMD container classification, bux cipher, entropy | 10,023 of 10,090 structurally valid; **0 with geometry parsed** |
+| `mu/assets/bmd_report` | Three-level usability reporting (structure / cleartext / geometry) | the full 10,090-file BMD set |
 | `mu/assets/terrain` | Terrain classification, bux auto-detect | 265 of 265 real files |
 | `mu/assets/manifest` | Patch manifest parse and CRC verify | the client's own 188-entry manifest |
 | `mu/assets/format` | CRC-32 (slice-by-8), status, byte views | zlib-derived known answers |
 | `mu/fs` | Recursive walker, POSIX + Win32 | the 29,060-file real tree |
 
 **A command line tool**, `build/mutool`, with `scan`, `info`, `verify`,
-`dedupe`. Whole-tree scan of 2,372 MB in 1.67 s.
+`dedupe`, `bmdreport`. Whole-tree scan of 2,372 MB in 1.67 s.
+`bmdreport` exits 2, because a report that cannot deliver geometry should not
+claim success.
 
-**A test suite**, 171 checks, 0 failures, self-generating fixtures, also clean
+**A test suite**, 203 checks, 0 failures, self-generating fixtures, also clean
 under ASan and UBSan.
 
-**A micro-benchmark harness** with median and P95/P99 reporting.
+**A micro-benchmark harness** with median, standard deviation, min/max and
+P95/P99 reporting, over three buffer sizes, plus an optional per-repetition
+disk read (`MU_BENCH_FILE`) so cached and I/O-bound regimes are reported
+separately instead of being averaged together.
 
 **Documentation**: audit, formats, rendering analysis, architecture, baselines,
 benchmarks, decisions, licensing, security, test results.
@@ -35,21 +41,42 @@ benchmarks, decisions, licensing, security, test results.
 All from the real reference tree — 29,060 files, 2,372.04 MB.
 
 ```
-OZJ   13,928 files -> 13,832 parsed  (99.31%)
-OZT    3,470 files ->  3,404 parsed  (98.10%)
-BMD   10,090 files -> 10,066 classified (99.76%)
-TGA       15 files ->     15 parsed  (100%)
-terrain    265 files ->    265 parsed (100%)
+OZJ   13,928 files -> 13,832 header+geometry parsed  (99.31%)   pixels NOT decoded
+OZT    3,470 files ->  3,404 pixels parsed           (98.10%)
+TGA       15 files ->     15 pixels parsed           (100%)
+terrain    265 files ->    265 classified            (100%)   97 .att still encrypted
+```
 
-Estimated uncompressed texture memory: 2,893.80 MB
-Junk: 12 Thumbs.db, 677,376 bytes
+**BMD is reported at three levels, because one percentage was misleading.**
+An earlier revision of this document said "10,066 of 10,090 classified
+(99.76%)". That described container headers only. The corrected breakdown,
+produced by `mutool bmdreport` and stored in
+[`evidence/ciclo1_bmdreport.log`](evidence/ciclo1_bmdreport.log):
 
-Integrity vs ListaPatch.txt (188 entries):
-  match 116   size mismatch 9   crc mismatch 11   missing 52
+```
+level 1  structure valid        10,023 / 10,090  (99.34%)
+level 2  payload in the clear    1,496 / 10,090  (14.83%)
+           plaintext             1,396  (13.84%)
+           bux-decryptable         100  ( 0.99%)
+           OPAQUE                8,594  (85.17%)
+level 3  geometry extracted          0 / 10,090  ( 0.00%)
+```
+
+**Level 3 is the number that matters for rendering, and it is zero.**
+
+```
+Theoretical maximum texture footprint: 2,893.80 MB
+  -> sum of w*h*4 over parseable headers. DERIVED, NOT MEASURED.
+     No process was run and no GPU memory was observed.
+
+Integrity vs ListaPatch.txt (188 entries, evidence/ciclo1_crc_comparison.log):
+  compared 136   identical 116   different 20   not present on disk 52
+  all 20 differences also differ in file size, i.e. the tree and the
+  manifest disagree; the CRC computation itself is correct
 
 mutool scan  29,060 files : 1,641–1,674 ms
-mutool verify 188 entries : 42–49 ms
-make test                 : 171 checks, 0 failures
+mutool verify 188 entries : 42–49 ms   (I/O bound: 1,358.9 MB/s incl. disk read)
+make test                 : 203 checks, 0 failures
 ```
 
 ## 3. What does not exist
@@ -100,7 +127,7 @@ assume exists. It does not.
 
 | Item | Severity | Note |
 |---|---|---|
-| BMD payload cipher not recovered | High | Blocks all geometry and animation |
+| **BMD payload cipher not recovered** | **Critical** | **Project blocker #1. 85.17% of 10,090 models opaque; 0% geometry parsed** |
 | `Enc*` terrain cipher not recovered | High | Blocks 219 of 264 terrain files |
 | No Windows build | High | Target platform never compiled |
 | No JPEG pixel decoding | Medium | Blocks texture display for the largest format |
@@ -122,5 +149,8 @@ assume exists. It does not.
 The measurement and asset layer is real, tested and verified against a 2.4 GB
 asset tree. The reconstruction of the client itself has not begun, and the
 biggest blocker — the BMD model cipher — is a hard dependency for anything
-visual. Anyone reading this should understand that "99% of assets parse" and
-"you can play the game" are very far apart, and the second is not close.
+visual. Anyone reading this should understand that "99% of containers classify" and
+"you can play the game" are very far apart, and the second is not close. The
+cycle-1 audit was right to reject the earlier single-percentage framing: the
+number that describes usable geometry is 0.00%, and it is reported that way
+everywhere it appears.
