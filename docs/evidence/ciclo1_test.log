@@ -1,10 +1,8 @@
-========================================================================
-EVIDENCIA CICLO 1 - SUITE DE TESTES COMPLETA
-Data UTC: 2026-10-11T22:32:56Z
-========================================================================
-
-$ make test
-
+# make test  (suite unitaria, ciclo 1)
+# Gerado em: 2026-10-11T22:52:14Z
+# Regenerado apos a adicao dos 4 testes de bmd_report: o log anterior
+# registrava 171 checks e estava desatualizado em relacao ao relatorio.
+#=====================================================================
 build/test_assets
 ClienteRecriado asset library tests
 [ RUN  ] crc32 known vectors
@@ -33,7 +31,14 @@ ClienteRecriado asset library tests
 [  OK  ] manifest verify
 [ RUN  ] extension helpers
 [  OK  ] extension helpers
+[ RUN  ] bmd report levels are separate
+[  OK  ] bmd report levels are separate
+[ RUN  ] bmd geometry parsed is always zero
+[  OK  ] bmd geometry parsed is always zero
+[ RUN  ] bmd percent helper
+[  OK  ] bmd percent helper
+[ RUN  ] bmd report accumulates kinds
+[  OK  ] bmd report accumulates kinds
 
-171 checks, 0 failures
-
+203 checks, 0 failures
 exit code: 0
