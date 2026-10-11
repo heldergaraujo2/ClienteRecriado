@@ -68,9 +68,19 @@ whose header parses:
 | TGA | 15 | 7,847,772 |
 | **Total** | | **3,034,368,700 (2,893.80 MB)** |
 
-**This is the single most consequential performance finding in the project.**
-The client's texture set requires 2.83 GB of uncompressed RGBA if everything is
-resident. For context:
+**Classification: theoretical maximum footprint estimate — NOT a measured
+bottleneck.** This number is the arithmetic sum of `width * height * 4` over
+every texture whose header parses. Nothing was executed, no process was
+observed, and no GPU memory was measured; there is no Windows machine or GPU in
+the development environment. It bounds the worst case if every texture were
+resident at once. It is **not** a measurement of runtime memory use, and it must
+never be quoted as one. What would turn it into a measurement is a VRAM counter
+on a real run — see [`BENCHMARKS.md`](BENCHMARKS.md) section 4.
+
+With that qualification stated, the figure is still the most consequential
+*derived* number in the project, because it bounds a real constraint. The
+client's texture set would require 2.83 GB of uncompressed RGBA if everything
+were resident. For context:
 
 - A GeForce 4 Ti (2002, the era of this renderer) had 64–128 MB.
 - An Intel HD 620 integrated GPU typically has 512 MB to 1 GB shared.
@@ -90,8 +100,10 @@ Two supporting measurements:
   16-bit or compressed variant anywhere in the tree, so there is no existing
   reduced-precision path to fall back on.
 
-Neither figure is a claim that the original client is slow. They are bounds
-derived from the assets themselves, and they hold regardless of the renderer.
+Neither figure is a claim that the original client is slow, and neither is a
+runtime measurement. They are bounds derived from the asset files themselves,
+and they hold regardless of the renderer. Every runtime metric remains
+`NOT EXECUTED`.
 
 ### 2.3 Format parsing cost
 
@@ -153,7 +165,7 @@ These are hypotheses, explicitly not findings. Each has a stated test.
 
 | # | Hypothesis | Evidence so far | Test that would confirm |
 |---|---|---|---|
-| 1 | Texture residency is the dominant memory constraint | 2,893.80 MB uncompressed, measured | Measure VRAM on Windows with a GPU counter while moving between maps |
+| 1 | Texture residency is the dominant memory constraint | 2,893.80 MB **theoretical** uncompressed footprint (derived from headers, not measured at runtime) | Measure VRAM on Windows with a GPU counter while moving between maps |
 | 2 | Immediate-mode submission caps the frame rate in crowded scenes | `glBegin`/`glEnd` in the render loop's import table | Count draw calls per frame on Windows, then compare against a batched renderer |
 | 3 | `glReadPixels` causes a per-frame stall | imported by the render loop; use unverified | Time frames with and without the code path, once it is identified |
 | 4 | `MaxAnisotropy = 32` costs measurable frame time | configuration value, present and enabled | Toggle to 1/4/16 in `Settings.ini`, measure frametime |

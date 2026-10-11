@@ -75,7 +75,7 @@ raises mean FPS while worsening p99 frametime is a regression.
 
 The asset layer works. 99.31% of OZJ textures, 98.10% of OZT textures, 99.76%
 of BMD containers and 100% of TGA and terrain files in a real 2,372 MB asset
-tree are parsed and classified by code in this repository, backed by 171 unit
+tree are parsed and classified by code in this repository, backed by 203 unit
 test checks. The reference client's renderer is characterised from its import
 tables: fixed-function OpenGL 1.1, immediate mode plus client-side vertex arrays
 plus display lists, no VBOs, no FBOs, `glReadPixels` on the presentation path.

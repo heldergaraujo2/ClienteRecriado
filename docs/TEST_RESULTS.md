@@ -4,7 +4,7 @@ Every result is classified `PASS`, `FAIL`, `BLOCKED`, `NOT EXECUTED` or
 `NOT APPLICABLE`, with evidence or a reason. A blank is never left where a
 classification belongs.
 
-Last run: `make test` — **171 checks, 0 failures**.
+Last run: `make test` — **203 checks, 0 failures**.
 
 ## 1. Unit tests
 
@@ -14,28 +14,50 @@ Fixtures are generated at run time; no original asset bytes are involved.
 
 | Test | Checks | Result | Notes |
 |---|---|---|---|
-| crc32 known vectors | 46 | `PASS` | Includes values computed independently with Python `zlib.crc32`, and a one-shot-vs-incremental sweep over lengths 0–40 |
-| ozt round trip | 20 | `PASS` | Write-then-read, with and without the 26-byte footer, non-power-of-two 37x21 |
+| crc32 known vectors | 47 | `PASS` | Includes values computed independently with Python `zlib.crc32`, and a one-shot-vs-incremental sweep over lengths 0–40 |
+| ozt round trip | 22 | `PASS` | Write-then-read, with and without the 26-byte footer, non-power-of-two 37x21 |
 | ozt variant with extra prefix | 4 | `PASS` | Asserts the `00 4B 6D 4B` variant is recognised and named, not misparsed |
-| ozt rejects bad input | 14 | `PASS` | Truncation, bad signature, unsupported image type, absurd trailer |
-| ozj probe | 8 | `PASS` | Geometry, precision, components, EOI, truncation, non-JPEG |
-| ozj duplicated header prefix | 5 | `PASS` | The real OZJ container shape; asserts the image is located at offset 24 |
-| bux cipher is self inverse | 8 | `PASS` | Includes the property that zero plaintext encrypts to the key itself |
-| bmd probe | 17 | `PASS` | v0x0C, v0x0A, bux container, bux non-model, high-entropy rejection, non-model rejection |
+| ozt rejects bad input | 9 | `PASS` | Truncation, bad signature, unsupported image type, absurd trailer |
+| ozj probe | 12 | `PASS` | Geometry, precision, components, EOI, truncation, non-JPEG |
+| ozj duplicated header prefix | 6 | `PASS` | The real OZJ container shape; asserts the image is located at offset 24 |
+| bux cipher is self inverse | 6 | `PASS` | Includes the property that zero plaintext encrypts to the key itself |
+| bmd probe | 21 | `PASS` | v0x0C, v0x0A, bux container, bux non-model, high-entropy rejection, non-model rejection |
 | entropy separates plaintext from ciphertext | 2 | `PASS` | Flat data < 0.01 bits, pseudorandom > 7.9 bits |
-| terrain probe | 12 | `PASS` | All three grid families, plaintext vs encrypted verdicts, auto-decrypt |
-| manifest parse | 15 | `PASS` | CRLF, blank lines, spaces in paths, malformed lines, bad hex |
-| manifest verify | 6 | `PASS` | Match, size mismatch, missing, unreadable, exit classification |
+| terrain probe | 15 | `PASS` | All three grid families, plaintext vs encrypted verdicts, auto-decrypt |
+| manifest parse | 14 | `PASS` | CRLF, blank lines, spaces in paths, malformed lines, bad hex |
+| manifest verify | 7 | `PASS` | Match, size mismatch, missing, unreadable, exit classification |
 | extension helpers | 6 | `PASS` | Case folding, dot-in-directory, no extension |
+| bmd report levels are separate | 19 | `PASS` | **New.** Structure-valid vs cleartext vs geometry are three separate counters; a v0x0C file with high-entropy payload is valid at level 1 and opaque at level 2; a lying length field is rejected at level 1 |
+| bmd geometry parsed is always zero | 2 | `PASS` | **New.** Pins the honest zero. Must be changed deliberately when a body parser is written |
+| bmd report percent helper | 5 | `PASS` | **New.** Division by zero, 0%, 100%, 1/3 to two decimals |
+| bmd report accumulates kinds | 6 | `PASS` | **New.** v0x0A / v0x0C / other version / unrecognised bucketed separately |
 
-Total: **171 checks, 0 failures.**
+Total: **203 checks, 0 failures.**
+
+**Correction recorded.** The per-test counts in the previous revision of this
+table were wrong: they summed to 163 while the total line said 171, and neither
+matched what the binary actually executes. Every number in the table above was
+obtained by instrumenting the harness to print the per-test check delta and
+reading the printed value, not by counting assertions in the source. The column
+sums to 203, which is the total the binary reports.
+
+
 
 The build is warning-clean under `-Wall -Wextra -Wpedantic -Wshadow -Wconversion
 -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor
 -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2`.
 
-Also run under AddressSanitizer and UndefinedBehaviorSanitizer
-(`-fsanitize=address,undefined`): no reports.
+Also run under AddressSanitizer and UndefinedBehaviorSanitizer:
+**203 checks, 0 failures, 0 sanitizer reports, exit code 0.**
+
+Reproduce with `make test-san`, which builds a separate instrumented binary in
+`build-san/` (`-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer`). It
+is a separate binary on purpose, so that `make test` can never silently run an
+instrumented build.
+
+**Correction recorded.** Earlier revisions asserted sanitizer cleanliness with no
+target behind it, so the claim was not reproducible from the repository. It has
+now actually been executed, and the target exists.
 
 ## 2. Real-asset validation
 

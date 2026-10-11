@@ -74,7 +74,13 @@ after:   med  507.2 us  1971.6 MB/s
 speedup: 5.03x
 ```
 
-Test count went from 131 to 171 checks, all passing.
+Test count went up as part of this change, all passing. **The exact before and
+after counts are not verifiable and are deliberately not restated here**: the
+per-test counts published in the previous revision of
+[`TEST_RESULTS.md`](TEST_RESULTS.md) were wrong (they summed to 163 against a
+stated total of 171), so any figure derived from them is unreliable. The count
+that is measured today is 203 checks, 0 failures, and every per-test number in
+that file now comes from instrumented output rather than from source reading.
 
 ### Side effects
 
