@@ -189,3 +189,49 @@ distantes entre si (63.744 e 222.464 em Monster277), o que sugere blocos
 por malha espalhados pelo arquivo.
 
 Nenhuma alteracao foi feita no parser com base nesta tentativa.
+
+======================================================================
+CONTAGEM DE MALHAS - TESTE INCONCLUSIVO
+======================================================================
+Hipotese testada: um dos u16 ainda nao decodificados (offsets 32, 34, 36,
+42, 44) seria a contagem de malhas, e igualaria o numero de nomes de
+textura encontrados apos a regiao de normais.
+
+Resultado em 60 arquivos:
+
+  detector FROUXO (aceita fragmentos de string):
+     u16@32 == nomes distintos   : 31 de 60  (52%)
+     u16@32 == ocorrencias       : 30 de 60  (50%)
+     u16@34 == nomes distintos   : 11 de 60  (18%)
+     u16@36 == nomes distintos   : 11 de 60  (18%)
+
+  detector ESTRITO (exige que o nome comece apos um byte NUL):
+     u16@32 == ocorrencias       : 25 de 60  (42%)
+     u16@32 == nomes distintos   : 22 de 60  (37%)
+     u16@36 == ocorrencias       : 20 de 60  (33%)
+     u16@34 == ocorrencias       : 19 de 60  (32%)
+
+CONCLUSAO: INCONCLUSIVO. u16@32 e o melhor candidato, mas 37-52% de
+concordancia nao confirma um campo de cabecalho. Para comparar: os campos
+verificados de contagem de vertices e normais concordam em 145 de 145
+(100%). Um campo real deveria se comportar assim.
+
+DEFEITO DE MEDICAO REGISTRADO: o detector de nomes de textura nao e
+confiavel. Ele encontra fragmentos - em PrickleGlove_right.bmd reportou
+'loveA.jpg', que e um pedaco de 'PrickleGloveA.jpg' cortado por um byte
+nao imprimivel. Exigir que o nome comece apos um byte NUL reduz a
+concordancia em vez de aumenta-la (52% -> 37%), o que mostra que o
+detector esta errado de uma forma que nao foi compreendida, e nao que a
+hipotese ficou mais fraca.
+
+Consequencia: este teste NAO pode refutar nem confirmar a hipotese de
+contagem de malhas. Ele precisa ser refeito com um extrator de nomes
+confiavel antes de qualquer conclusao. Um proximo passo concreto: extrair
+os nomes a partir do campo de 32 bytes do cabecalho e dos offsets ja
+mapeados, em vez de varrer o arquivo inteiro por strings.
+
+Exemplos de discordancia: PrickleGlove_right (u16@32=4, 8 ocorrencias,
+5 distintos), Monster300 (u16@32=2, 30 ocorrencias, 4 distintos),
+Monster277 (u16@32=5, 10 ocorrencias, 6 distintos).
+
+Nenhuma alteracao foi feita no parser com base neste teste.
