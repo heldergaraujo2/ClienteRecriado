@@ -368,9 +368,13 @@ offset  size   field
   undecoded, and that gap ranges from 852 to 357,308 bytes. Reaching the
   normals in an arbitrary file therefore still requires fields this project has
   not read.
-- The trailing 2 floats of each record are unidentified. Coordinate pair (u, v)
-  is plausible and **unverified**; assuming it would put wrong texture
-  coordinates into every model.
+- The trailing 2 floats of each record are unidentified. The natural guess is a
+  texture coordinate pair, and it was **tested and not supported**: 95.5% of
+  those floats fall in `[0, 1]`, but so do **87.2%** of the floats in an
+  adjacent equal-sized region where no texture coordinates have any reason to
+  be — a ratio of only 1.10x. Arbitrary floats in these files simply land in
+  `[0, 1]` often, so the test cannot discriminate. Without that control the
+  95.5% would have been reported as confirmation.
 
 **Layout: NOT DETERMINED.** One field and one record size are verified; that is
 not a parser.

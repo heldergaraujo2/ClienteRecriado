@@ -85,3 +85,27 @@ CLASSIFICACAO: campo de cabecalho verificado (contagem de normais) e
 tamanho de registro verificado (20 bytes). Layout completo: NAO
 DETERMINADO.
 
+
+======================================================================
+TESTE ADICIONAL - os 2 floats finais do registro de 20 bytes
+======================================================================
+Hipotese testada: seriam coordenadas de textura (u,v), portanto em [0,1].
+
+Medicao na regiao de normais (145 arquivos, 2 floats por registro):
+   77236 / 80868 = 95,5% dentro de [0,1]
+   100,0% finitos
+
+CONTROLE (obrigatorio): a mesma medicao foi repetida em uma regiao
+adjacente de igual tamanho, imediatamente apos a regiao de normais, onde
+nao ha motivo para haver coordenadas de textura:
+   70480 / 80868 = 87,2% dentro de [0,1]
+
+   razao: 1,10x
+
+CONCLUSAO: HIPOTESE NAO SUSTENTADA. Floats arbitrarios nestes arquivos ja
+caem em [0,1] em 87,2% dos casos, entao 95,5% nao e evidencia de (u,v).
+O teste e fraco demais para discriminar. Sem o controle, o numero de
+95,5% teria sido apresentado como confirmacao - exatamente a categoria
+de erro que a auditoria do ciclo 1 apontou.
+
+Os 2 floats finais seguem NAO IDENTIFICADOS.
