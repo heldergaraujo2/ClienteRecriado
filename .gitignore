@@ -1,0 +1,20 @@
+# Build output
+build/
+*.o
+*.a
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.lib
+
+# Editor / OS noise
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Local clones of the reference client must never be committed.
+# It lives outside this repository, as a sibling directory.
+Cliente_ref/
