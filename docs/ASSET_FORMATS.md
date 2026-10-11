@@ -618,3 +618,82 @@ Data/**/*.att1    1 file   131,076 bytes   (typo for .att)
 `Thumbs.db` is a Windows Explorer thumbnail cache. It leaks the directory
 listing of whoever packaged the client and serves no purpose in a distribution.
 `mutool scan` counts these separately so they can be excluded from a build.
+
+---
+
+# Anexo do ciclo 2 — a cifra v0x0C e o layout do corpo, ambos resolvidos
+
+Este anexo **substitui** a seção "BLOQUEIO nº 1" acima e a seção que descrevia o
+layout do corpo como verificado só nas duas primeiras seções.
+
+## Cifra do payload v0x0C — RESOLVIDA
+
+```
+plain[i] = (cipher[i] ^ key[i & 15]) - running
+running  = cipher[i-1] + 0x3D        running inicial = 0x5E
+
+key = D1 73 52 F6 D2 9A CB 27 3E AF 59 31 37 B3 E7 A2
+```
+
+XOR rolante sobre uma tabela de 16 bytes combinado com uma chave corrente
+derivada do byte de **texto cifrado** anterior. Por isso **não é auto-inversa**
+como o XOR-3 do bux. Determinística, passada única, O(n).
+
+**Proveniência: projeto de terceiros.** Algoritmo e tabela vêm de
+`xulek/muonline-bmd-viewer` (licença ISC), reimplementados aqui. Ver
+`docs/LICENSING.md` e `docs/DECISIONS.md` (DEC-007).
+
+**Validação deste projeto:** a decifragem só é aceita se o campo de nome de 32
+bytes for ASCII imprimível. Sem isso uma chave errada reclassificaria lixo como
+decifrado. Resultado: **7.226 de 8.741** v0x0C decifrados; 1.519 rejeitados.
+
+## Layout do corpo — RESOLVIDO (fonte: mesmo projeto ISC)
+
+Os campos do cabeçalho que este projeto mediu como "u16 não decodificados" eram:
+
+```
+32  u16 meshCount
+34  u16 boneCount
+36  u16 actionCount
+38  u16 mesh[0].numVertices      <- verificado 145/145 por este projeto
+40  u16 mesh[0].numNormals       <- verificado 145/145 por este projeto
+42  u16 mesh[0].numTexCoords
+44  u16 mesh[0].numTriangles
+46  u16 mesh[0].textureIndex
+```
+
+Isso explica a discrepância de 4 bytes que este projeto havia medido sem
+explicar: os vértices começam em 52, e não em 48, porque há um campo extra.
+
+Estruturas por registro (v0x0A; v0x0C troca `f32` por `f16` nos arrays):
+
+| Registro | Tamanho | Conteúdo |
+|---|---|---|
+| Vértice | 16 B | `f32 x, y, z` + `i16 node, bindVertex` |
+| Normal | 20 B | `f32 nx, ny, nz` + `f32 u, v` |
+| Triângulo | 64 B | 3×(`u8 normalIndex` + `i16 vertexIndex` + `u8 padding`) + `i8 lightmapIndex` + `u8 polygon` |
+| Osso | 24 + 64n | nome (32 B) + `i16 parent` + n×(`f32 pos` + `f32 rot`) |
+
+**Correção de um erro deste projeto:** os dois `f32` finais da normal **são** as
+coordenadas de textura. Este projeto havia rejeitado essa hipótese porque 95,5%
+dos valores estavam em [0,1] contra 87,2% num controle aleatório — razão de só
+1,10×, insuficiente. O erro foi o controle: coordenadas de textura de modelos
+reais não são uniformes em [0,1], são fortemente enviesadas para 0 e 1 por
+causa do espelhamento de malha, então um controle uniforme subestima a linha de
+base. O layout vem da documentação do formato, não da inferência.
+
+**Correção de uma classificação errada:** a varredura de UV deste projeto
+encontrou razão de 0,146 a 0,824 e concluiu "não determinado". A causa real é
+que o corpo é organizado **por malha** (vértices, normais, UV, triângulos, nome
+de textura, repetindo), e não como arrays únicos. Procurar `nc` pares de UV
+contíguos estava errado por construção.
+
+## Estado de implementação
+
+| Etapa | Status |
+|---|---|
+| Cifra v0x0C em C++ (`mu::BmdV0CDecrypt`) | **CONCLUÍDO** |
+| Vértices + normais (v0x0A) | **CONCLUÍDO** |
+| Vértices + normais (v0x0C, com `f16`) | **PENDENTE** |
+| Triângulos, UV, nomes de textura | **PARCIAL** — 51–53% dos arquivos parseiam; falha dominante "malha 1 excede payload" |
+| Ossos e animações | **NÃO INICIADO** |

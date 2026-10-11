@@ -160,3 +160,58 @@ visual. Anyone reading this should understand that "99% of containers classify" 
 cycle-1 audit was right to reject the earlier single-percentage framing: the
 number that describes usable geometry is 0.00%, and it is reported that way
 everywhere it appears.
+
+---
+
+# Atualização do ciclo 2 — bloqueio nº 1 resolvido
+
+## O que mudou
+
+A cifra do payload BMD v0x0C foi quebrada. Proveniência: algoritmo e tabela de
+chave do projeto `xulek/muonline-bmd-viewer` (licença ISC), reimplementados em
+C++ neste repositório. Ver `docs/DECISIONS.md` (DEC-007) e `docs/LICENSING.md`.
+
+**Isto é resultado de terceiros validado por este projeto, não resultado
+derivado por este projeto.** As chaves derivadas aqui continuam sendo o XOR-3 do
+bux e o layout v0x0A.
+
+## Números medidos (10.090 arquivos reais)
+
+| Nível | Ciclo 1 | Ciclo 2 |
+|---|---|---|
+| 1 — estrutura válida | 10.023 (99,34%) | 10.023 (99,34%) |
+| 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** |
+| 3 — geometria parseada | 1.191 (11,80%) | **8.406 (83,31%)** |
+| OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** |
+
+O teto teórico de 11,83% que constava no relatório do ciclo 1 deixa de existir.
+
+## Duas correções que precisavam ser feitas
+
+1. **Este projeto afirmou que a rota open-source estava bloqueada por falta de
+   acesso a um host de código. Era falso.** `github.com` é acessível. A
+   afirmação estava em `NEXT_TASK.md`, em `docs/evidence/ciclo1_bmd_layout.log`
+   e nas mensagens dos commits `d980216` e `50a5ceb`.
+2. **A rejeição da hipótese (u,v) estava errada.** O controle aleatório
+   subestimava a linha de base porque coordenadas de textura reais não são
+   uniformes em [0,1] — são enviesadas para 0 e 1 por espelhamento de malha.
+
+## Defeito conhecido do número 83,31%
+
+O parser C++ trata todos os arrays como `f32`. Para v0x0C eles são `f16`.
+Portanto parte dos 8.406 arquivos contados no nível 3 tem posições lidas com o
+tipo errado. **O número é real como contagem de arquivos parseados, mas não como
+garantia de posições corretas.** Corrigir isso é a próxima tarefa.
+
+## Testes
+
+236 checks, 0 failures (eram 231). ASan+UBSan: 236/0. Compilação sem warnings
+sob 12 flags `-W`. Evidência em `docs/evidence/ciclo2_test.log` e
+`docs/evidence/ciclo2_bmdreport_v0c.log`.
+
+## ESTADO DO GIT NESTE CICLO
+
+- `6821d94` feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,31%
+- push: **sim**, `git push origin arena/519f8fc9-clienterecriado` → sucesso
+- commits deste segmento: 1 código + 1 documentação
+- referência `Cliente_ref` intacta: `88edfc73` (inalterado)

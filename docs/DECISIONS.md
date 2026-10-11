@@ -268,3 +268,46 @@ making it a separate, documented step (`mutool scan`) rather than part of
 many things are "not yet possible" — no Windows, no GPU, no server — and the
 difference between those two states is the difference between an honest status
 report and a misleading one.
+
+---
+
+## DEC-007 — Usar a cifra v0x0C de um projeto open-source em vez de continuar a derivá-la
+
+**Data:** ciclo 2 · **Status:** aceita
+
+**Problema.** A cifra do payload BMD v0x0C tornava 8.594 de 10.090 arquivos
+opacos e era o bloqueio nº 1 do projeto. Cinco abordagens haviam sido tentadas e
+todas falharam: entropia e estatística byte a byte, varredura de chaves XOR
+periódicas, decifragem por arquivo claro conhecido, modelos de cifragem em
+bloco e varredura por frequência de palavras. Uma varredura exaustiva de chaves
+XOR de 4 bytes exigiria ~4,3 bilhões de decifragens — inviável neste ambiente.
+
+**Decisão.** Adotar o algoritmo e a tabela de chave do projeto open-source
+`xulek/muonline-bmd-viewer` (ISC), reimplementando-o em C++ em vez de copiar
+código.
+
+**Por quê.**
+
+1. A restrição do usuário era **não contornar DRM nem enfraquecer validações de
+   servidor**. Usar um formato de arquivo documentado publicamente não viola
+   nenhuma das duas: não há verificação de licença envolvida e nenhum servidor é
+   afetado.
+2. A alternativa era não renderizar 85% dos modelos do cliente. A missão exige
+   compatibilidade visual e funcional.
+3. A licença ISC é permissiva e compatível com a MIT deste repositório, e exige
+   apenas atribuição, que está registrada em três lugares.
+
+**Consequência que precisa ser dita sempre que o resultado for citado.** Este é
+**resultado de terceiros validado**, não resultado derivado por este projeto. O
+relatório e o `CURRENT_STATE.md` dizem isso explicitamente. As chaves derivadas
+aqui continuam sendo o XOR-3 do bux e o layout do corpo v0x0A.
+
+**Alternativas consideradas.** Continuar a criptoanálise (inviável no orçamento
+restante), reimplementar sem a tabela (impossível sem a chave) e deixar o formato
+sem suporte (incompatível com a missão).
+
+**O que foi validado por este projeto, e não apenas aceito.** A decifragem é
+submetida a uma verificação de plausibilidade: o campo de nome de 32 bytes
+precisa ser ASCII imprimível, e a decifragem é rejeitada caso contrário. Isso é
+o que impede que uma chave errada reclassifique lixo como decifrado, e é o que
+produz o número honesto de 7.226 arquivos decifrados em vez de 8.741.

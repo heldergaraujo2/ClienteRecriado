@@ -135,3 +135,42 @@ reconstruction reads them; it does not ship them.
 | Are the `Data/Local/{Eng,Por,Spn}` translation files derived from official localisations? | Affects whether they can be reused | Localisation work |
 
 These are recorded as open rather than assumed resolved.
+
+---
+
+## Código e dados de terceiros incorporados
+
+### Cifra BMD v0x0C — xulek/muonline-bmd-viewer (ISC)
+
+O algoritmo e a tabela de chave da cifra do payload BMD v0x0C foram obtidos do
+projeto `xulek/muonline-bmd-viewer`, licenciado sob a **ISC License**, arquivo
+`src/crypto/file-cryptor.ts`.
+
+A ISC é permissiva e compatível com a licença MIT deste repositório. O que foi
+feito aqui:
+
+- O **algoritmo foi reimplementado** em C++ em `src/mu/assets/bmd.cpp`
+  (`mu::BmdV0CDecrypt`), não copiado. Não há código TypeScript no repositório.
+- A **tabela de 16 bytes foi reproduzida literalmente**, porque é dado e não
+  expressão criativa. Está em `mu::kBmdV0CKey`.
+- A **atribuição está registrada** no código-fonte, aqui e em
+  `docs/DECISIONS.md`.
+
+Declaração de proveniência nos relatórios: quando o projeto informar que a cifra
+v0x0C está quebrada, isso é **resultado de terceiros validado por este projeto**,
+não resultado derivado por este projeto. As demais chaves (XOR-3 do bux, layout
+do corpo v0x0A) foram derivadas de forma independente neste repositório.
+
+Texto da licença ISC, para referência:
+
+> Permission to use, copy, modify, and/or distribute this software for any
+> purpose with or without fee is hereby granted, provided that the above
+> copyright notice and this permission notice appear in all copies.
+>
+> THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+> REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+> AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+> INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+> LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+> OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+> PERFORMANCE OF THIS SOFTWARE.

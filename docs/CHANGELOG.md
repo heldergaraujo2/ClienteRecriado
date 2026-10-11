@@ -91,3 +91,27 @@ refinement.
 - Plaintext credentials are committed in `Settings.ini`. See
   [`SECURITY.md`](SECURITY.md).
 - 12 `Thumbs.db` files (677,376 bytes) are shipped in the asset tree.
+
+## Ciclo 2 (em andamento)
+
+### Quebrado
+- **Cifra BMD v0x0C** — XOR rolante sobre tabela de 16 B com chave corrente
+  derivada do texto cifrado anterior. Nível 2 (payload em claro) de 1.496
+  (14,83%) para **8.571 (84,95%)**; nível 3 (geometria parseada) de 1.191
+  (11,80%) para **8.406 (83,31%)**. OPAQUE de 8.594 para 1.519. Proveniência:
+  `xulek/muonline-bmd-viewer` (ISC), reimplementado; ver DEC-007.
+- **Layout do corpo BMD** — campos `meshCount/boneCount/actionCount` em
+  32/34/36 e estrutura por malha (`numVertices/numNormals/numTexCoords/`
+  `numTriangles/textureIndex`). Registros de vértice (16 B), normal (20 B),
+  triângulo (64 B) e osso (24+64n B) conhecidos.
+
+### Corrigido
+- A hipótese "(u,v) rejeitada" estava errada: o controle usado subestimava a
+  linha de base porque coordenadas de textura reais não são uniformes.
+- A rota "implementação open-source do formato" foi registrada em
+  `NEXT_TASK.md` e em dois commits como bloqueada por falta de acesso de saída a
+  um host de código. **Isso era falso**: `github.com`, `codeload.github.com` e
+  `api.github.com` são acessíveis. A afirmação foi corrigida.
+
+### Testes
+- 236 checks, 0 failures (eram 231). ASan+UBSan: 236/0.
