@@ -112,6 +112,53 @@ Code, comments, identifiers and commit messages are in English. Player-facing
 documentation may be in Portuguese, since the target audience is Brazilian.
 This file and `docs/*` are in English so any agent can read them.
 
+## 6b. Commit and publish discipline — mandatory, every cycle
+
+This is a standing rule with no exceptions.
+
+1. **Commit immediately after each coherent unit of work** — a format resolved, a
+   bug fixed, a module implemented, an optimisation validated. Do not batch
+   unrelated changes into one commit.
+2. **Push after each commit.** If the push fails for any reason — permission,
+   network, conflict — record the error explicitly in the cycle report. **Never
+   claim something was published without confirming the remote state.**
+3. **Update the continuity documents in the same commit, or the one immediately
+   after**: `docs/CURRENT_STATE.md` and `docs/NEXT_TASK.md` must always reflect
+   the real post-change state. They must never lag behind the code.
+4. **This applies to cycles that produce no new code.** A format discovery, an
+   audit finding or a correction to a metric is work, and its documentation gets
+   committed and published in the same cycle it was produced.
+5. **Every cycle report must end with this section, filled with real data:**
+
+```
+ESTADO DO GIT NESTE CICLO:
+- Commits locais: <hashes + mensagens>
+- Push realizado: <sim/não>
+- Confirmação hash remoto == hash local: <comando + saída literal>
+- Working tree limpa ao final: <saída literal de git status>
+- Se algo não foi commitado/publicado: <motivo explícito>
+```
+
+6. **Record the reference repository hash at the start of every cycle**
+   (`git rev-parse HEAD` in `Cliente_ref`) and again at the end, and confirm
+   they are identical. The reference client is read-only; if its hash moves,
+   something is wrong.
+
+## 6c. Metric discipline
+
+Never report a single percentage for something that has more than one
+meaningful question. The BMD case is the standing example: "99.76% read"
+described container headers while usable geometry was 0.00%. When a format has
+a container and a payload, report both, and say which one a number refers to.
+
+Never describe a derived arithmetic quantity as a measurement. The 2,893.80 MB
+texture figure is a theoretical maximum footprint computed from file headers,
+not observed memory use. There is no runtime measurement of anything in this
+project yet.
+
+Raw evidence for a claim goes in `docs/evidence/`, not in prose. A number in a
+document should have a log file behind it that a reader can re-run.
+
 ## 7. When you are blocked
 
 Say so precisely and move on. The format used throughout the documentation is
