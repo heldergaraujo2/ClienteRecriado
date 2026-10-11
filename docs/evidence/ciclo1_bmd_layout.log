@@ -139,3 +139,53 @@ procurar faces a partir de um offset verificado.
 
 CLASSIFICACAO: secao de faces NAO DETERMINADA. Nenhuma alteracao foi
 feita no parser com base nesta tentativa.
+
+======================================================================
+ANCORAS DURAS ENCONTRADAS APOS AS NORMAIS (resultado positivo parcial)
+======================================================================
+Nomes de textura em ASCII, NUL-terminados, foram encontrados apos a regiao
+de normais em 14 de 14 arquivos testados. Exemplos:
+
+  Monster263.bmd   @200000 'RsylvesterB.jpg'  @200016 'RsylvesterA.jpg'
+  Monster277.bmd   @63744  'boss_body.jpg'    @222464 'boss_weapon.jpg'
+  Monster290.bmd   @11412  'FereaKingAlpha.tga'
+  Monster301.bmd   @203100 'bass_body.tga'    @278734 'bass_fire.jpg'
+
+Sao strings NUL-terminadas, NAO campos de tamanho fixo - 'RsylvesterB.jpg'
+e 'RsylvesterA.jpg' sao adjacentes em 200000 e 200016, separadas por um
+unico byte 0x00. Isso descarta uma tabela de nomes com passo fixo.
+
+======================================================================
+REGIAO DE UV - NAO DETERMINADA
+======================================================================
+Teste: a partir do fim das normais, contar pares consecutivos de float32
+com ambos os valores em [0,1], parando no primeiro par fora da faixa.
+
+  arquivo                 vc    nc   n_end  uv_end  pares  pares/nc
+  PrickleGlove_left      332   452   14404  16908    313    0.692
+  Sword40                 88   129    4040   4624     73    0.566
+  Monster263            1183  1872   56420  61556    642    0.343
+  Monster277            1561  1570   56428  63740    914    0.582
+  Monster290              93    93    3400   3776     47    0.505
+  Monster299            1518  1791   60160  64392    529    0.295
+  Monster300             363   426   14380  16132    219    0.514
+  Monster301            1363  1533   52520  59272    844    0.551
+  Monster302             127   135    4784   5544     95    0.704
+  Monster315             113   102    3900   4572     84    0.824
+  Monster316             395   419   14752  15240     61    0.146
+  Monster317              50    50    1852   2156     38    0.760
+  Monster318              91    91    3328   3896     71    0.780
+
+  pares/nc: mediana 0.566, min 0.146, max 0.824
+
+CONCLUSAO: NAO DETERMINADA. A razao nao e constante nem proxima de 1,
+entao a regiao nao e um array de nc pares de UV. A varredura para cedo em
+todos os arquivos, o que indica dados intercalados - a hipotese mais
+provavel e que UV venha por malha, junto com os indices de face e o nome
+de textura de cada malha, e nao como uma secao unica.
+
+Isso e consistente com os nomes de textura aparecerem em offsets muito
+distantes entre si (63.744 e 222.464 em Monster277), o que sugere blocos
+por malha espalhados pelo arquivo.
+
+Nenhuma alteracao foi feita no parser com base nesta tentativa.
