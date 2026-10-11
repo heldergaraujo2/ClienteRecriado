@@ -201,7 +201,7 @@ Se 1a não fechar com evidência, o próximo item não bloqueado é CAND-001
 
 ## ESTADO DO GIT NESTE CICLO
 
-**Commits locais** (10, em ordem cronológica):
+**Commits locais** (15, em ordem cronológica):
 
 ```
 e8ae494  Add three-level BMD usability reporting
@@ -214,19 +214,24 @@ eeb503e  Qualify derived figures as estimates and correct the test counts
 6b163dc  Make commit discipline and metric discipline permanent rules
 4e5eb66  Update continuity documents and reorder the queue behind the BMD blocker
 d660078  Start BMD body analysis: name field found, layout not determined
+0592f17  Add the cycle-1 report and regenerate two stale evidence logs
+3211b9f  Locate a normals array in 39% of clear BMD files by unit-norm scan
+5efdb2b  Verify the BMD v0x0A normal-count header field and 20-byte record
+8e8b844  Test the trailing record floats and reject the (u,v) hypothesis
+554ba74  Record cycle-1 progress on the BMD body in NEXT_TASK.md
 ```
 
 **Push realizado:** sim, `git push origin arena/519f8fc9-clienterecriado`,
-exit 0, duas vezes (`50b8b60..4e5eb66` e `4e5eb66..d660078`).
+exit 0, executado após cada commit. Nenhuma falha de push ocorreu neste ciclo.
 
 **Confirmação hash remoto == hash local:**
 
 ```
 $ git rev-parse HEAD
-d660078664e78d32b5621b3416dd3c72d484d60e
+554ba74123fc21a2279359fd02be7b99300bf32d
 
 $ git ls-remote origin arena/519f8fc9-clienterecriado
-d660078664e78d32b5621b3416dd3c72d484d60e	refs/heads/arena/519f8fc9-clienterecriado
+554ba74123fc21a2279359fd02be7b99300bf32d	refs/heads/arena/519f8fc9-clienterecriado
 ```
 
 Idênticos.
@@ -242,6 +247,12 @@ $ cd Cliente_ref && git rev-parse HEAD
 
 Idêntico ao registrado no início do ciclo, `git status --short` vazio. Nenhuma
 modificação no repositório de pesquisa.
+
+**Nota sobre esta seção:** ela foi atualizada ao final do ciclo porque a versão
+anterior listava 10 commits e o hash `0592f17`, que ficaram defasados pelos 5
+commits seguintes. Um relatório de ciclo cujo estado de Git não bate com o
+repositório é a mesma categoria de erro que a auditoria apontou, então a seção
+foi corrigida em vez de deixada como estava.
 
 **Algo não commitado/publicado:** nada.
 
