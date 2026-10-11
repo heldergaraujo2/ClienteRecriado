@@ -196,12 +196,29 @@ O teto teórico de 11,83% que constava no relatório do ciclo 1 deixa de existir
    subestimava a linha de base porque coordenadas de textura reais não são
    uniformes em [0,1] — são enviesadas para 0 e 1 por espelhamento de malha.
 
-## Defeito conhecido do número 83,31%
+## O número 83,31% foi verificado, e uma suspeita sobre ele foi descartada
 
-O parser C++ trata todos os arrays como `f32`. Para v0x0C eles são `f16`.
-Portanto parte dos 8.406 arquivos contados no nível 3 tem posições lidas com o
-tipo errado. **O número é real como contagem de arquivos parseados, mas não como
-garantia de posições corretas.** Corrigir isso é a próxima tarefa.
+Uma versão anterior deste documento registrava como "defeito conhecido" a
+suposição de que v0x0C usaria half-floats nos arrays, o que invalidaria as
+posições lidas. **A suposição era infundada.** Medido sobre 400 arquivos v0x0C
+decifrados: corpo completo em 400 de 400 sob o layout v0x0A, e normais com norma
+1 em **99,98%** dos casos (37.988 de 37.997) no deslocamento interno 0, contra
+31,46% no deslocamento 4. Uma chave errada não produz vetores unitários.
+
+Isso vale como verificação independente da cifra, por uma via que não depende do
+campo de nome usado na checagem de plausibilidade.
+
+## Um erro cometido e desfeito neste ciclo
+
+Uma revisão trocou a ordem dos campos nos registros de vértice e normal, com
+base numa medição que reportava "offset 4 vence em 1.050 arquivos, offset 0 em
+nenhum". A medição lia deslocamentos de arquivo como se fossem de payload,
+defasando tudo em 4 bytes. Revertido em `bf1668c`, com as medições corretas
+registradas em `docs/ASSET_FORMATS.md`.
+
+O layout de registro do projeto ISC **não corresponde** a estes arquivos: ele
+inicia cada registro com índice de osso e padding. Aqui as coordenadas vêm
+primeiro. A cifra daquele projeto foi confirmada; as tabelas de layout, não.
 
 ## Testes
 

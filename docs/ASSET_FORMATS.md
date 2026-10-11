@@ -647,46 +647,100 @@ como o XOR-3 do bux. Determinística, passada única, O(n).
 bytes for ASCII imprimível. Sem isso uma chave errada reclassificaria lixo como
 decifrado. Resultado: **7.226 de 8.741** v0x0C decifrados; 1.519 rejeitados.
 
-## Layout do corpo — RESOLVIDO (fonte: mesmo projeto ISC)
+## Layout do corpo — PARCIAL, com uma fonte externa que NÃO se confirmou
 
-Os campos do cabeçalho que este projeto mediu como "u16 não decodificados" eram:
+### Cabeçalho do corpo (deslocamentos de *payload*, não de arquivo)
+
+O payload começa depois do cabeçalho de 4 bytes `"BMD"` + versão. **Todo
+deslocamento abaixo é relativo ao início do payload.** Confundir as duas bases
+desloca cada leitura em 4 bytes — foi exatamente esse erro que produziu uma
+revisão inteira de resultados falsos neste ciclo, registrada mais adiante.
 
 ```
-32  u16 meshCount
+32  u16 meshCount           mediana 1, max 18, zero em 3 arquivos
 34  u16 boneCount
 36  u16 actionCount
-38  u16 mesh[0].numVertices      <- verificado 145/145 por este projeto
-40  u16 mesh[0].numNormals       <- verificado 145/145 por este projeto
-42  u16 mesh[0].numTexCoords
-44  u16 mesh[0].numTriangles
-46  u16 mesh[0].textureIndex
+38  u16 numVertices         mediana 68,  max 5.082
+40  u16 numNormals          mediana 69,  max 5.376
+42  u16 numTexCoords
+44  u16 numTriangles
+46  u16 textureIndex
+48   4  NÃO IDENTIFICADO — os vértices começam em 52, não em 48
+52  vc*16  array de vértices
 ```
 
-Isso explica a discrepância de 4 bytes que este projeto havia medido sem
-explicar: os vértices começam em 52, e não em 48, porque há um campo extra.
+As contagens em 38 e 40 foram verificadas por este projeto em 145/145 arquivos
+testáveis. Os nomes dos campos em 32..46 vêm do projeto ISC e são **coerentes**
+com as distribuições medidas, mas não foram verificados um a um.
 
-Estruturas por registro (v0x0A; v0x0C troca `f32` por `f16` nos arrays):
+### Registros — medidos, e DIFERENTES da fonte externa
 
 | Registro | Tamanho | Conteúdo |
 |---|---|---|
-| Vértice | 16 B | `f32 x, y, z` + `i16 node, bindVertex` |
-| Normal | 20 B | `f32 nx, ny, nz` + `f32 u, v` |
-| Triângulo | 64 B | 3×(`u8 normalIndex` + `i16 vertexIndex` + `u8 padding`) + `i8 lightmapIndex` + `u8 polygon` |
-| Osso | 24 + 64n | nome (32 B) + `i16 parent` + n×(`f32 pos` + `f32 rot`) |
+| Vértice | 16 B | `f32 x` + `f32 y` + `f32 z` + `i16 node` + `i16 bindVertex` |
+| Normal | 20 B | `f32 nx` + `f32 ny` + `f32 nz` + `f32 aux0` + `f32 aux1` |
+| Triângulo | 64 B | não verificado neste projeto |
+| Osso | não verificado neste projeto | — |
 
-**Correção de um erro deste projeto:** os dois `f32` finais da normal **são** as
-coordenadas de textura. Este projeto havia rejeitado essa hipótese porque 95,5%
-dos valores estavam em [0,1] contra 87,2% num controle aleatório — razão de só
-1,10×, insuficiente. O erro foi o controle: coordenadas de textura de modelos
-reais não são uniformes em [0,1], são fortemente enviesadas para 0 e 1 por
-causa do espelhamento de malha, então um controle uniforme subestima a linha de
-base. O layout vem da documentação do formato, não da inferência.
+**As coordenadas vêm primeiro nos dois registros.** Evidência, medida sobre os
+1.194 arquivos v0x0A:
 
-**Correção de uma classificação errada:** a varredura de UV deste projeto
-encontrou razão de 0,146 a 0,824 e concluiu "não determinado". A causa real é
-que o corpo é organizado **por malha** (vértices, normais, UV, triângulos, nome
-de textura, repetindo), e não como arrays únicos. Procurar `nc` pares de UV
-contíguos estava errado por construção.
+- Normais lidas no deslocamento interno **0**: 260.030 de 260.268 com norma 1 =
+  **99,91%**. No deslocamento 4: 84.611 = **32,51%**.
+- No registro de vértice, o `u16` no offset **12** é menor que 200 em **99,94%**
+  dos registros e o do offset **14** em **95,53%**. Nos offsets 0 e 2, as cifras
+  são 2,63% e 0,82%. Os inteiros pequenos ficam no fim.
+
+O projeto `xulek/muonline-bmd-viewer` inicia cada registro com índice de osso e
+padding, colocando as coordenadas no deslocamento 4. **Isso não se aplica a
+estes arquivos.** A cifra daquele projeto foi confirmada de forma independente;
+as tabelas de layout, não.
+
+### Duas correções de afirmações deste projeto
+
+1. **Os dois `f32` finais da normal NÃO estão confirmados como (u,v).** Uma
+   versão anterior deste documento afirmou que eram, citando a fonte externa.
+   Como o layout de registro daquela fonte não corresponde aos dados, essa
+   citação perdeu a base. O que se sabe: 95,5% dos valores estão em [0,1] contra
+   87,2% num controle uniforme — razão 1,10×, insuficiente para concluir.
+   Seguem como `aux0`/`aux1` sem nome, deliberadamente.
+
+2. **A varredura de UV que deu razão 0,146 a 0,824 continua inconclusiva.** A
+   hipótese de corpo organizado por malha permanece plausível, mas não foi
+   demonstrada; foi inferida da mesma fonte cujo layout de registro falhou.
+
+### Verificação independente da decifragem v0x0C
+
+A decifragem foi confirmada por uma via que não depende do campo de nome: sobre
+400 arquivos v0x0C decifrados, o corpo parseia completamente sob o layout
+v0x0A e as normais têm norma 1 em **99,98%** dos casos (37.988 de 37.997),
+contra 31,46% no deslocamento 4. Uma chave errada não produziria vetores
+unitários. Isso também descarta a hipótese de que v0x0C usaria half-floats nos
+arrays — usa `f32` como v0x0A.
+
+**Atenção à base do cabeçalho, que difere por versão:**
+
+| Versão | Cabeçalho | Início do payload |
+|---|---|---|
+| v0x0A | `"BMD"` + versão = 4 B | offset 4 |
+| v0x0C | `"BMD"` + versão + `u32 payloadSize` = 8 B | offset 8 |
+
+Usar 4 para v0x0C desalinha tanto o corpo quanto o fluxo da cifra, e o resultado
+parece uma falha do layout quando é uma falha da medição. Foi o que aconteceu
+numa primeira tentativa, que reportou "54 de 8.741 com corpo completo" e
+"normais unitárias 0,02%" — ambos artefatos da base errada.
+
+### Registro de um erro de método deste ciclo
+
+Uma revisão deste ciclo trocou a ordem dos campos nos registros com base numa
+medição que reportava "offset 4 vence em 1.050 arquivos, offset 0 em nenhum". A
+medição estava errada: os scripts liam deslocamentos de **arquivo** tratando-os
+como de **payload**, defasando tudo em 4 bytes. A reversão está no commit
+`bf1668c`.
+
+Regra que fica: **toda medição sobre o payload precisa declarar a base.** Um
+resultado "decisivo" obtido com a base errada é mais perigoso que um resultado
+inconclusivo, porque encerra a investigação.
 
 ## Estado de implementação
 
@@ -694,6 +748,6 @@ contíguos estava errado por construção.
 |---|---|
 | Cifra v0x0C em C++ (`mu::BmdV0CDecrypt`) | **CONCLUÍDO** |
 | Vértices + normais (v0x0A) | **CONCLUÍDO** |
-| Vértices + normais (v0x0C, com `f16`) | **PENDENTE** |
-| Triângulos, UV, nomes de textura | **PARCIAL** — 51–53% dos arquivos parseiam; falha dominante "malha 1 excede payload" |
+| Vértices + normais (v0x0C) | **CONCLUÍDO** — verificado em 400/400 amostrados: corpo completo sob o mesmo layout, normais unitárias 99,98% no deslocamento 0. Arrays são `f32`, não `f16` |
+| Triângulos, UV, nomes de textura | **NÃO DETERMINADO** — a cifra está quebrada, mas o layout destas seções não foi estabelecido contra os dados |
 | Ossos e animações | **NÃO INICIADO** |
