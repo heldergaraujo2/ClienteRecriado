@@ -61,6 +61,43 @@ count that matches the parser's own tally.
 subset and mark the rest `BLOCKED`. Do not generalise a layout from a
 coincidence.
 
+### Progress recorded on 1a in cycle 1 — read this before continuing
+
+Verified, with evidence in `docs/evidence/`:
+
+- The v0x0A body opens with a **32-byte ASCII field holding the source model
+  name**, in 433 of 1,465 clear files. The other 932 do not begin with printable
+  ASCII, so the field is not universal and a parser must not assume it.
+- **The u16 at body offset 40 is the count of normal records.** It matches a
+  count derived independently from geometry in **145 of 154** testable files
+  (94.2%), and the normals region measures **exactly `count * 20` bytes** in
+  145 of 145.
+- **The record is 20 bytes (5 floats); the first three are the unit normal.**
+
+Rejected, with the measurement that rejected it — do not retry these:
+
+- The trailing 2 floats are **not** established as texture coordinates. 95.5%
+  fall in `[0,1]`, but so do 87.2% of floats in an adjacent control region of
+  equal size — ratio 1.10x, so the test cannot discriminate. **Do not assume
+  (u,v).**
+- A uniform vertex stride across the whole file does not exist: a 12-byte stride
+  wins for `PrickleGlove_left` and a 48-byte one for `Sword40`.
+
+**Where to resume: the bytes between offset 42 and the start of the normals
+region.** That gap is undecoded and ranges from 852 to 357,308 bytes. Dividing it
+by each header u16 at plausible record sizes closed for only 1 file in every
+case, which is noise — so it is not one flat array. The likeliest reading is a
+variable-length section (texture names, then positions, then bones) whose
+sub-counts are among the header words already visible at offsets 32–46, several
+of which are small plausible counts: `Sword40.bmd` reads
+`[2, 2, 1, 88, 129, 69, 142, 0]` and `Monster263.bmd` reads
+`[4, 128, 10, 1183, 1872, 638, 2164, 0]`, where the fifth word is the verified
+normal count in both.
+
+Decode one section at a time against the normals anchor rather than guessing the
+whole layout. The normals region gives a known byte offset to work backwards and
+forwards from, which is the advantage that did not exist before this cycle.
+
 ### 1b. Recover the v0x0C cipher itself — currently `BLOCKED`
 
 Six hypotheses were tested and ruled out, recorded in
