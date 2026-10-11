@@ -207,7 +207,7 @@ Se 1a não fechar com evidência, o próximo item não bloqueado é CAND-001
 
 ## ESTADO DO GIT NESTE CICLO
 
-**Commits locais** (15, em ordem cronológica):
+**Commits locais** (25, em ordem cronológica):
 
 ```
 e8ae494  Add three-level BMD usability reporting
@@ -225,6 +225,16 @@ d660078  Start BMD body analysis: name field found, layout not determined
 5efdb2b  Verify the BMD v0x0A normal-count header field and 20-byte record
 8e8b844  Test the trailing record floats and reject the (u,v) hypothesis
 554ba74  Record cycle-1 progress on the BMD body in NEXT_TASK.md
+79fc9c4  Bring the cycle report's git state section up to date
+a3030b9  Decode and verify two sections of the BMD v0x0A body layout
+11c80af  Implement the v0x0A body parser; level 3 is now measured, not structural
+f24ad55  Update the cycle report for the parser landing
+9285756  Record the face-section attempt as a negative result
+62a3be4  Record texture-name anchors and the UV region as not determined
+de7adab  Point the next task at per-mesh blocks, with the dead ends marked
+02427c8  Record the mesh-count test as inconclusive, with the measurement defect
+d980216  Close the record-size line of attack on the BMD face section
+50a5ceb  Close the record-size line of attack in NEXT_TASK.md
 ```
 
 **Push realizado:** sim, `git push origin arena/519f8fc9-clienterecriado`,
@@ -234,10 +244,10 @@ exit 0, executado após cada commit. Nenhuma falha de push ocorreu neste ciclo.
 
 ```
 $ git rev-parse HEAD
-554ba74123fc21a2279359fd02be7b99300bf32d
+50a5cebad89b9906d9dfa7103bbb4d223ae721df
 
 $ git ls-remote origin arena/519f8fc9-clienterecriado
-554ba74123fc21a2279359fd02be7b99300bf32d	refs/heads/arena/519f8fc9-clienterecriado
+50a5cebad89b9906d9dfa7103bbb4d223ae721df	refs/heads/arena/519f8fc9-clienterecriado
 ```
 
 Idênticos.
@@ -254,10 +264,10 @@ $ cd Cliente_ref && git rev-parse HEAD
 Idêntico ao registrado no início do ciclo, `git status --short` vazio. Nenhuma
 modificação no repositório de pesquisa.
 
-**Nota sobre esta seção:** ela foi atualizada ao final do ciclo porque a versão
-anterior listava 10 commits e o hash `0592f17`, que ficaram defasados pelos 5
-commits seguintes. Um relatório de ciclo cujo estado de Git não bate com o
-repositório é a mesma categoria de erro que a auditoria apontou, então a seção
+**Nota sobre esta seção:** ela foi atualizada três vezes ao longo do ciclo,
+porque a lista de commits e o hash ficaram defasados a cada rodada de trabalho
+subsequente (10 → 15 → 25 commits). Um relatório cujo estado de Git não bate com
+o repositório é a mesma categoria de erro que a auditoria apontou, então a seção
 foi corrigida em vez de deixada como estava.
 
 **Algo não commitado/publicado:** nada.
