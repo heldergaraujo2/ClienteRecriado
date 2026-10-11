@@ -40,6 +40,30 @@ constexpr std::size_t kBuxKeyLen = 3;
 void BuxCrypt(uint8_t* data, std::size_t size);
 void BuxCrypt(uint8_t* data, std::size_t size, std::size_t phase_offset);
 
+/// The v0x0C payload cipher: a rolling XOR over a 16-byte key table combined
+/// with a running key derived from the previous *ciphertext* byte.
+///
+/// Provenance, stated because this project derived every other key itself and
+/// this one was not derived: the algorithm and its key table were taken from
+/// the ISC-licensed project xulek/muonline-bmd-viewer
+/// (src/crypto/file-cryptor.ts). ISC is permissive and compatible with this
+/// repository's MIT licence. It is re-implemented here rather than copied, and
+/// the key table is reproduced verbatim because it is data, not expression.
+///
+/// This resolves the project's number-one blocker. Before it, 8,594 of 10,090
+/// BMD files were opaque and no geometry could be read from them.
+constexpr uint8_t kBmdV0CKey[16] = {
+    0xD1, 0x73, 0x52, 0xF6, 0xD2, 0x9A, 0xCB, 0x27,
+    0x3E, 0xAF, 0x59, 0x31, 0x37, 0xB3, 0xE7, 0xA2,
+};
+constexpr std::size_t kBmdV0CKeyLen = 16;
+constexpr uint8_t kBmdV0CInitialKey = 0x5E;
+constexpr uint8_t kBmdV0CKeyStep = 0x3D;
+
+/// Decrypts a v0x0C payload in place. Not self-inverse: the running key is fed
+/// from the ciphertext, so encryption would need the plaintext instead.
+void BmdV0CDecrypt(uint8_t* data, std::size_t size);
+
 /// Shannon entropy in bits per byte. Used to tell an opaque encrypted payload
 /// from a plaintext one without knowing either format.
 double ByteEntropy(const uint8_t* data, std::size_t size);

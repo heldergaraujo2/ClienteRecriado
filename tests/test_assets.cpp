@@ -574,6 +574,7 @@ void TestExtensionHelpers() {
 void TestBmdBodyParsesVerifiedLayout();
 void TestBmdBodyRejectsBadInput();
 void TestBmdReportLevelsAreSeparate();
+void TestBmdV0CCipher();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -596,6 +597,7 @@ const Test kTests[] = {
     {"manifest parse", TestManifestParse},
     {"manifest verify", TestManifestVerify},
     {"extension helpers", TestExtensionHelpers},
+    {"bmd v0x0c cipher", TestBmdV0CCipher},
     {"bmd body parses verified layout", TestBmdBodyParsesVerifiedLayout},
     {"bmd body rejects bad input", TestBmdBodyRejectsBadInput},
     {"bmd report levels are separate", TestBmdReportLevelsAreSeparate},
@@ -947,6 +949,65 @@ void TestBmdBodyRejectsBadInput() {
 
   // Null output must not crash.
   CHECK(!mu::BmdParseBodyV0A(mu::ByteView(good.data(), good.size()), nullptr).ok());
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// The v0x0C payload cipher. Provenance: the algorithm and key table come from
+// the ISC-licensed xulek/muonline-bmd-viewer, re-implemented here. Verification
+// against real reference files is in docs/evidence/, because this repository
+// commits no original asset bytes.
+// ---------------------------------------------------------------------------
+namespace {
+
+/// The encryption direction, written out here so the test is not comparing the
+/// library against itself. Mirrors the decryption with the operations inverted.
+std::vector<std::uint8_t> V0CEncrypt(const std::vector<std::uint8_t> &plain) {
+  std::vector<std::uint8_t> out(plain.size());
+  std::uint8_t running = mu::kBmdV0CInitialKey;
+  for (std::size_t i = 0; i < plain.size(); ++i) {
+    const std::uint8_t enc = static_cast<std::uint8_t>(
+        static_cast<std::uint8_t>(plain[i] + running) ^
+        mu::kBmdV0CKey[i & (mu::kBmdV0CKeyLen - 1)]);
+    out[i] = enc;
+    running = static_cast<std::uint8_t>(enc + mu::kBmdV0CKeyStep);
+  }
+  return out;
+}
+
+void TestBmdV0CCipher() {
+  // Round trip over a length that is not a multiple of the 16-byte key table,
+  // so the wraparound is exercised.
+  std::vector<std::uint8_t> plain(100);
+  for (std::size_t i = 0; i < plain.size(); ++i) {
+    plain[i] = static_cast<std::uint8_t>((i * 37 + 11) & 0xff);
+  }
+  std::vector<std::uint8_t> enc = V0CEncrypt(plain);
+  CHECK(enc != plain);
+  mu::BmdV0CDecrypt(enc.data(), enc.size());
+  CHECK(enc == plain);
+
+  // The distinguishing property: the running key is fed from the CIPHERTEXT,
+  // not the plaintext. An implementation that fed it from the plaintext would
+  // still round-trip against its own matching encrypt, so check the actual
+  // second output byte by hand.
+  //   plain[0] = 11, running = 0x5E
+  //   enc[0]   = (11 + 0x5E) ^ 0xD1 = 0x69 ^ 0xD1 = 0xB8
+  //   running  = 0xB8 + 0x3D = 0xF5
+  //   enc[1]   = (0x30 + 0xF5) ^ 0x73 = 0x25 ^ 0x73 = 0x56
+  // The intermediate 0x30 + 0xF5 overflows to 0x125 and truncates to 0x25; the
+  // wraparound is part of what is being checked here.
+  std::vector<std::uint8_t> two(plain.begin(), plain.begin() + 2);
+  const std::vector<std::uint8_t> two_enc = V0CEncrypt(two);
+  CHECK_EQ(0xB8u, two_enc[0]);
+  CHECK_EQ(0x56u, two_enc[1]);
+
+  // Empty and null inputs must not crash.
+  mu::BmdV0CDecrypt(nullptr, 0);
+  std::vector<std::uint8_t> empty;
+  mu::BmdV0CDecrypt(empty.data(), empty.size());
+  CHECK(empty.empty());
 }
 
 }  // namespace

@@ -136,4 +136,20 @@ Status BmdProbe(ByteView file, BmdInfo* out) {
   return Status::Ok();
 }
 
+
+void BmdV0CDecrypt(uint8_t* data, std::size_t size) {
+  if (data == nullptr) return;
+  // The running key is derived from the previous CIPHERTEXT byte, so the value
+  // must be read before it is overwritten. That ordering is the whole reason
+  // this is not self-inverse the way the bux XOR is.
+  uint8_t running = kBmdV0CInitialKey;
+  for (std::size_t i = 0; i < size; ++i) {
+    const uint8_t cipher = data[i];
+    data[i] = static_cast<uint8_t>(
+        static_cast<uint8_t>(cipher ^ kBmdV0CKey[i & (kBmdV0CKeyLen - 1)]) -
+        running);
+    running = static_cast<uint8_t>(cipher + kBmdV0CKeyStep);
+  }
+}
+
 }  // namespace mu

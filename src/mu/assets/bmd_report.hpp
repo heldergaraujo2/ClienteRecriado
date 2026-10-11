@@ -36,6 +36,7 @@ namespace mu {
 enum class PayloadAccess {
   kOpaque,        ///< Encrypted, cipher not recovered.
   kBuxDecryptable,///< Recoverable with the bux 3-byte XOR key.
+  kV0CDecryptable,///< Recoverable with the v0x0C rolling-XOR cipher.
   kPlaintext,     ///< Already in the clear.
 };
 
@@ -74,6 +75,7 @@ struct BmdSummary {
   // Level 2
   std::size_t cleartext_plaintext = 0;
   std::size_t cleartext_bux = 0;
+  std::size_t cleartext_v0c = 0;
   std::size_t opaque = 0;
 
   // Level 3

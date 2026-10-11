@@ -429,6 +429,8 @@ int CmdBmdReport(int argc, char** argv) {
               mu::PercentOf(sum.cleartext_plaintext, sum.total));
   std::printf("    bux-decryptable                        %8zu  (%6.2f%%)\n",
               sum.cleartext_bux, mu::PercentOf(sum.cleartext_bux, sum.total));
+  std::printf("    v0x0C-decryptable                      %8zu  (%6.2f%%)\n",
+              sum.cleartext_v0c, mu::PercentOf(sum.cleartext_v0c, sum.total));
   std::printf("    OPAQUE (cipher not recovered)          %8zu  (%6.2f%%)\n\n",
               sum.opaque, mu::PercentOf(sum.opaque, sum.total));
 
@@ -438,9 +440,7 @@ int CmdBmdReport(int argc, char** argv) {
               mu::PercentOf(sum.geometry_parsed, sum.total));
   std::printf("    Counts vertex positions and normals only. Face indices,\n");
   std::printf("    texture coordinates and bones are NOT decoded, so a file\n");
-  std::printf("    counted here is not a renderable model.\n");
-  std::printf("    v0x0C is excluded: its payload is encrypted, so parsing it\n");
-  std::printf("    would yield noise rather than vertices.\n\n");
+  std::printf("    counted here is not a renderable model.\n\n");
 
   std::printf("container kinds\n");
   std::printf("    BMD v0x0C                              %8zu  (%6.2f%%)\n",

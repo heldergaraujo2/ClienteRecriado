@@ -2,7 +2,9 @@
 #include "mu/assets/bmd_report.hpp"
 
 #include <cstring>
+#include <vector>
 
+#include "mu/assets/bmd_body.hpp"
 #include "mu/assets/bmd_body.hpp"
 
 namespace mu {
@@ -11,6 +13,7 @@ const char* PayloadAccessName(PayloadAccess a) {
   switch (a) {
     case PayloadAccess::kOpaque: return "OPAQUE";
     case PayloadAccess::kBuxDecryptable: return "BUX_DECRYPTABLE";
+    case PayloadAccess::kV0CDecryptable: return "V0C_DECRYPTABLE";
     case PayloadAccess::kPlaintext: return "PLAINTEXT";
   }
   return "OPAQUE";
@@ -23,7 +26,25 @@ namespace {
 /// Order matters. The bux gain is checked before the entropy verdict, because
 /// a bux-encrypted payload has high entropy by construction and would
 /// otherwise be classified as opaque even though we can decrypt it.
-PayloadAccess ClassifyAccess(ByteView payload, double entropy, double* gain) {
+/// True when the 32-byte name field holds printable ASCII or NUL. Used as the
+/// plausibility check on a v0x0C decryption: a wrong key yields high-entropy
+/// bytes here, not a path or a filename.
+bool PayloadNameIsPrintable(ByteView payload) {
+  if (payload.size < kBmdNameSize) return false;
+  for (std::size_t i = 0; i < kBmdNameSize; ++i) {
+    const uint8_t c = payload.data[i];
+    if (c != 0 && (c < 32 || c > 126)) return false;
+  }
+  return true;
+}
+
+PayloadAccess ClassifyAccess(ByteView payload, double entropy, double* gain,
+                             bool v0c_decrypted) {
+  // Checked first: the v0x0C cipher was recovered, so a v0x0C container whose
+  // payload decrypted is in the clear regardless of what its entropy said while
+  // it was still ciphertext. Entropy is the wrong test for a payload this
+  // project can now decrypt.
+  if (v0c_decrypted) return PayloadAccess::kV0CDecryptable;
   const double g = BuxDecryptGain(payload);
   *gain = g;
   if (g > 0.05) return PayloadAccess::kBuxDecryptable;
@@ -57,21 +78,43 @@ BmdFileReport Classify(ByteView data, const std::string& label) {
     r.problem = "declared payload length does not match file length";
 
   // Levels 2 and 3.
-  const ByteView payload = data.sub(info.payload_offset, info.payload_size);
+  const ByteView cipher_payload = data.sub(info.payload_offset, info.payload_size);
+
+  // For v0x0C the payload is decrypted here rather than left as ciphertext.
+  // The cipher is a rolling XOR fed from the previous ciphertext byte, so it is
+  // not self-inverse and the work cannot be deferred to the caller. The copy is
+  // unavoidable for that reason; it is bounded by one model file at a time.
+  //
+  // Decryption is only trusted when it produces a plausible result: the 32-byte
+  // name field must be printable ASCII. Without that check a wrong key would
+  // silently reclassify garbage as decrypted.
+  std::vector<uint8_t> plain_storage;
+  ByteView payload = cipher_payload;
+  bool v0c_decrypted = false;
+  if (r.structure_valid && r.kind == BmdKind::kPlainV0C) {
+    plain_storage.assign(cipher_payload.data, cipher_payload.data + cipher_payload.size);
+    BmdV0CDecrypt(plain_storage.data(), plain_storage.size());
+    if (PayloadNameIsPrintable(ByteView(plain_storage.data(), plain_storage.size()))) {
+      v0c_decrypted = true;
+      payload = ByteView(plain_storage.data(), plain_storage.size());
+    } else {
+      plain_storage.clear();
+    }
+  }
+
   double gain = 0.0;
-  r.access = ClassifyAccess(payload, info.payload_entropy, &gain);
+  r.access = ClassifyAccess(payload, info.payload_entropy, &gain, v0c_decrypted);
   r.bux_gain = gain;
 
-  // Level 3: geometry. Attempted only where the layout is verified and the
-  // payload is in the clear. v0x0C is skipped because its payload is
-  // encrypted; parsing it would produce noise, not vertices.
+  // Level 3: geometry. Attempted where the payload is in the clear and the
+  // layout is verified.
   //
   // The counts recorded are the parser's own tally of what it extracted, not
   // the header's declared counts, so a file whose header lies cannot be
   // counted as parsed.
   const bool body_readable =
       r.structure_valid && r.access != PayloadAccess::kOpaque &&
-      r.kind == BmdKind::kPlainV0A;
+      (r.kind == BmdKind::kPlainV0A || v0c_decrypted);
   if (body_readable) {
     BmdBody body;
     const Status bs = BmdParseBodyV0A(payload, &body);
@@ -125,6 +168,7 @@ void BmdAccumulate(const BmdFileReport& r, BmdSummary* s) {
   switch (r.access) {
     case PayloadAccess::kPlaintext: ++s->cleartext_plaintext; break;
     case PayloadAccess::kBuxDecryptable: ++s->cleartext_bux; break;
+    case PayloadAccess::kV0CDecryptable: ++s->cleartext_v0c; break;
     case PayloadAccess::kOpaque: ++s->opaque; break;
   }
 
