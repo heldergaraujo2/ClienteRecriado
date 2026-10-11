@@ -83,20 +83,60 @@ Rejected, with the measurement that rejected it — do not retry these:
 - A uniform vertex stride across the whole file does not exist: a 12-byte stride
   wins for `PrickleGlove_left` and a 48-byte one for `Sword40`.
 
-**Where to resume: the bytes between offset 42 and the start of the normals
-region.** That gap is undecoded and ranges from 852 to 357,308 bytes. Dividing it
-by each header u16 at plausible record sizes closed for only 1 file in every
-case, which is noise — so it is not one flat array. The likeliest reading is a
-variable-length section (texture names, then positions, then bones) whose
-sub-counts are among the header words already visible at offsets 32–46, several
-of which are small plausible counts: `Sword40.bmd` reads
-`[2, 2, 1, 88, 129, 69, 142, 0]` and `Monster263.bmd` reads
-`[4, 128, 10, 1183, 1872, 638, 2164, 0]`, where the fifth word is the verified
-normal count in both.
+### What cycle 1 settled, and the corrected resume point
 
-Decode one section at a time against the normals anchor rather than guessing the
-whole layout. The normals region gives a known byte offset to work backwards and
-forwards from, which is the advantage that did not exist before this cycle.
+The gap before the normals is no longer the open question — it was decoded. The
+verified layout is:
+
+```
+0        32      source model name, ASCII, NUL-padded   (433 of 1,465 files)
+38        2      u16 VERTEX COUNT                       VERIFIED
+40        2      u16 NORMAL COUNT                       VERIFIED
+52       vc*16   vertex array, [f32 x][f32 y][f32 z][u16][u16]   VERIFIED
+52+vc*16 nc*20   normal array, [f32 nx][f32 ny][f32 nz][f32][f32] VERIFIED
+```
+
+Both offsets hold on **145 of 145** testable files. `mu/assets/bmd_body` parses
+them, and `bmdreport` level 3 went from a structural 0 to a measured **1,191
+(11.80%)**.
+
+**Where to resume: the section after the normals, which is not one array.**
+Three attempts were made and all three are recorded as negative results in
+[`evidence/ciclo1_bmd_layout.log`](evidence/ciclo1_bmd_layout.log) — read them
+before retrying, because two of them look like they should work:
+
+1. A `nc*8` UV array followed by a face-index array. Rejected: record sizes of
+   8/10/12/14/16 bytes were tested and 8 wins for 4 files, 16 for 4, 12 for 2.
+2. Counting consecutive float32 pairs in `[0,1]` from the end of the normals.
+   Rejected: the `pairs/nc` ratio ranges 0.146–0.824 (median 0.566), so it is
+   not an array of `nc` UV pairs, and the scan stops early in every file.
+3. The methodological trap, worth naming: both searches started from an offset
+   derived from the unconfirmed `nc*8` hypothesis. **Do not anchor a search on a
+   hypothesis you have not verified** — the result is inconclusive even when it
+   looks like it closes.
+
+**The working hypothesis, from evidence rather than guessing: the remainder is
+organised in per-mesh blocks, not flat sections.** Two things point there:
+
+- Texture names are NUL-terminated strings, not fixed-width fields. In
+  `Monster263.bmd`, `RsylvesterB.jpg` and `RsylvesterA.jpg` sit at 200000 and
+  200016, separated by a single `0x00`. A fixed-stride name table is ruled out.
+- Texture names appear at widely separated offsets — 63,744 and 222,464 in
+  `Monster277.bmd` — which is what scattered per-mesh blocks look like, and not
+  what one contiguous section looks like.
+
+So the concrete next step is to find the **mesh block header**: a per-mesh record
+holding its own vertex/face/UV counts and its texture name. The header words at
+offsets 32, 34, 36, 42 and 44 are still undecoded and are the natural place for
+a mesh count. `Sword40.bmd` reads `[2, 2, 1, 88, 129, 69, 142, 0]` and
+`Monster263.bmd` reads `[4, 128, 10, 1183, 1872, 638, 2164, 0]`, where the fifth
+word is the verified normal count in both — so at least two of the others are
+counts too.
+
+Test mesh count candidates by checking whether they partition the remainder into
+that many blocks, each containing exactly one texture name. That is falsifiable
+and uses the texture names as anchors, which are the one hard landmark found so
+far in that region.
 
 ### 1b. Recover the v0x0C cipher itself — currently `BLOCKED`
 
