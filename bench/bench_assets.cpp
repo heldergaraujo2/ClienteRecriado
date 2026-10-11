@@ -17,6 +17,8 @@
 //   - Results are printed as a table so two runs can be diffed directly.
 #include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -36,6 +38,8 @@ using Clock = std::chrono::steady_clock;
 struct Samples {
   std::vector<double> us;  // microseconds
   double median = 0, p95 = 0, p99 = 0, mean = 0, total = 0;
+  double stddev = 0;       ///< Population standard deviation of the samples.
+  double min = 0, max = 0;
 };
 
 Samples Summarise(std::vector<double> v) {
@@ -51,9 +55,17 @@ Samples Summarise(std::vector<double> v) {
   s.median = pct(0.50);
   s.p95 = pct(0.95);
   s.p99 = pct(0.99);
+  s.min = s.us.front();
+  s.max = s.us.back();
   double sum = 0;
   for (double x : s.us) sum += x;
   s.mean = sum / static_cast<double>(n);
+  double acc = 0;
+  for (double x : s.us) {
+    const double d = x - s.mean;
+    acc += d * d;
+  }
+  s.stddev = std::sqrt(acc / static_cast<double>(n));
   s.total = sum;
   return s;
 }
@@ -158,11 +170,49 @@ int main() {
   }
 
   // ------------------------------------------------ CRC-32 throughput
+  //
+  // Reported in more detail than the other rows, because this number is used
+  // to justify an optimisation and therefore needs its dispersion and its
+  // cache state stated, not just a median.
   {
-    std::vector<uint8_t> buf(1 << 20, 0x3C);
-    volatile uint32_t sink = 0;
-    Samples s = TimeIt(200, [&] { sink = mu::Crc32(buf.data(), buf.size()); });
-    PrintRow("Crc32 1 MiB", buf.size(), s);
+    for (std::size_t kib : {64u, 1024u, 16384u}) {
+      const std::size_t bytes = kib * 1024;
+      std::vector<uint8_t> buf(bytes, 0x3C);
+      volatile uint32_t sink = 0;
+      const int reps = bytes <= (1u << 20) ? 300 : 20;
+      Samples s = TimeIt(reps, [&] { sink = mu::Crc32(buf.data(), buf.size()); });
+      char label[64];
+      std::snprintf(label, sizeof(label), "Crc32 %zu KiB (in cache)", kib);
+      PrintRow(label, buf.size(), s);
+      std::printf("    reps=%d  mean=%.1f us  stddev=%.1f us (%.2f%% of mean)"
+                  "  min=%.1f  max=%.1f\n",
+                  reps, s.mean, s.stddev,
+                  s.mean > 0 ? 100.0 * s.stddev / s.mean : 0.0, s.min, s.max);
+    }
+
+    // The same work against a file read from disk on every repetition, so the
+    // buffer is not resident. This is what `mutool verify` actually does, and
+    // it is the honest comparison: an in-cache CRC number overstates what a
+    // whole-tree verification achieves.
+    const char* disk_path = std::getenv("MU_BENCH_FILE");
+    if (disk_path && *disk_path) {
+      std::vector<uint8_t> buf;
+      volatile uint32_t sink = 0;
+      Samples s = TimeIt(20, [&] {
+        if (mu::ReadFile(disk_path, &buf)) sink = mu::Crc32(buf.data(), buf.size());
+      });
+      std::printf("%-34s %8.1f %8.1f %8.1f %8.1f %10.2f %9.1f\n",
+                  "Crc32 + disk read each rep", s.median, s.p95, s.p99, s.mean,
+                  static_cast<double>(buf.size()) / 1048576.0,
+                  s.median > 0
+                      ? static_cast<double>(buf.size()) / 1048576.0 / (s.median / 1e6)
+                      : 0.0);
+      std::printf("    reps=20  mean=%.1f us  stddev=%.1f us  file=%s\n", s.mean,
+                  s.stddev, disk_path);
+    } else {
+      std::printf("Crc32 + disk read: NOT RUN (set MU_BENCH_FILE to a real file"
+                  " to include it)\n");
+    }
   }
 
   // ------------------------------------------------ manifest parsing
