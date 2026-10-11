@@ -217,16 +217,49 @@ Legacy layout with **no length field**. Reading offset 4 as a length yields
 implausible values (1,635,017,028 on a 21,141-byte file), so the module exposes
 everything from offset 4 as payload and does not interpret it.
 
-Full classification over the whole tree:
+### Three separate metrics — and why one number was wrong
+
+An earlier report said "BMD: 10,066 of 10,090 read (99.76%)". That figure counted
+only whether the **container header** could be classified. It said nothing about
+whether a vertex could be extracted, and the difference between those two
+answers is 99.76% versus 0.00%. The cycle-1 audit caught this correctly.
+
+`mutool bmdreport <dir>` now reports all three levels, so the number cannot be
+misread again. Measured over the whole tree (full output in
+[`evidence/ciclo1_bmdreport.log`](evidence/ciclo1_bmdreport.log)):
+
+| Level | Measures | Files | % |
+|---|---|---|---|
+| **1. Structure valid** | magic + version recognised, and for v0x0C the declared payload length matches the real file length | **10,023** | **99.34%** |
+| **2. Payload in the clear** | bytes obtainable without an unknown cipher | **1,496** | **14.83%** |
+| ↳ plaintext | already clear | 1,396 | 13.84% |
+| ↳ bux-decryptable | XOR-3 `{0xFC,0xCF,0xAB}` | 100 | 0.99% |
+| ↳ **OPAQUE** | **cipher not recovered** | **8,594** | **85.17%** |
+| **3. Geometry extracted** | vertices / faces / bones actually parsed | **0** | **0.00%** |
+
+Level 3 is zero because **no BMD body parser exists**. It is reported as an
+explicit zero rather than omitted, because omitting it is exactly what made the
+earlier percentage misleading.
+
+Container kinds, for completeness:
 
 ```
-BMD_V0C            8,741
-BMD_V0A            1,194
-BMD_OTHER_VERSION     31
-BUX_CONTAINER        100
-unrecognised          24
-payload entropy > 7.5: 8,570
+BMD_V0C            8,741  (86.63%)
+BMD_V0A            1,194  (11.83%)
+BMD_OTHER_VERSION     31  ( 0.31%)
+BUX_CONTAINER        100  ( 0.99%)
+unrecognised          24  ( 0.24%)
+
+payload entropy: max 7.9980 bits/byte, 8,570 above 7.5
 ```
+
+**Consequence.** Usable BMD geometry is `BLOCKED` for 85.17% of files, and
+`NOT IMPLEMENTED` for the remaining 14.83%. This is the project's number-one
+blocker; see [`COMPATIBILITY.md`](COMPATIBILITY.md).
+
+One useful consequence of the split: the 1,396 plaintext-payload files are
+enough to **write and test a BMD body parser today**, without waiting for the
+cipher. That is a concrete unblocked path.
 
 ### The payload cipher is not recovered — BLOCKED
 

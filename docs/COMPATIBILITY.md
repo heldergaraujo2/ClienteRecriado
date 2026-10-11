@@ -1,139 +1,166 @@
 # Compatibility
 
-Visual and functional compatibility status. Separated into what is verified,
-what is partial and what is not started, because "compatible" without a
-qualification is not a meaningful claim.
+Visual and functional compatibility status, classified on the project's
+official scale:
 
-## 1. Asset format compatibility
+| Classification | Meaning |
+|---|---|
+| **CONCLUÍDO E VALIDADO** | Implemented and verified against real data |
+| **IMPLEMENTADO MAS NÃO VALIDADO** | Implemented, not yet verified against real data |
+| **PARCIAL** | Works for a subset; the gap is measured and stated |
+| **BLOQUEADO** | Cannot progress without something this project cannot produce |
+| **NÃO IMPLEMENTADO** | Not started |
 
-This is the layer that actually works, and it is verified against the whole
-reference tree rather than a sample.
+---
 
-| Format | Files | Loadable | Level |
+## BLOQUEIO Nº 1 DO PROJETO — geometria BMD
+
+> ### **BLOQUEADO — geometria BMD utilizável: 0 de 10.090 arquivos (0,00%)**
+>
+> **8.594 arquivos (85,17%) têm payload cifrado cuja cifra não foi recuperada.**
+> Os 1.496 restantes (14,83%) estão em claro, mas **não existe parser do corpo
+> BMD**, então nenhum vértice, face ou osso é extraído de nenhum arquivo.
+>
+> Este é o bloqueio mais importante do projeto. Ele impede: renderização de
+> personagens, monstros, itens, asas, objetos de mundo, terreno decorado e toda
+> animação esquelética. **Nenhum trabalho de renderização de mundo ou entidades
+> pode avançar antes dele.**
+>
+> Medido por `mutool bmdreport`; saída completa em
+> [`evidence/ciclo1_bmdreport.log`](evidence/ciclo1_bmdreport.log).
+
+### Por que um relatório anterior estava errado
+
+Um relatório anterior afirmou "BMD: 10.066/10.090 lidos (99,76%)". Aquela
+métrica contava apenas se o **cabeçalho do contêiner** podia ser classificado.
+Ela não dizia nada sobre conteúdo utilizável, e a diferença entre as duas
+respostas é de 99,76% contra 0,00%. A auditoria do ciclo 1 apontou isso
+corretamente. As três métricas estão agora separadas de forma permanente, e
+produzidas por ferramenta em vez de afirmadas em prosa.
+
+### As três métricas, medidas na árvore completa
+
+`mutool bmdreport /home/user/Cliente_ref/Data` — 10.090 arquivos `.bmd`:
+
+| Nível | O que mede | Arquivos | % |
 |---|---|---|---|
-| OZJ texture | 13,928 | 13,832 (99.31%) | **Header + geometry verified.** Pixels not decoded — no JPEG decoder in the library. |
-| OZT texture | 3,470 | 3,404 (98.10%) | **Full pixel load verified**, round-tripped through a writer. |
-| TGA | 15 | 15 (100%) | **Full pixel load** for uncompressed 24/32-bit. RLE detected, not decoded. |
-| BMD model | 10,090 | 10,066 classified (99.76%) | **Container only.** Payload is encrypted and the cipher is not recovered. |
-| `.att` terrain | 105 | 105 (100%) | **Container + grid geometry.** 8 plaintext, 97 encrypted. |
-| `.map` terrain | 79 | 79 (100%) | **Container + grid geometry.** 2 plaintext, 77 encrypted. |
-| `.obj` terrain | 81 | 81 (100%) | **Container only.** Record layout not resolved. |
-| `.ozb` | 100 | 0 | Not started. |
-| `.smd` | 10 | 0 | Not started (plain text, straightforward). |
-| `.lua` | 22 | 0 | Not started (plain text). |
-| `.cg` | 6 | 0 | Read and analysed; not compiled. |
+| **1. Estrutura válida** | magic + versão reconhecidos e, para v0x0C, o tamanho declarado confere com o tamanho real | **10.023** | **99,34%** |
+| **2. Payload em claro** | bytes obtíveis sem cifra desconhecida | **1.496** | **14,83%** |
+| ↳ plaintext | já está em claro | 1.396 | 13,84% |
+| ↳ decifrável por bux | XOR-3 `{0xFC,0xCF,0xAB}` | 100 | 0,99% |
+| ↳ **OPACO** | **cifra não recuperada** | **8.594** | **85,17%** |
+| **3. Geometria extraída** | vértices/faces/ossos realmente lidos | **0** | **0,00%** |
 
-### What "loadable" does not mean here
+Entropia máxima de payload observada: **7,9980 bits/byte**; 8.570 arquivos acima
+de 7,5.
 
-For OZT and TGA, "full pixel load" means the bytes are read, dimensions
-validated, and the pixel payload round-trips correctly through a writer and back.
-It does **not** mean the image has been displayed and compared against the
-original, because there is no renderer. Visual verification is `NOT EXECUTED`.
+### O que destravaria
 
-For BMD, "container only" means the magic, version and payload length are parsed
-and validated. There is no vertex data, no bone hierarchy, no texture
-references. **No model can be rendered.**
+O algoritmo da cifra, obtido legitimamente — por exemplo de uma implementação
+open-source de cliente MU sob licença compatível, ou do autor do formato.
+**Não** por desempacotamento do módulo protegido. Ver `AGENTS.md`.
 
-## 2. Blocking incompatibilities
+### O que já é possível sem destravar
 
-### 2.1 BMD payload cipher — blocks all geometry
+Os 1.396 arquivos com payload em claro permitem **escrever e testar o parser do
+corpo BMD hoje**, sem esperar pela cifra. Esse é um caminho concreto e está na
+fila de tarefas.
 
-8,570 of 10,090 BMD files have payload entropy above 7.5 bits/byte. The cipher
-is not recovered; six hypotheses were tested and ruled out
-([`ASSET_FORMATS.md`](ASSET_FORMATS.md)).
+---
 
-Consequences, stated plainly: no characters, no monsters, no items, no world
-objects, no skeletal animation. This is the largest single functional gap and it
-gates the renderer work — there is nothing to render until it is resolved.
+## 1. Compatibilidade de formatos de asset
 
-### 2.2 `Enc*` terrain encryption — blocks most terrain
+Verificada contra a árvore completa — 29.060 arquivos, 2.372,04 MB — não contra
+amostra.
 
-219 of 264 terrain files. Not the bux cipher (1 of 60 improved when decrypted
-with it). 45 terrain files can be read.
+| Formato | Arquivos | Lidos | Classificação |
+|---|---|---|---|
+| OZT textura | 3.470 | 3.404 (98,10%) | **CONCLUÍDO E VALIDADO** — pixels carregados e round-trip testado |
+| TGA | 15 | 15 (100%) | **CONCLUÍDO E VALIDADO** — não comprimido 24/32 bits |
+| `.att` terreno | 105 | 105 (100%) | **PARCIAL** — contêiner + grade; 97 cifrados |
+| `.map` terreno | 79 | 79 (100%) | **PARCIAL** — contêiner + grade; 77 cifrados |
+| `.obj` terreno | 81 | 81 (100%) | **PARCIAL** — contêiner; layout de registro não resolvido |
+| OZJ textura | 13.928 | 13.832 (99,31%) | **PARCIAL** — cabeçalho e geometria validados; **pixels não decodificados**, não há decodificador JPEG |
+| BMD modelo | 10.090 | 10.023 estrutura (99,34%) | **BLOQUEADO** — 0% de geometria; ver acima |
+| `.ozb` | 100 | 0 | **NÃO IMPLEMENTADO** |
+| `.smd` | 10 | 0 | **NÃO IMPLEMENTADO** (texto simples) |
+| `.lua` | 22 | 0 | **NÃO IMPLEMENTADO** (texto simples) |
+| `.cg` | 6 | 0 | **NÃO IMPLEMENTADO** (analisados, não compilados) |
 
-## 3. Renderer compatibility
+### O que "lido" significa em cada caso
 
-The original renderer is fully characterised from its import tables
-([`RENDERING.md`](RENDERING.md)): fixed-function OpenGL 1.1, immediate mode plus
-client-side vertex arrays plus display lists, GDI bitmap fonts, `glReadPixels`
-on the presentation path, Cg/`NV_texture_rectangle` glow post-process.
+Para OZT e TGA, "pixels carregados" significa que os bytes são lidos, as
+dimensões validadas e o payload round-tripa por um writer e de volta. **Não**
+significa que a imagem foi exibida e comparada com a original — não há
+renderer. Comparação visual: `NÃO EXECUTADO`.
 
-No replacement renderer exists. Every item below is `NOT STARTED`:
+Para OZJ, apenas o cabeçalho é validado. O maior formato do cliente (971,7 MB)
+não tem pixels decodificáveis neste projeto.
 
-| Capability | Status |
+## 2. Compatibilidade de renderização
+
+O renderer original está totalmente caracterizado a partir das tabelas de
+import ([`RENDERING.md`](RENDERING.md)): OpenGL 1.1 fixed-function, immediate
+mode mais client-side vertex arrays mais display lists, fontes bitmap via GDI,
+`glReadPixels` no caminho de apresentação, pós-processamento de glow em
+Cg/`NV_texture_rectangle`.
+
+**Nenhum renderer substituto existe. Todos os itens abaixo são
+`NÃO IMPLEMENTADO`, exceto onde indicado:**
+
+| Capacidade | Classificação |
 |---|---|
-| Window creation and GL context | NOT STARTED |
-| Terrain rendering | BLOCKED (2.2) |
-| Model rendering | BLOCKED (2.1) |
-| Skeletal animation | BLOCKED (2.1) |
-| Texture upload | Library converts to RGBA; no GL upload path |
-| Particle and skill effects | NOT STARTED |
-| UI rendering | NOT STARTED |
-| Text rendering | NOT STARTED |
-| Glow post-process | Analysed, not reimplemented |
-| Fog, sky box, day/night | NOT STARTED |
-| Camera | NOT STARTED |
+| Janela e contexto GL | NÃO IMPLEMENTADO |
+| Renderização de modelos | **BLOQUEADO** (cifra BMD) |
+| Animação esquelética | **BLOQUEADO** (cifra BMD) |
+| Renderização de terreno | **BLOQUEADO** (cifra `Enc*`) |
+| Upload de textura para GPU | NÃO IMPLEMENTADO |
+| Partículas e efeitos de skill | NÃO IMPLEMENTADO |
+| Interface | NÃO IMPLEMENTADO |
+| Renderização de texto | NÃO IMPLEMENTADO |
+| Pós-processamento de glow | NÃO IMPLEMENTADO (analisado) |
+| Névoa, skybox, dia/noite | NÃO IMPLEMENTADO |
+| Câmera | NÃO IMPLEMENTADO |
 
-## 4. Configuration compatibility
+## 3. Compatibilidade de configuração
 
-The client's configuration surface is documented in
-[`REFERENCE_AUDIT.md`](REFERENCE_AUDIT.md) section 5. Two files drive it:
-`Settings.ini` (`[AntiLag]`, `[Graphics]`, `[Other]`, `[Font]`, `[Options]`,
-`[Configuracion]`, `[AutoLogin]`, `[Discord]`) and `CESettings.ini`
-(`[RenderMesh]`, `[EffectStaticDynamic]`, `[Animation]`, `[Interface]`,
-`[MapEx]`, `[Extra]`, `[HotKeys]`).
+A superfície de configuração está documentada em
+[`REFERENCE_AUDIT.md`](REFERENCE_AUDIT.md) seção 5. **NÃO IMPLEMENTADO** — não
+existe leitor para `Settings.ini` nem `CESettings.ini`.
 
-A reconstruction that wants drop-in compatibility should read both files with
-the same key names and the same defaults. No reader for either file exists yet.
-`NOT STARTED`.
+Resolução e modo de janela **não** estão nesses arquivos: ficam no registro,
+gravados pelos 16 `.reg` em `Scripts/`.
 
-Note that resolution and window mode are **not** in these files — they are in
-the registry, written by the 16 `.reg` files in `Scripts/`.
+## 4. Compatibilidade de rede e protocolo
 
-## 5. Network and protocol compatibility
+`NÃO EXECUTADO`. Não há servidor de teste autorizado.
 
-`NOT EXECUTED`. No authorised test server is available.
+Conhecido da referência: 32 funções `WS2_32` incluindo `WSASend`; camada Lua em
+`Data/Custom/Script/` com `System/ProtocolCore.lua` e pasta `TesteProtocol`,
+indicando handlers de protocolo customizados em runtime. Versões em
+`ListaPatch.txt`: `512.2011.006` e `512.2025.005` (linha Season 6).
 
-What is known from the reference client: `Main.exe` imports 32 `WS2_32`
-functions including `WSASend`, and there is a Lua layer under
-`Data/Custom/Script/` containing `System/ProtocolCore.lua` and a
-`TesteProtocol` feature folder, which indicates the client registers custom
-protocol handlers at runtime. Client version markers in `ListaPatch.txt` are
-`512.2011.006` and `512.2025.005`, i.e. the Season 6 line.
+## 5. Compatibilidade de áudio
 
-Any claim of protocol compatibility would be a guess. None is made.
+**NÃO IMPLEMENTADO.** A referência toca 1.020 WAV (211,9 MB) e 61 MP3 + 3 OGG
+(198 MB) via `wzAudio.dll` com `vorbisfile` e DirectSound. MP3 é o formato
+dominante de música e exigiria decodificador próprio.
 
-## 6. Audio compatibility
+## 6. Compatibilidade de plataforma
 
-`NOT STARTED`. The reference client plays 1,020 WAV files (211.9 MB) and 61 MP3
-plus 3 OGG music tracks (198 MB) through `wzAudio.dll` using `vorbisfile` and
-DirectSound.
-
-Note that MP3 is the dominant music format and would need its own decoder; the
-Ogg library the client ships does not cover it.
-
-## 7. Platform compatibility
-
-| Target | Status |
+| Alvo | Classificação |
 |---|---|
-| Windows x86 (32-bit) | `NOT EXECUTED` — never compiled for. This is the actual target. |
-| Windows x64 | NOT APPLICABLE — the reference client is entirely 32-bit |
-| Linux | Library and tools build and pass all tests. Not a shipping target. |
+| Windows x86 (32 bits) | **NÃO EXECUTADO** — nunca compilado. Este é o alvo real. |
+| Windows x64 | NÃO APLICÁVEL — a referência é inteiramente 32 bits |
+| Linux | CONCLUÍDO E VALIDADO para biblioteca e ferramentas. Não é alvo de distribuição. |
 
-The Windows build gap is significant and is called out in
-[`BUILD.md`](BUILD.md): **the target platform has never been compiled for.**
+A lacuna de build Windows é significativa: **a plataforma-alvo nunca foi
+compilada**. Ver [`BUILD.md`](BUILD.md).
 
-## 8. Visual comparison methodology
+## 7. Metodologia de comparação visual
 
-Not yet possible, since there is no renderer. When it becomes possible, the
-method should be:
+Ainda não possível, pois não há renderer. Quando for: cena, câmera, resolução e
+configurações idênticas nos dois clientes; comparação pixel a pixel com métrica
+reportada; diferenças esperadas listadas **antes**; e **nunca modificar um asset
+para esconder um bug do renderer**.
 
-1. Identical scene, camera position, resolution and graphics settings on both
-   clients.
-2. Captured frames compared pixel-by-pixel, with a reported difference metric
-   rather than a visual impression.
-3. Expected differences listed in advance — the glow pass reimplemented in GLSL
-   will not be bit-identical, and saying so beforehand keeps the comparison
-   honest.
-4. **Never modify an asset to hide a renderer bug.** If the reconstruction looks
-   wrong, the fix belongs in the renderer.
