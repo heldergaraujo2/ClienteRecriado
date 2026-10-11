@@ -143,21 +143,41 @@ igual ao local — ver seção final.
    48 B vence em `Sword40` (654). Nenhum vence nos dois. **Registrar 12 ou 16
    bytes seria palpite, e palpite em layout de vértice produz geometria
    silenciosamente errada.**
-2. **Cifra v0x0C (8.594 arquivos, 85,17%) — BLOQUEADA.** O bloqueio real é
+2. **Avanço parcial no corpo BMD (novo, medido).** Varredura por norma
+   euclidiana 1 localiza um array de normais em **16 de 41** arquivos v0x0A
+   nomeados (39,0%), sendo 10 deles com **250/250 = 100,0%**. A taxa de falso
+   positivo do teste foi medida primeiro — **4,480×10⁻⁴** em 2.000.000 amostras
+   — o que torna 250 acertos consecutivos probabilidade ~0. Isso é evidência,
+   não plausibilidade.
+   **Não é layout determinado.** O offset absoluto varia de 4 a 358.808 bytes e
+   a fase entre 0/4/8/12/16, então não se sabe onde a seção começa sem os
+   contadores do cabeçalho, que seguem não decodificados. **25 de 41 (61,0%)**
+   não apresentam a região. E o passo de 20 bytes tem 2 floats finais **não
+   identificados** — a hipótese (u,v) não foi verificada e não deve ser
+   assumida. Classificação: **hipótese com evidência forte para 39,0%, não
+   habilita parser.** Evidência em `ciclo1_bmd_normals.log`.
+3. **Cifra v0x0C (8.594 arquivos, 85,17%) — BLOQUEADA.** O bloqueio real é
    acesso de saída a um host de código para consultar implementações
    licenciadas permissivamente, não a criptoanálise. O par
    `Object40.smd` (3.847.871 B, texto puro) × `Object40.bmd` (1.041.808 B,
    opaco) é o melhor candidato known-plaintext, mas **1 de 10** `.smd` tem par
    — não 10 de 10 como assumi no início desta investigação.
-3. `Enc*` terreno: 219 de 264 arquivos. **BLOQUEADO.**
-4. Sem build Windows; a plataforma-alvo nunca foi compilada.
-5. Sem decodificação de pixels JPEG: 13.832 OZJ têm geometria validada, 0 têm
+4. `Enc*` terreno: 219 de 264 arquivos. **BLOQUEADO.**
+5. Sem build Windows; a plataforma-alvo nunca foi compilada.
+6. Sem decodificação de pixels JPEG: 13.832 OZJ têm geometria validada, 0 têm
    pixels.
 
 ## 10. Próxima tarefa e por quê
 
-**Continuar a tarefa 1a — determinar o layout do corpo BMD nos 433 arquivos
-nomeados.** É o trabalho de maior valor disponível: não é bloqueado, produz
+**Continuar a tarefa 1a — decodificar os contadores do cabeçalho BMD.** A
+varredura por norma 1 já localiza a seção de normais em 39,0% dos arquivos, mas
+só o offset absoluto não basta: é preciso chegar lá a partir do cabeçalho. Os
+bytes logo após o campo de nome de 32 bytes são a pista concreta — em
+`Sword40.bmd` são `02 00 02 00 01 00 58 00 81 00 45 00 8e 00` e em
+`PrickleGlove_left.bmd` `04 00 33 00 01 00 4c 01 c4 01 24 01 26 02`, ou seja,
+u16 pequenos e plausíveis como contagens. Testar se algum deles, ou sua soma,
+desloca exatamente até o início da região de normais já detectada é um teste
+fechável e não exige adivinhar o resto do formato. É o trabalho de maior valor disponível: não é bloqueado, produz
 resultado verificável hoje, e gera o known-plaintext que torna a cifra (1b)
 tratável. A abordagem muda em relação à que falhou: em vez de buscar um passo
 uniforme no arquivo inteiro, percorrer as seções em ordem — o campo de nome de

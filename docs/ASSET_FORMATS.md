@@ -297,6 +297,37 @@ parser must not assume it.
   and a guessed vertex layout produces silently wrong geometry, which is worse
   than no geometry.
 
+**Partially established — a normals array, with evidence, but not a layout:**
+
+Scanning whole files for runs of float32 triples whose Euclidean norm is 1
+(tolerance 1e-3) at a 20-byte stride finds, in **16 of 41 named v0x0A files
+(39.0%)**, a region where the property holds essentially always — 10 files at
+**250/250 = 100.0%**. Mesh normals are unit-length by construction, so this is a
+decisive and falsifiable test rather than a plausibility argument.
+
+The test's false-positive rate was measured first, because without it "250 out
+of 250" means nothing: over 2,000,000 uniform samples in the accepted range
+`[-1.5, 1.5]`, the rate is **4.480e-04**, making 250 consecutive hits a
+probability of effectively zero.
+
+What this does **not** establish, and these gaps are the reason no parser
+follows:
+
+- The absolute offset ranges from 4 to 358,808 bytes between files and the
+  alignment phase varies over 0, 4, 8, 12, 16. That is consistent with a
+  variable-length sectioned format but does not say where the normals section
+  begins in an arbitrary file. Reaching it requires the header counters, which
+  are not decoded.
+- **25 of 41 files (61.0%) show no such region above 90%.** Whether that means a
+  different layout, quantised normals, or an absent section is unresolved.
+- The stride is 20 bytes (5 floats) but only the first three are covered by the
+  test. The remaining two floats are **not identified**. Coordinate pair (u, v)
+  is the natural hypothesis; it is unverified and must not be assumed.
+
+Classification: **strongly evidenced hypothesis for 39.0% of named files, not a
+determined layout.** Raw output in
+[`evidence/ciclo1_bmd_normals.log`](evidence/ciclo1_bmd_normals.log).
+
 The one paired `.smd`/`.bmd` in the tree, `Object40` (3,847,871 B of plain-text
 SMD beside a 1,041,808 B **opaque** BMD), does not currently close the
 arithmetic either: 15,390 triangles and 2,234 unique positions leave a remainder
