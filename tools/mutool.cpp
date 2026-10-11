@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "mu/assets/bmd.hpp"
+#include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
 #include "mu/assets/ozj.hpp"
@@ -357,6 +358,113 @@ int CmdDedupe(int argc, char** argv) {
   return 0;
 }
 
+int CmdBmdReport(int argc, char** argv) {
+  if (argc < 3) {
+    Usage();
+    return 1;
+  }
+  std::vector<mu::FileEntry> files;
+  if (!mu::WalkFiles(argv[2], &files)) {
+    std::fprintf(stderr, "error: cannot open directory '%s'\n", argv[2]);
+    return 1;
+  }
+  std::sort(files.begin(), files.end(),
+            [](const mu::FileEntry& a, const mu::FileEntry& b) {
+              return a.path < b.path;
+            });
+
+  mu::BmdSummary sum;
+  std::vector<mu::BmdFileReport> opaque_samples;
+  std::vector<mu::BmdFileReport> plaintext_samples;
+  std::vector<mu::BmdFileReport> invalid_samples;
+
+  for (const mu::FileEntry& f : files) {
+    if (mu::ExtensionOf(f.path) != ".bmd") continue;
+    mu::BmdFileReport r = mu::BmdClassifyFile(f.path);
+    mu::BmdAccumulate(r, &sum);
+    if (r.access == mu::PayloadAccess::kOpaque && opaque_samples.size() < 5)
+      opaque_samples.push_back(r);
+    if (r.access == mu::PayloadAccess::kPlaintext && plaintext_samples.size() < 10)
+      plaintext_samples.push_back(r);
+    if (!r.structure_valid && invalid_samples.size() < 10)
+      invalid_samples.push_back(r);
+  }
+
+  std::printf("BMD usability report for %s\n\n", argv[2]);
+  std::printf("Three separate questions, three separate answers. A container\n"
+              "header that classifies cleanly says nothing about whether a\n"
+              "vertex can be extracted from it.\n\n");
+
+  std::printf("  total .bmd files                         %8zu\n\n", sum.total);
+
+  std::printf("LEVEL 1 - container structure valid\n");
+  std::printf("  magic + version recognised, and for v0x0C the declared\n");
+  std::printf("  payload length agrees with the file length.\n");
+  std::printf("    valid                                  %8zu  (%6.2f%%)\n",
+              sum.structure_valid, mu::PercentOf(sum.structure_valid, sum.total));
+  std::printf("    invalid                                %8zu  (%6.2f%%)\n\n",
+              sum.structure_invalid,
+              mu::PercentOf(sum.structure_invalid, sum.total));
+
+  std::printf("LEVEL 2 - payload obtainable in the clear\n");
+  std::printf("    plaintext                              %8zu  (%6.2f%%)\n",
+              sum.cleartext_plaintext,
+              mu::PercentOf(sum.cleartext_plaintext, sum.total));
+  std::printf("    bux-decryptable                        %8zu  (%6.2f%%)\n",
+              sum.cleartext_bux, mu::PercentOf(sum.cleartext_bux, sum.total));
+  std::printf("    OPAQUE (cipher not recovered)          %8zu  (%6.2f%%)\n\n",
+              sum.opaque, mu::PercentOf(sum.opaque, sum.total));
+
+  std::printf("LEVEL 3 - geometry actually parsed (vertices/faces/bones)\n");
+  std::printf("    parsed                                 %8zu  (%6.2f%%)\n",
+              sum.geometry_parsed,
+              mu::PercentOf(sum.geometry_parsed, sum.total));
+  std::printf("    No BMD body parser exists in this project. This line is 0\n");
+  std::printf("    by construction, not by omission.\n\n");
+
+  std::printf("container kinds\n");
+  std::printf("    BMD v0x0C                              %8zu  (%6.2f%%)\n",
+              sum.kind_v0c, mu::PercentOf(sum.kind_v0c, sum.total));
+  std::printf("    BMD v0x0A (legacy)                     %8zu  (%6.2f%%)\n",
+              sum.kind_v0a, mu::PercentOf(sum.kind_v0a, sum.total));
+  std::printf("    BMD other version                      %8zu  (%6.2f%%)\n",
+              sum.kind_other_version,
+              mu::PercentOf(sum.kind_other_version, sum.total));
+  std::printf("    bux-encrypted container                %8zu  (%6.2f%%)\n",
+              sum.kind_bux_container,
+              mu::PercentOf(sum.kind_bux_container, sum.total));
+  std::printf("    unrecognised                           %8zu  (%6.2f%%)\n\n",
+              sum.kind_unknown, mu::PercentOf(sum.kind_unknown, sum.total));
+
+  std::printf("payload entropy: max %.4f bits/byte, %zu above %.1f\n\n",
+              sum.max_entropy, sum.entropy_above_7_5,
+              mu::kEncryptedEntropyThreshold);
+
+  if (!plaintext_samples.empty()) {
+    std::printf("sample files with a payload in the clear:\n");
+    for (const mu::BmdFileReport& r : plaintext_samples)
+      std::printf("    %-52s entropy %.3f  kind %s\n", r.path.c_str(),
+                  r.payload_entropy, mu::BmdKindName(r.kind));
+    std::printf("\n");
+  }
+  if (!opaque_samples.empty()) {
+    std::printf("sample OPAQUE files (cipher not recovered):\n");
+    for (const mu::BmdFileReport& r : opaque_samples)
+      std::printf("    %-52s entropy %.3f  kind %s\n", r.path.c_str(),
+                  r.payload_entropy, mu::BmdKindName(r.kind));
+    std::printf("\n");
+  }
+  if (!invalid_samples.empty()) {
+    std::printf("sample structurally invalid files:\n");
+    for (const mu::BmdFileReport& r : invalid_samples)
+      std::printf("    %-52s %s\n", r.path.c_str(), r.problem.c_str());
+  }
+
+  // Exit non-zero when any payload is opaque, so this doubles as a gate that
+  // fails until the cipher is recovered.
+  return sum.opaque == 0 ? 0 : 2;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -369,6 +477,7 @@ int main(int argc, char** argv) {
   if (cmd == "info") return CmdInfo(argc, argv);
   if (cmd == "verify") return CmdVerify(argc, argv);
   if (cmd == "dedupe") return CmdDedupe(argc, argv);
+  if (cmd == "bmdreport") return CmdBmdReport(argc, argv);
   if (cmd == "-h" || cmd == "--help" || cmd == "help") {
     Usage();
     return 0;

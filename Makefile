@@ -24,6 +24,7 @@ LIB_SRCS := src/mu/assets/format.cpp \
             src/mu/assets/ozt.cpp \
             src/mu/assets/ozj.cpp \
             src/mu/assets/bmd.cpp \
+            src/mu/assets/bmd_report.cpp \
             src/mu/assets/terrain.cpp \
             src/mu/assets/tga.cpp \
             src/mu/assets/manifest.cpp \
@@ -34,7 +35,7 @@ TOOL_SRC := tools/mutool.cpp
 TEST_SRC := tests/test_assets.cpp
 BENCH_SRC := bench/bench_assets.cpp
 
-.PHONY: all test bench clean tool
+.PHONY: all test bench clean tool test-san
 
 all: $(BUILD)/mutool $(BUILD)/test_assets
 
@@ -61,8 +62,21 @@ bench: $(BUILD)/bench_assets
 test: $(BUILD)/test_assets
 	$(BUILD)/test_assets
 
+# A separate binary rather than a flag on the normal one, so `make test` can
+# never silently run an instrumented build, and the documented sanitizer claim
+# has a target behind it that anyone can re-run.
+SAN_FLAGS := -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer
+SAN_BUILD := build-san
+
+test-san: $(SAN_BUILD)/test_assets
+	$(SAN_BUILD)/test_assets
+
+$(SAN_BUILD)/test_assets: $(TEST_SRC) $(LIB_SRCS)
+	@mkdir -p $(SAN_BUILD)
+	$(CXX) -std=c++17 -Wall -Wextra $(SAN_FLAGS) -Isrc $^ -o $@
+
 clean:
-	rm -rf $(BUILD)
+	rm -rf $(BUILD) $(SAN_BUILD)
 
 # Pull in the generated header dependencies. The leading '-' keeps a fresh
 # checkout working, since no .d files exist yet on the first build.
