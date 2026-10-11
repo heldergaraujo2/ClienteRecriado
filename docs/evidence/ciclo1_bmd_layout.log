@@ -235,3 +235,46 @@ Exemplos de discordancia: PrickleGlove_right (u16@32=4, 8 ocorrencias,
 Monster277 (u16@32=5, 10 ocorrencias, 6 distintos).
 
 Nenhuma alteracao foi feita no parser com base neste teste.
+
+======================================================================
+QUARTA TENTATIVA SOBRE FACES - RESTRICAO DUPLA - TAMBEM AMBIGUA
+======================================================================
+Hipotese: um registro de face referencia indices de vertice E de normal,
+entao o teste [v0 v1 v2 n0 n1 n2] com vi < contagem_vertices e
+ni < contagem_normais seria muito mais restritivo que testar apenas um
+tipo de indice.
+
+  arquivo       vc    nc   rec 6B  rec 8B  rec 12B  rec 14B  rec 16B
+  Sword40       88   129       10       7      5        8        4
+  Monster263  1183  1872     2729    2047   2986     1949     2015
+
+  teste forte [v0 v1 v2 n0 n1 n2], rec 12 B:
+     Sword40    ->   5 registros
+     Monster263 -> 629 registros
+
+CONCLUSAO: INCONSISTENTE. A restricao dupla produziu 629 registros em
+Monster263 e apenas 5 em Sword40. Se o layout fosse esse, os dois
+arquivos deveriam se comportar de forma comparavel.
+
+NOTA DE METODO: em Monster263 as contagens altas (2.729 a 2.986) sao
+enganosas. Com nc=1872, um u16 aleatorio tem probabilidade alta de ser
+menor que nc, entao sequencias longas de "triplets < nc" surgem por acaso
+em um arquivo grande. O teste fraco nao discrimina quando a contagem de
+referencia e grande - exatamente o caso em que os numeros parecem melhores.
+
+ENCERRAMENTO DESTA LINHA DE ATAQUE: quatro tentativas de determinar a
+secao de faces por tamanho de registro foram feitas e todas falharam:
+  1. passo uniforme de vertice no arquivo inteiro  -> ambiguo
+  2. UV de nc*8 seguido de faces                   -> ambiguo
+  3. regiao de UV por floats em [0,1]              -> razao 0,146-0,824
+  4. restricao dupla vertice+normal                -> inconsistente
+
+Tentar um quinto tamanho de registro nao e um proximo passo razoavel. O
+que falta nao e mais um palpite melhor: e o significado dos campos, que
+nao se obtem por busca. As rotas que o dariam sao (a) uma implementacao
+open-source do formato sob licenca compativel, bloqueada por falta de
+acesso de saida a host de codigo neste ambiente, ou (b) documentacao do
+formato pelo autor.
+
+O parser permanece com as duas secoes verificadas e nada foi alterado com
+base nestas quatro tentativas.
