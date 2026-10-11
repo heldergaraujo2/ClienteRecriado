@@ -15,6 +15,7 @@
 #endif
 
 #include "mu/assets/bmd.hpp"
+#include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
 #include "mu/assets/ozj.hpp"
@@ -569,6 +570,11 @@ void TestExtensionHelpers() {
   CHECK_EQ(mu::AsciiLower("AbC.OzT"), std::string("abc.ozt"));
 }
 
+void TestBmdReportLevelsAreSeparate();
+void TestBmdReportGeometryIsAlwaysZero();
+void TestBmdReportPercent();
+void TestBmdReportAccumulatesKinds();
+
 const Test kTests[] = {
     {"crc32 known vectors", TestCrc32KnownVectors},
     {"ozt round trip", TestOztRoundTrip},
@@ -584,6 +590,10 @@ const Test kTests[] = {
     {"manifest parse", TestManifestParse},
     {"manifest verify", TestManifestVerify},
     {"extension helpers", TestExtensionHelpers},
+    {"bmd report levels are separate", TestBmdReportLevelsAreSeparate},
+    {"bmd geometry parsed is always zero", TestBmdReportGeometryIsAlwaysZero},
+    {"bmd percent helper", TestBmdReportPercent},
+    {"bmd report accumulates kinds", TestBmdReportAccumulatesKinds},
 };
 
 }  // namespace
@@ -600,3 +610,155 @@ int main() {
   std::printf("\n%d checks, %d failures\n", g_checks, g_failures);
   return g_failures == 0 ? 0 : 1;
 }
+
+// ---------------------------------------------------------------------------
+// BMD reporting: the cycle-1 audit found that a single "99.76% read" figure
+// described container headers while usable geometry was 0.00%. These tests pin
+// the three metrics apart so the two cannot be conflated again.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+void PutU32Le(std::vector<std::uint8_t> &out, std::uint32_t v) {
+  out.push_back(static_cast<std::uint8_t>(v & 0xff));
+  out.push_back(static_cast<std::uint8_t>((v >> 8) & 0xff));
+  out.push_back(static_cast<std::uint8_t>((v >> 16) & 0xff));
+  out.push_back(static_cast<std::uint8_t>((v >> 24) & 0xff));
+}
+
+/// Builds a synthetic BMD container. For version 0x0C the declared length is
+/// emitted verbatim so a test can lie about it and check that level 1 notices.
+std::vector<std::uint8_t> FakeBmd(std::uint8_t version, std::uint32_t declared,
+                                  const std::vector<std::uint8_t> &payload) {
+  std::vector<std::uint8_t> out{'B', 'M', 'D', version};
+  if (version == 0x0C) {
+    PutU32Le(out, declared);
+  }
+  out.insert(out.end(), payload.begin(), payload.end());
+  return out;
+}
+
+std::vector<std::uint8_t> LowEntropyBytes(std::size_t n) {
+  std::vector<std::uint8_t> out(n);
+  for (std::size_t i = 0; i < n; ++i) {
+    out[i] = static_cast<std::uint8_t>(i & 1);
+  }
+  return out;
+}
+
+// Every one of the 256 byte values appears exactly the same number of times,
+// so the entropy is exactly 8.0 bits/byte regardless of |n| (rounded up to a
+// multiple of 256). An LCG was tried first and rejected: at 256 bytes its
+// mid-byte distribution measures below the 7.5 threshold, which made the test
+// assert against a fixture that was not actually high-entropy. The uniform
+// construction removes that doubt, and the seed only rotates the start so the
+// bux-gain probe still sees no runs of the key.
+std::vector<std::uint8_t> HighEntropyBytes(std::size_t n, std::uint32_t seed) {
+  const std::size_t rounded = ((n + 255) / 256) * 256;
+  std::vector<std::uint8_t> out(rounded);
+  const std::uint32_t offset = seed & 0xff;
+  for (std::size_t i = 0; i < rounded; ++i) {
+    out[i] = static_cast<std::uint8_t>((i + offset) & 0xff);
+  }
+  return out;
+}
+
+mu::BmdSummary SummarizeOne(const std::vector<std::uint8_t> &bytes,
+                            const char *label) {
+  mu::BmdSummary summary;
+  mu::BmdAccumulate(mu::BmdClassifyBytes(mu::ByteView(bytes.data(), bytes.size()),
+                                         label),
+                    &summary);
+  return summary;
+}
+
+void TestBmdReportLevelsAreSeparate() {
+  // Level 1 (structure) and level 2 (cleartext) and level 3 (geometry) are
+  // three different questions. A file can pass the first and fail the second.
+  const std::vector<std::uint8_t> clear_payload = LowEntropyBytes(128);
+  const mu::BmdSummary clear =
+      SummarizeOne(FakeBmd(0x0A, 128, clear_payload), "clear.bmd");
+  CHECK_EQ(1u, clear.total);
+  CHECK_EQ(1u, clear.structure_valid);
+  CHECK_EQ(0u, clear.structure_invalid);
+  CHECK_EQ(1u, clear.cleartext_plaintext);
+  CHECK_EQ(0u, clear.opaque);
+  CHECK_EQ(0u, clear.geometry_parsed);
+  CHECK_EQ(1u, clear.kind_v0a);
+
+  // Well-formed v0x0C with high-entropy payload: structure still valid, but the
+  // payload is opaque. This is the 85% case from the reference tree.
+  const std::vector<std::uint8_t> noise = HighEntropyBytes(512, 7);
+  const mu::BmdSummary opaque = SummarizeOne(
+      FakeBmd(0x0C, static_cast<std::uint32_t>(noise.size()), noise),
+      "opaque.bmd");
+  CHECK_EQ(1u, opaque.structure_valid);
+  CHECK_EQ(0u, opaque.structure_invalid);
+  CHECK_EQ(1u, opaque.opaque);
+  CHECK_EQ(0u, opaque.cleartext_plaintext);
+  CHECK_EQ(0u, opaque.geometry_parsed);
+  CHECK_EQ(1u, opaque.kind_v0c);
+  CHECK_EQ(1u, opaque.entropy_above_7_5);
+  CHECK(opaque.max_entropy > mu::kEncryptedEntropyThreshold);
+
+  // Structurally invalid: the declared length is a lie. Level 1 must reject it,
+  // and it must not be counted at level 2.
+  const mu::BmdSummary broken =
+      SummarizeOne(FakeBmd(0x0C, 999999, noise), "broken.bmd");
+  CHECK_EQ(1u, broken.total);
+  CHECK_EQ(0u, broken.structure_valid);
+  CHECK_EQ(1u, broken.structure_invalid);
+  CHECK_EQ(0u, broken.geometry_parsed);
+}
+
+void TestBmdReportGeometryIsAlwaysZero() {
+  // The honest zero. No BMD body parser exists, so level 3 is zero for every
+  // input including a perfectly clear payload. If a parser is ever written
+  // this test must be updated deliberately rather than silently start passing.
+  const std::vector<std::uint8_t> payload = LowEntropyBytes(64);
+  CHECK_EQ(0u, SummarizeOne(FakeBmd(0x0A, 64, payload), "a.bmd").geometry_parsed);
+  CHECK_EQ(0u, SummarizeOne(FakeBmd(0x0C, 64, payload), "c.bmd").geometry_parsed);
+}
+
+void TestBmdReportPercent() {
+  CHECK(mu::PercentOf(0u, 0u) == 0.0);
+  CHECK(mu::PercentOf(0u, 100u) == 0.0);
+  CHECK(mu::PercentOf(100u, 100u) == 100.0);
+  // 1 of 3 -> 33.33...%, compared to two decimals.
+  const double third = mu::PercentOf(1u, 3u);
+  CHECK(third > 33.33 && third < 33.34);
+  CHECK(third > 0.0 && third < 100.0);
+}
+
+void TestBmdReportAccumulatesKinds() {
+  const std::vector<std::uint8_t> payload = LowEntropyBytes(32);
+  mu::BmdSummary summary;
+  mu::BmdAccumulate(
+      mu::BmdClassifyBytes(mu::ByteView(FakeBmd(0x0A, 32, payload).data(), 0),
+                           "a.bmd"),
+      &summary);
+
+  // Rebuild each fixture into a stable buffer before taking a view of it.
+  const std::vector<std::uint8_t> a = FakeBmd(0x0A, 32, payload);
+  const std::vector<std::uint8_t> c = FakeBmd(0x0C, 32, payload);
+  const std::vector<std::uint8_t> o = FakeBmd(0x09, 32, payload);
+  const std::vector<std::uint8_t> junk = {'N', 'O', 'P', 'E'};
+  mu::BmdSummary s2;
+  mu::BmdAccumulate(mu::BmdClassifyBytes(mu::ByteView(a.data(), a.size()), "a"),
+                    &s2);
+  mu::BmdAccumulate(mu::BmdClassifyBytes(mu::ByteView(c.data(), c.size()), "c"),
+                    &s2);
+  mu::BmdAccumulate(mu::BmdClassifyBytes(mu::ByteView(o.data(), o.size()), "o"),
+                    &s2);
+  mu::BmdAccumulate(
+      mu::BmdClassifyBytes(mu::ByteView(junk.data(), junk.size()), "junk"),
+      &s2);
+  CHECK_EQ(4u, s2.total);
+  CHECK_EQ(1u, s2.kind_v0a);
+  CHECK_EQ(1u, s2.kind_v0c);
+  CHECK_EQ(1u, s2.kind_other_version);
+  CHECK_EQ(1u, s2.kind_unknown);
+  CHECK_EQ(0u, s2.kind_bux_container);
+}
+
+}  // namespace
