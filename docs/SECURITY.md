@@ -25,9 +25,39 @@ If the password is reused on any other service, the exposure extends there.
    that this may break existing clones. Rotation is the action that actually
    closes the risk; history rewriting is cosmetic in comparison.
 
-**Action taken here.** None of these values were copied into this repository,
-into a commit message, or into a log. This document refers to the keys only. A
-check was added to the review checklist in `AGENTS.md`.
+**Field names and origin, and nothing more.** Per policy this document records
+only:
+
+| Field | Source file | Note |
+|---|---|---|
+| `User` | `Settings.ini`, section `[AutoLogin]` | 7 characters |
+| `Password` | `Settings.ini`, section `[AutoLogin]` | 6 characters, digits only |
+| `SaveData` | `Settings.ini`, section `[AutoLogin]` | Flag that persists the above |
+
+The values are not reproduced here, in any other document, in any log, or in any
+commit.
+
+Note that the password field is a **6-digit numeric string**, i.e. a widely
+known weak-password pattern. That makes rotation urgent on its own merits,
+independent of the repository exposure.
+
+### Verification that nothing leaked into this repository
+
+Performed and recorded in
+[`evidence/ciclo1_security_scan.log`](evidence/ciclo1_security_scan.log). Every
+file in `ClienteRecriado` (excluding `.git` and `build/`) was searched for the
+complete value of each field, and every hit inspected with the value masked:
+
+- **`User` (7 characters, distinctive): 0 occurrences.**
+- **`Password` (6 digits): 5 occurrences, all false positives.** They are the
+  canonical CRC-32 test vector `"123456789"` and the hexadecimal literal
+  `0x12345678`. A 6-digit value is a prefix of both, so the collision is
+  arithmetic. Each line is listed in the evidence log and can be checked.
+
+**Conclusion: no credential value is present in this repository.**
+
+This check must be re-run whenever documentation that quotes the reference
+client's configuration is added.
 
 ## 2. Protection components — do not touch
 

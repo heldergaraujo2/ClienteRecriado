@@ -5,6 +5,53 @@ what would make it worth revisiting.
 
 ---
 
+## D-000 — Starting the implementation from scratch was the only option
+
+**Decision.** The reconstruction was built from an empty repository.
+
+**Evidence.** The state of `ClienteRecriado` before this work, verified with
+`git show --stat 972fabc` and `git show 972fabc:README.md`:
+
+```
+commit 972fabcea1b0d4e80345f0f5abd287b46d819455
+    Initial commit
+
+ README.md | 1 +
+ 1 file changed, 1 insertion(+)
+```
+
+The complete literal content of that file was:
+
+```
+# ClienteRecriado
+```
+
+That is the entire prior state of the repository: one commit, one file, one
+line, a heading and nothing else.
+
+**Explicitly recorded, as required:** there was **no** pre-existing
+`AGENTS.md`, `CURRENT_STATE.md`, `NEXT_TASK.md`, `DECISIONS.md`, no source code,
+no build system, no tests and no documentation of any kind. There was no work by
+another agent to preserve and no implementation to continue from. Starting this
+front from scratch was therefore not a matter of convenience — there was nothing
+to start from.
+
+This is stated because "continue from existing work if there is any" is a
+standing instruction, and a reader is entitled to see the check that established
+there was none.
+
+**Reference repository hash at the start of cycle 1**, recorded so that any
+future claim about modifying the reference client can be checked:
+
+```
+$ cd Cliente_ref && git rev-parse HEAD
+88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+```
+
+**Revisit when.** Never — this is a record of a past state, not an open choice.
+
+---
+
 ## D-001 — Build an independent asset layer rather than patching the client
 
 **Decision.** Read the original assets with new code; do not modify the client.
