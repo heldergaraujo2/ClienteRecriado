@@ -182,3 +182,64 @@ Nenhum arquivo `.ts` adicionado. Clone de consulta em `/tmp/bmdref`, fora do rep
 ```
 
 **Ressalva idêntica à da cifra:** repositório sem arquivo LICENSE, licença apenas no package.json, e-mail de exemplo. Ver LICENSING.md.
+
+
+## 7. Áudio, rede e interface — avaliação ciclo12 E1
+
+Baseado em `docs/REFERENCE_AUDIT.md` §4.2/4.3, import tables PE i386, e inventário `Data/` — medido, não inferido.
+
+### Áudio
+
+| Componente | Evidência versão | Papel | Licença | Segurança |
+|---|---|---|---|---|
+| `wzAudio.dll` 212.992 B | imports `vorbisfile`, `DSOUND`, `WINMM` | Ogg Vorbis playback via DirectSound | Própria + Xiph BSD para vorbis | DSOUND legado, sem sandbox, carrega vorbisfile.dll do diretório atual — risco DLL hijack se PATH não seguro |
+| `Audio.dll` 35.328 B | imports `MSVCP140`, `VCRUNTIME140`, `WINHTTP`, `bcrypt`, `WININET` | Áudio VS2015+ com HTTP | Própria + MSVC redist | Faz HTTP (WINHTTP/WININET) + bcrypt — verificar TLS, não enfraquecer validação servidor para benchmark (regra permanente) |
+| `vorbisfile.dll` 999.424 B | Xiph, versão não extraída mas tamanho 999KB sugere libvorbisfile 1.3.x | Decoder Ogg Vorbis | BSD-style Xiph | Conhecida por vulnerabilidades históricas buffer overflow em versões antigas, sem atualização automática |
+| `ogg.dll` 53.248 B | Xiph Ogg 1.3.x | Container Ogg | BSD-style Xiph | Mesma observação segurança |
+| `DSOUND` 2 imports Main.exe | DirectSound legacy | Áudio primário | Microsoft OS | Deprecado, sem isolamento, compartilha sessão áudio |
+| `WINMM` 12 imports Main.exe | timeGetTime etc + audio | Timer + audio | Microsoft OS | timeBeginPeriod aumenta resolução timer sistema global, custo energia |
+| `Data/Sound/` 1.020 wav 211,9 MB | PCM WAV | SFX | Proprietária (assets) | Nenhum |
+| `Data/` 61 mp3 193,8 MB + 3 ogg | MP3/Ogg music | Música fundo | Proprietária + codecs | MP3 decoder não identificado, potencial patente histórica expirada |
+
+**Avaliação áudio:** dependência dupla runtime (VS2010 msvcr100/msvcp100 + VS2015 MSVCP140/VCRUNTIME140) indica módulos de épocas diferentes, risco compatibilidade CRT. Recomendação reconstrução: stb_vorbis (MIT) ou libvorbis (BSD) + miniaudio ou OpenAL, sem DSOUND legado, sem HTTP em módulo áudio.
+
+### Rede
+
+| Componente | Evidência | Papel | Licença | Segurança |
+|---|---|---|---|---|
+| `WS2_32` 32 imports Main.exe | `WSASend` explicitamente importado | TCP/UDP jogo | Microsoft OS | Socket direto, sem TLS, verificar se protocolo jogo tem criptografia própria — não enfraquecer para benchmark |
+| `WININET` 15 / `CRYPT32` 33 / `urlmon` 2 | HTTP + crypto | Patching + licence checks | Microsoft OS | Usa WinINet para HTTP, CRYPT32 para crypto, urlmon para URL — checar validação cert TLS, não contornar |
+| `IPHLPAPI` 1 | MAC retrieval | Fingerprint hardware licensing | Microsoft OS | Coleta MAC, privacidade |
+| `hinetworks.dll` 520.192 B + `3DGuard.dll` 1.455.616 B + `License.hinet` 1.216 B + `main.premium` 2.775.700 B + `3D.Premium` 142.688 B + `Checksum.premium` 2.108 B | Hinet Networks, byte-identical .data/.rsrc entre hinetworks e 3DPlugin | Licensing/anti-cheat | **Comercial, não redistribuível** | Proteção VMProtect Main.exe .vmp0/.vmp1, não contornar DRM/Themida/WinLicense/VMProtect (regra permanente), não remover verificações licença |
+| `MHPClient.dll` 719.360 B + `MHPVerify.dll` 55.296 B | Unknown vendor | Verificação | **Comercial, não redistribuível** | Anti-cheat |
+| `PS.dll` 11.878.664 B + `PS/License.ps` | Delphi packed .itext/.didata | External tool licença | **Unknown, não redistribuível** | Packed |
+| `ListaPatch.txt` 188 linhas `path CRC32 SIZE` | CRC32 + SIZE | Manifest patch | Própria | Repo não bate manifest: total 188 match 116 size mismatch 9 crc mismatch 11 missing 52 (mutool verify) — integridade comprometida |
+| Lua `Data/Custom/Script/` 22 arquivos | `ProtocolCore.lua` registra protocolos custom | Extensão protocolo rede | Proprietária | Lua runtime registra protocolos rede custom, risco injeção se não validar |
+
+**Avaliação rede:** dependência pesada de módulos comerciais anti-cheat/licensing que não são redistribuíveis e não podem ser contornados. Protocolo jogo via WS2_32 direto, patch via WININET, fingerprint MAC. Reconstrução deve implementar rede limpa sem DRM, com validação servidor preservada, sem enfraquecer para benchmark.
+
+### Interface
+
+| Componente | Evidência | Papel | Licença | Segurança |
+|---|---|---|---|---|
+| `GDI32` 14 imports Main.exe | `ChoosePixelFormat`, `SetPixelFormat`, `SwapBuffers`, `CreateDIBSection`, `CreateFontA`, `TextOutW` | WGL context em janela GDI, texto GDI | Microsoft OS | GDI legado, CreateDIBSection aloca bitmap sistema |
+| `USER32` 83 imports Main.exe | `ChangeDisplaySettingsA`, `EnumDisplaySettingsA`, `SetWindowsHookExA`, `GetAsyncKeyState`, `RegisterHotKey` | Resolução, hooks, input | Microsoft OS | SetWindowsHookEx global hook risco, GetAsyncKeyState polling input |
+| `wglUseFontBitmapsA` Main.dll | GDI bitmap fonts | Texto | Microsoft OS | Depende fontes instaladas Tahoma/Arial, qualidade varia máquina |
+| `Settings.ini` [Font] Tahoma/Arial 13/11 + [Graphics] Anisotropy MaxAnisotropy 32 etc + [AntiLag] etc | Config | Tuning | Própria | AutoLogin User/Password SaveData plaintext — ver SECURITY.md |
+| `Scripts/*.reg` 16 arquivos | 640x480..1920x1080 LANGUAGE ENGLISH/PORTUGUESE/SPANISH SOUND ON/OFF FULL SCREEN/WINDOW | Resolução/idioma via registry | Própria | Escreve registry, precisa elevação em algumas configs, UX ruim, sem preset 2560x1440 etc |
+| Lua `System/InterfaceCore.lua`, `LoadImages.lua`, `Util/Json.lua` + folders `Musaffe`, `NewWindow`, `UpgradeMachine`, `WindowTitle` | 22 Lua + ScriptEffect | UI custom | Proprietária | Lua UI sem sandbox declarado |
+| `Data/Interface/` 835 arquivos | Interface assets | UI | Proprietária | Nenhum |
+| `Launcher.exe` 15,6 MB .NET mscoree.dll | .NET launcher | Launcher | Unknown | .NET dependency |
+
+**Avaliação interface:** GDI + USER32 legado, fontes via GDI bitmap (não atlas), resolução via registry .reg (não config file), input via GetAsyncKeyState polling + hooks. Reconstrução: Win32 diretamente (zero dep no target) ou SDL2 (zlib), atlas glyph cache (melhor que GDI bitmap), QPC high-res clock vs timeGetTime 1ms (até 6% frame 60Hz, 14% 144Hz), config file não registry.
+
+### Resumo segurança
+
+- **Não contornar** VMProtect, Themida, WinLicense, DRM, verificações licença — regra permanente.
+- DLLs no diretório atual (vorbisfile, ogg, etc) risco hijack — carregar com caminho seguro ou usar libs estáticas.
+- Plaintext credenciais Settings.ini [AutoLogin] — ver SECURITY.md.
+- Thumbs.db 12 arquivos 677KB + rar/zip 14,3 MB + ScreenShots 51,7 MB — não deveriam shippar.
+- Dupla CRT VS2010 + VS2015+ risco compatibilidade.
+
+E1 CONCLUÍDO ciclo12.
+
