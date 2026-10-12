@@ -1255,7 +1255,9 @@ Os 29 arquivos que este projeto vinha tratando como "grade crua com prefixo" tê
 exatamente o tamanho de um BMP de 8 bits com prefixo duplicado, **com o cabeçalho
 zerado**. Ou seja: são o mesmo formato dos 47 BMP, apenas sem cabeçalho legível.
 
-**A hipótese foi testada e se sustenta.** Medido nos 29 arquivos:
+**A hipótese foi testada e se sustenta.** Medido nos 29 arquivos — que são 100%
+da população, não amostra: a árvore tem 76 arquivos `TerrainHeight`, 47 com `"BM"`
+e 29 sem, e 47 + 29 = 76:
 
 | Tamanho | Arquivos | Leitura |
 |---|---|---|
@@ -1270,6 +1272,13 @@ o tamanho de um BMP de 8 bits com prefixo duplicado.
 
 **O que continua sem explicação:** os 14 arquivos com 2 bytes a mais. Podem ter
 paleta ligeiramente maior ou um campo extra. Não foi determinado.
+
+**Correção de número (item 5 da auditoria do ciclo 3).** Este documento dizia
+"cabeçalho válido no offset 4 em 44 dos 47". Medido de novo com o critério que o
+parser de fato aplica (tamanho declarado confere **e** `bpp == 8` **e** `pixoff`
+cabe no arquivo), são **41 no offset 4 + 1 no offset 0 = 42**, e 5 sem cabeçalho
+legível. O "44" vinha de um teste mais frouxo, que conferia só o tamanho
+declarado. O número que corresponde ao comportamento do código é 42.
 
 **Consequência prática, ainda não aplicada ao código:** o parser trata esses 29
 como "grade crua" e os 47 como BMP, quando provavelmente são o mesmo formato.
