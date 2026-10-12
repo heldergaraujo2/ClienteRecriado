@@ -72,15 +72,36 @@ test: $(BUILD)/test_assets
 # A separate binary rather than a flag on the normal one, so `make test` can
 # never silently run an instrumented build, and the documented sanitizer claim
 # has a target behind it that anyone can re-run.
+# FIX ciclo13 item1: test-san must compile and run the SAME set of checks as test.
+# Cause of previous discrepancy 469 vs 389: old rule compiled all sources in one
+# g++ invocation and relied only on file mtimes; adding new files to LIB_SRCS did
+# not always trigger rebuild if mtime was older than existing binary, leading to
+# stale binary with fewer checks. Fix: build objects in SAN_BUILD with same
+# LIB_SRCS list, depend on Makefile, and use same warning set plus sanitizers.
 SAN_FLAGS := -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer
 SAN_BUILD := build-san
+SAN_LIB_OBJS := $(LIB_SRCS:%.cpp=$(SAN_BUILD)/%.o)
+SAN_TEST_OBJ := $(SAN_BUILD)/$(TEST_SRC:%.cpp=%.o)
 
 test-san: $(SAN_BUILD)/test_assets
 	$(SAN_BUILD)/test_assets
 
-$(SAN_BUILD)/test_assets: $(TEST_SRC) $(LIB_SRCS)
-	@mkdir -p $(SAN_BUILD)
-	$(CXX) -std=c++17 -Wall -Wextra $(SAN_FLAGS) -Isrc $^ -o $@
+$(SAN_BUILD)/test_assets: $(SAN_TEST_OBJ) $(SAN_BUILD)/libmuassets.a
+	$(CXX) $(SAN_FLAGS) $^ -o $@ $(LDFLAGS)
+
+$(SAN_BUILD)/libmuassets.a: $(SAN_LIB_OBJS)
+	@mkdir -p $(dir $@)
+	ar rcs $@ $(SAN_LIB_OBJS)
+
+# Compile lib objects with sanitizers plus same warnings as normal build
+$(SAN_BUILD)/%.o: %.cpp Makefile
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXSTD) $(SAN_FLAGS) $(WARN) -Isrc $(DEPFLAGS) -c $< -o $@
+
+# Ensure Makefile changes force rebuild
+$(SAN_BUILD)/$(TEST_SRC:%.cpp=%.o): $(TEST_SRC) Makefile
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXSTD) $(SAN_FLAGS) $(WARN) -Isrc $(DEPFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(BUILD) $(SAN_BUILD)
