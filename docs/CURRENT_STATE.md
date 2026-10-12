@@ -134,3 +134,18 @@ Critérios aceite ciclo17:
 - Métricas ciclo16: 500 checks 0 failures, 500 checks 0 failures test-san, determinismo SHA-256 identical YES 4 modelos 64 chars hex, tolerância a priori 15-67% PASS 4 modelos, backup 21=19+2, textura placeholder bimodal PASS bright35.5% dark56.9%
 - git status final ciclo16 A-C: 5 arquivos novos evidência + 1 novo render + 1 render textured + 2 atualizados docs + 2 src modificados pendentes commit
 
+
+
+## Product target update — 2026-10-12
+
+The strategic target is now maximum practical performance on modern Windows PCs
+with capable dedicated GPUs, preserving original MU Online assets while allowing
+opt-in visual improvements and heavier scenes. The architecture and benchmark
+contract are recorded in [PERFORMANCE_TARGET.md](PERFORMANCE_TARGET.md).
+
+This target does not change implementation status: the existing rasterizer is
+CPU-only and its texture coordinates are explicitly placeholders. A production
+Windows/GPU renderer, real-asset GPU rendering, FPS/frame-time/VRAM/input-latency
+measurements, long-session stability and authorised server compatibility remain
+unverified or not executed until actual evidence is recorded. The next task is
+the Windows GPU renderer vertical slice, as defined in [NEXT_TASK.md](NEXT_TASK.md).
