@@ -829,3 +829,56 @@ Justificativa formal, não por facilidade ou recência:
 
 Evidência: ciclo9_item1_criteria_adjustment.log, ciclo9_item2_validation.log (5,43x marginal, 4803x discriminativo), ciclo9_item3_security_test.log (389 checks ASan 0).
 
+
+---
+
+## DEC-013 — Caminho B: formato de importação para assets pesados customizados (C2 — CONCLUÍDO ciclo12)
+
+**Data:** ciclo12 C2 · **Status:** decisão registrada, formato escolhido glTF 2.0 · **Depende de:** C1 (representação interna única) · **Exigida por:** Parte C do comando ciclo12
+
+### Contexto
+
+O projeto tem dois caminhos de importação, definidos em ARCHITECTURE.md §9:
+
+- **Caminho A:** assets originais (BMD/OZJ/OZT) → representação interna única `Mesh`+`Skeleton` (C1). Status PARCIAL: vértices/normais/triângulos/ossos decodificados, UV 0%, pesos skinning não decodificados, mas estrutura existe.
+- **Caminho B:** assets pesados customizados (não originais) em formato moderno, para conteúdo significativamente mais pesado que original (DEC-008). Não substitui Caminho A, coexiste. Deve acomodar: vértices, normais, UV, índices, hierarquia ossos, pesos skinning, PBR.
+
+C2 exige escolher formato concreto para Caminho B, comparando pelo menos 2 alternativas quanto a: suporte skinning, suporte PBR, maturidade parsing C++ sem dependências problemáticas, licença. Documentar decisão formal e deixar explícito que Caminho B não substitui Caminho A.
+
+### Alternativas consideradas
+
+| Critério | glTF 2.0 | FBX | OBJ | Collada (DAE) |
+|---|---|---|---|---|
+| **Suporte skinning** | SIM — joints, weights, inverseBindMatrices, até 4+ influências por vértice, especificação clara | SIM — mas SDK proprietário, formato binário complexo, skinning via clusters | NÃO — sem skinning nativo, apenas posições/normais/UV | SIM — mas via biblioteca complexa, skinning via controller |
+| **Suporte PBR** | SIM — metallic-roughness, baseColor, normal, occlusion, emissive, extensões KHR | SIM — via propriedades custom, mas não padronizado, depende de DCC | NÃO — apenas material simples Kd/Ka/Ks, sem PBR | SIM — via profile COMMON e extensões, mas verboso |
+| **Maturidade parsing C++ sem dependências problemáticas** | ALTA — `tinygltf` single-header public domain/MIT, `cgltf` MIT, `fastgltf` MIT, sem dependências, já usado em produção, parsing JSON + bin, 1 arquivo header | BAIXA — FBX SDK proprietário Autodesk, licença restritiva, binário fechado, alternativas open-source `ufbx` MIT mas ainda jovem, `assimp` suporta FBX mas com dependências e bugs | ALTA — parsing trivial, mas sem skinning/PBR, não atende requisito | MÉDIA — `assimp` suporta, mas formato XML verboso, parsing pesado, especificação grande |
+| **Licença** | MIT / Public Domain (tinygltf MIT, cgltf MIT) compatível com projeto MIT, sem obrigação tracking | Proprietário (FBX SDK) ou MIT (ufbx) mas SDK oficial restritivo, risco jurídico | MIT/public domain, mas funcionalidade insuficiente | MIT (assimp) mas formato legado |
+| **Tamanho arquivo / eficiência** | GLB binário compacto, JSON legível, Draco compressão opcional, KTX2 textura | Binário compacto mas proprietário | Texto verboso, sem compressão | XML verboso, grande |
+| **Ecossistema / ferramentas** | Blender, Substance, etc exportam glTF nativo, validador oficial, conversores | Blender exporta FBX mas com perdas, Autodesk ecosystem | Blender exporta OBJ, mas limitado | Blender exporta DAE, mas legado |
+
+### Decisão
+
+**Escolhido glTF 2.0 como formato concreto para Caminho B.**
+
+Justificativa formal:
+
+1. **Skinning:** glTF 2.0 tem suporte completo a skinning (joints, weights, inverseBindMatrices) com especificação clara e testes de conformidade. FBX também tem, mas via SDK proprietário; OBJ não tem; Collada tem mas via biblioteca complexa. glTF atende requisito C1 (pesos skinning por vértice) diretamente.
+2. **PBR:** glTF 2.0 tem suporte nativo a PBR metallic-roughness, com materiais baseColor, metallic, roughness, normal, occlusion, emissive, e extensões KHR para clearcoat, transmission, etc. FBX tem via propriedades custom não padronizadas, OBJ não tem PBR, Collada tem via perfil verboso. glTF atende requisito futuro PBR sem gambiarra.
+3. **Maturidade parsing C++ sem dependências problemáticas:** `tinygltf` single-header MIT, `cgltf` single-header MIT, `fastgltf` MIT, todas sem dependências, já usadas em produção (ex: three.js, Babylon.js, Godot, etc). Parsing JSON + binário, 1 arquivo header, sem necessidade de vcpkg/Conan, compatível com regra zero dependências do projeto (D-002). FBX SDK é proprietário com licença restritiva, `ufbx` MIT mas ainda jovem, `assimp` suporta glTF e FBX mas com dependências e histórico de bugs; para glTF, `tinygltf`/`cgltf` são mais leves e maduras que `assimp` para FBX. OBJ parsing trivial mas funcionalidade insuficiente.
+4. **Licença:** MIT / Public Domain compatível com projeto MIT, sem obrigação tracking, sem risco jurídico. FBX SDK proprietário tem risco, Collada via assimp MIT mas formato legado.
+5. **Caminho B não substitui Caminho A:** Explicitamente registrado: Caminho B é para assets pesados customizados (não originais), para conteúdo significativamente mais pesado que original (DEC-008). Caminho A (BMD/OZJ/OZT originais) continua sendo o caminho principal para compatibilidade visual/funcional com cliente original. Representação interna única `Mesh`+`Skeleton` (C1) é usada por ambos, independente de formato origem, sem duplicar lógica de renderização. Importador glTF converterá para mesma `Mesh`+`Skeleton` que `MeshFromBmd` produz.
+
+### O que isso NÃO significa
+
+- Não significa abandonar BMD: BMD continua sendo decodificado e é pré-requisito para compatibilidade visual com cliente original.
+- Não significa implementar parsing glTF agora: decisão é de formato, não de implementação imediata. Implementação do importador glTF será feita quando houver necessidade de assets pesados customizados, usando `tinygltf` ou `cgltf` single-header MIT.
+- Não significa que glTF substitui OZJ/OZT: OZJ/OZT continuam para texturas originais, glTF usará KTX2 ou PNG/JPEG para texturas customizadas.
+
+### Revisit when
+
+- Se `tinygltf`/`cgltf` se mostrarem inadequados para skinning pesado (ex: >64 bones, >4 influências por vértice) ou se surgir formato com suporte PBR superior e parsing igualmente leve e licença compatível.
+- Se DEC-008 for revisitada e exigir formato com compressão de geometria mais eficiente (ex: `EXT_meshopt_compression` já suportada em glTF, então glTF continua adequado).
+
+**Evidência:** comparação tabela acima, licenças MIT de tinygltf/cgltf, especificação glTF 2.0 skinning e PBR, status C1 representação interna única implementada `src/mu/assets/mesh.hpp` com `bone_weights`.
+
+**Status C2: CONCLUÍDO ciclo12** — formato concreto glTF 2.0 escolhido, 2+ alternativas comparadas (glTF vs FBX vs OBJ vs Collada), decisão documentada formalmente como DEC-013, Caminho B não substitui Caminho A explicitamente registrado.
