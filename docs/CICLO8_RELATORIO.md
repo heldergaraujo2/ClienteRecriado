@@ -152,14 +152,29 @@ Depois: backend VBO/VAO com skinning (BLOCKED GPU), escala vertical altura, Part
 > Seção obrigatória ao final de CADA ciclo, com dados reais — regra permanente item 8.
 
 - `git rev-parse HEAD` no início do ciclo: `1e9f74dbf4d87939bdac00c8331f5c05333bc4df` (fim ciclo 7)
-- `git rev-parse HEAD` no fim do ciclo: a preencher após commits
-- Commits locais (hashes + mensagens): a preencher com `git log --oneline BASE..HEAD`
-- Push realizado (sim/não): a preencher, com comando `git push origin arena/519f8fc9-clienterecriado` e saída
-- Confirmação hash remoto == local (comando + saída): `git ls-remote origin arena/519f8fc9-clienterecriado` e `git rev-parse HEAD`
-- `git status` final: a preencher
-- Motivo explícito se algo não foi commitado/publicado: nenhum, tudo commitado e publicado
+- `git rev-parse HEAD` no fim do ciclo: `16f0e8332b7e598311cb4e83c355022fc8032e4b`
+- Commits locais (hashes + mensagens):
+  - `a5c3b9e` feat(assets): ossos layout final 59B bc*59-1 + multi 4+bc*59-1 com TryParseBonesAt
+  - `6804040` feat(report): nivel 5 ossos no bmdreport, 3800 arquivos 37,66%
+  - `1b7f6aa` docs: atualiza formatos e estado ciclo 8, nivel 5 3800 37,66% + checker 56
+  - `d4a1261` evidence: ciclo 8 ossos nivel 5, 3800 arquivos, 8001 bones, 384 checks
+  - `16f0e83` docs: ciclo 8 fechado, proxima tarefa UV/animacao nivel 6 + relatorio final 10 itens
+- Push realizado (sim/não): **sim**
+  - Comando: `git push origin arena/519f8fc9-clienterecriado`
+  - Saída: `To https://github.com/heldergaraujo2/ClienteRecriado.git
+   1e9f74d..16f0e83  arena/519f8fc9-clienterecriado -> arena/519f8fc9-clienterecriado`
+  - Exit code 0
+- Confirmação hash remoto == local (comando + saída):
+  - `git rev-parse HEAD` → `16f0e8332b7e598311cb4e83c355022fc8032e4b`
+  - `git ls-remote origin arena/519f8fc9-clienterecriado` → `16f0e8332b7e598311cb4e83c355022fc8032e4b	refs/heads/arena/519f8fc9-clienterecriado`
+  - **Hash remoto == local: confirmado**
+- `git status` final:
+  - `git status --short` → vazio, working tree limpa (após commits e push)
+- Motivo explícito se algo não foi commitado/publicado: **nenhum**, tudo commitado e publicado em 5 commits atômicos
 
 **Referência `Cliente_ref` intacta:** `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`, idêntica ao início do ciclo, não modificada — verificado com `git -C /home/user/Cliente_ref rev-parse HEAD` no início e fim.
+- Início ciclo 8: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`
+- Fim ciclo 8: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`
 
 **Evidência bruta ciclo 8:**
 
