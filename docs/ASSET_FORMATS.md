@@ -272,14 +272,17 @@ teste — não inferida:
 #### Por que o nível 4 caía 50,6% — e não cai mais (corrigido no ciclo 5)
 
 No ciclo 4, a queda de 8.406 para 4.149 (4.257 arquivos) tinha **causa única e
-total, medida no parser**: `meshCount != 1` em 100,00% dos casos.
+total, medida no parser**: `meshCount != 1` em 100,00% dos casos (4.256 multi-mesh
+verdadeiro `meshCount>1` + 1 zero-faces `meshCount==0` = 4.257). Ferramenta atual
+confirma: `mutool bmdreport` → 4.149 meshCount 1, 1 meshCount 0, 4.256 meshCount>1.
 
-| Causa | Arquivos | % dos 4.257 |
-|---|---|---|
-| multi-mesh (`meshCount != 1`) | **4.257** | **100,00%** | <!-- historico -->
-| declara zero faces | 0 | 0,00% | <!-- historico -->
-| array declarado não cabe no payload | 0 | 0,00% | <!-- historico -->
-| payload curto demais para os counts | 0 | 0,00% | <!-- historico -->
+| Causa | Arquivos | % dos 4.257 | Nota |
+|---|---|---|---|
+| multi-mesh (`meshCount>1` verdadeiro) | **4.256** | **99,98%** | população correta multi-mesh, ver reconciliação abaixo | <!-- historico -->
+| declara zero faces (`meshCount==0`) | **1** | **0,02%** | `player.bmd` | <!-- historico -->
+| total `meshCount !=1` | **4.257** | **100,00%** | 4.256+1 | <!-- historico -->
+| array declarado não cabe no payload | 0 | 0,00% | | <!-- historico -->
+| payload curto demais para os counts | 0 | 0,00% | | <!-- historico -->
 
 **Ciclo 5 — correção.** O parser foi estendido para multi-mesh. O layout por
 malha repete a mesma sequência do caso de malha única (evidência em
@@ -305,8 +308,23 @@ Resultado inicial ciclo 5 (antes da correção da regressão):
 | 3 — vértice + normal | 8.401 | 83,26% | — | <!-- historico -->
 | 4 — topologia | **8.400** | **83,25%** | **3.524.366** | <!-- historico -->
 
-Aumento de **4.251 arquivos** no nível 4 (de 4.149 para 8.400). O único arquivo
-de nível 3 sem topologia agora declara zero faces.
+Aumento de **4.251 arquivos** no nível 4 (de 4.149 para 8.400) no snapshot do ciclo 5,
+onde nível 3 estava em 8.401 devido à regressão de limite 10k. No snapshot final do
+ciclo 6 (nível 3 8.406), o aumento é **4.256 arquivos** (4.149→8.405). A divergência
+4.257/4.251/4.256 vem de três definições diferentes usadas em ciclos distintos:
+
+- **4.257** = arquivos com `meshCount != 1` no snapshot 8.406 (4.256 com `meshCount>1`
+  verdadeiro multi-mesh + 1 com `meshCount==0` zero-faces `player.bmd`). Usado no ciclo 4
+  para explicar a queda 8.406→4.149 antes do suporte multi-mesh.
+- **4.251** = arquivos com `meshCount>1` no snapshot 8.401 do ciclo 5 (regressão de 5 arquivos
+  com ntri>10k). 8.401-4.149-1 = 4.251. Valor histórico, não mais atual.
+- **4.256** = arquivos com `meshCount>1` verdadeiro multi-mesh no snapshot final 8.406
+  (ferramenta atual `mutool bmdreport` confirma: 2.280+1.086+449+190+114+42+38+12+10+6+7+2+13+7
+  = 4.256). **Este é o correto para população multi-mesh atual.** Evidência
+  `evidence/ciclo6_item1_bmdreport.log` e `ciclo6_level4_breakdown.log`.
+
+O único arquivo de nível 3 sem topologia agora declara zero faces (`player.bmd`,
+`meshCount==0`).
 
 **Ciclo 6 — correção da regressão 8.406→8.401 (item 1 da auditoria ciclo 5).**
 

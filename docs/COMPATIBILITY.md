@@ -133,14 +133,26 @@ por teste, não inferida:
 #### Por que o nível 4 caía 50,6% — e não cai mais (corrigido no ciclo 5)
 
 No ciclo 4, a queda de 8.406 para 4.149 (4.257 arquivos) tinha **causa única e
-total, medida no parser**: `meshCount != 1` em 100,00% dos casos.
+total, medida no parser**: `meshCount != 1` em 100,00% dos casos (4.256 verdadeiro
+multi-mesh `meshCount>1` + 1 zero-faces `meshCount==0` = 4.257). Ferramenta atual
+`mutool bmdreport` confirma 4.149 meshCount 1, 1 meshCount 0, 4.256 meshCount>1.
+Evidência `evidence/ciclo6_item1_bmdreport.log`.
 
-| Causa | Arquivos | % dos 4.257 |
-|---|---|---|
-| multi-mesh (`meshCount != 1`) | **4.257** | **100,00%** | <!-- historico -->
-| declara zero faces | 0 | 0,00% | <!-- historico -->
-| array declarado não cabe no payload | 0 | 0,00% | <!-- historico -->
-| payload curto demais para os counts | 0 | 0,00% | <!-- historico -->
+| Causa | Arquivos | % dos 4.257 | Nota |
+|---|---|---|---|
+| multi-mesh (`meshCount>1` verdadeiro) | **4.256** | **99,98%** | população correta multi-mesh | <!-- historico -->
+| declara zero faces (`meshCount==0`) | **1** | **0,02%** | `player.bmd` | <!-- historico -->
+| total `meshCount !=1` | **4.257** | **100,00%** | 4.256+1 | <!-- historico -->
+| array declarado não cabe no payload | 0 | 0,00% | | <!-- historico -->
+| payload curto demais para os counts | 0 | 0,00% | | <!-- historico -->
+
+**Reconciliação da divergência 4.257/4.251/4.256 (auditoria ciclo 6 item 1):**
+- 4.257 = `meshCount!=1` no snapshot 8.406 (4.256 multi-mesh +1 zero), usado ciclo 4.
+- 4.251 = `meshCount>1` no snapshot 8.401 ciclo 5 (regressão 5 arquivos ntri>10k), histórico.
+- 4.256 = `meshCount>1` correto no snapshot final 8.406 (2.280+1.086+449+190+114+42+38+12+10+6+7+2+13+7=4.256).
+  Ferramenta: `./build/mutool bmdreport /home/user/Cliente_ref/Data` → evidência
+  `evidence/ciclo6_item1_bmdreport.log`. Erro anterior: contar 4.257 como multi-mesh puro
+  sem separar zero-faces, e usar 4.251 de snapshot com regressão como se fosse atual.
 
 **Ciclo 5 — correção.** O parser foi estendido para multi-mesh. O layout por
 malha repete a mesma sequência do caso de malha única (evidência em

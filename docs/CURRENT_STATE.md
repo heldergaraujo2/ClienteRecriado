@@ -231,6 +231,12 @@ seção seguinte.
 
 Level 4b: multi-mesh 0 (0%), zero faces 1 (100%, `Player/player.bmd`, `meshCount=0`). Distribuição meshCount: 0 em 1 (0,01%), 1 em 4.149 (49,36%), 2 em 2.280 (27,12%), 3 em 1.086 (12,92%), resto conforme `ciclo6_bmd_multimesh.log`.
 
+**Reconciliação população multi-mesh (auditoria ciclo 6 item 1):** ferramenta `mutool bmdreport` confirma
+`meshCount>1` verdadeiro = 4.256 (2.280+1.086+449+190+114+42+38+12+10+6+7+2+13+7), `meshCount!=1` = 4.257 (4.256+1 zero).
+Divergência anterior: 4.257 usado no ciclo 4 como total `!=1`, 4.251 usado no ciclo 5 como `>1` no snapshot com regressão
+8.401 (8.401-4.149-1), 4.256 correto no snapshot final 8.406. Erro anterior: contar 4.257 como multi-mesh puro sem separar
+zero-faces, e reutilizar 4.251 de snapshot com regressão. Evidência `evidence/ciclo6_item1_bmdreport.log`.
+
 ## Testes
 
 384 checks, 0 failures · 40 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 384/0.
@@ -307,7 +313,7 @@ Parsing completo de ossos (hierarquia + transformação). Nível 4 agora é
 
 | Pendência da auditoria do ciclo 3 | Resultado |
 |---|---|
-| 1 — relação entre os níveis da tabela | **Medida.** Nível 4 é subconjunto estrito do 3, provado em código e por teste. Causa da queda de 50,6%: `meshCount != 1` em **100,00%** dos 4.257 |
+| 1 — relação entre os níveis da tabela | **Medida.** Nível 4 é subconjunto estrito do 3, provado em código e por teste. Causa da queda de 50,6%: `meshCount != 1` em **100,00%** dos 4.257 (4.256 multi-mesh verdadeiro +1 zero-faces) |
 | 2 — arquitetura de importação dual | **Já existia** (`ARCHITECTURE.md` §9, criada em `77662f5`). Dois defeitos corrigidos: dizia "oito hipóteses" quando são nove, e não citava a tabela corrigida |
 | 3 — evidência bruta do incidente de Git | **Produzida** em `evidence/ciclo4_git_incident.log`, com reflog e diff de verificação. Risco operacional registrado em `SECURITY.md` §9 |
 | 4 — tabela final publicada | **Confirmada** com trecho colado em `COMPATIBILITY.md` e `ASSET_FORMATS.md` |
@@ -359,7 +365,7 @@ comentário em `mesh.hpp:20`. Zero includes gráficos em `src/`.
 **Testes:** 372 checks, 0 failures · ASan+UBSan 372/0 · zero warnings sob 12
 flags `-W`.
 
-**Próxima tarefa:** estender o parser BMD para multi-mesh. Recupera 4.257
+**Próxima tarefa (histórico ciclo 4):** estender o parser BMD para multi-mesh. Recuperava 4.257 arquivos com `meshCount!=1` (4.256 multi-mesh verdadeiro +1 zero), é implementação conhecida e não pesquisa, e é testável neste ambiente.
 arquivos, é implementação conhecida e não pesquisa, e é testável neste ambiente.
 Ver `NEXT_TASK.md`.
 

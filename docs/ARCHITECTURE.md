@@ -246,12 +246,16 @@ subconjunto é nível 4 ⊂ nível 3, verificada em código e por
 `TestTopologyIsSubsetOfGeometry`.
 
 **A queda do nível 3 para o 4 tem causa medida, e é deste importador, não do
-formato:** `meshCount != 1` em **100,00%** dos 4.257 arquivos afetados. Nenhum
-falha por tamanho, versão ou campo ausente. O parser lê um bloco de triângulos;
-com várias malhas a sequência se repete e ler um bloco leria o errado em
-silêncio. Estender para multi-mesh recupera os 4.257 e é implementação
-conhecida, não pesquisa — mas não destrava renderização, porque o nível 6
-continua zero. Ver `ARCHITECTURE.md` §10 para os tetos que isso impõe.
+formato (ciclo 4, histórico):** `meshCount != 1` em **100,00%** dos 4.257 arquivos
+afetados (4.256 com `meshCount>1` verdadeiro multi-mesh + 1 com `meshCount==0`
+zero-faces). Nenhum falha por tamanho, versão ou campo ausente. O parser lia um
+bloco de triângulos; com várias malhas a sequência se repete e ler um bloco leria
+o errado em silêncio. Estender para multi-mesh recuperou os 4.256 (ciclo 5-6) e é
+implementação concluída — nível 4 hoje 8.405/83,30% — mas não destrava renderização,
+porque o nível 6 continua zero. Ver `ARCHITECTURE.md` §10 para os tetos que isso
+impõe. População correta via ferramenta: `mutool bmdreport` mostra 4.149 meshCount 1,
+1 meshCount 0, 4.256 meshCount>1, total 4.257 meshCount!=1. Evidência
+`evidence/ciclo6_item1_bmdreport.log` e `ciclo6_level4_breakdown.log`.
 
 O caminho A **não está pronto** e não há data que este projeto possa prometer
 para ele. O que mudou é a natureza do bloqueio: **não é mais geometria** — malha
