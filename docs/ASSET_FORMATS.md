@@ -766,11 +766,15 @@ revelou a estrutura: **três referências de 8 bytes** no início do registro.
 
 **O que continua não decodificado, sem eufemismo:**
 
-- O campo em +4. Medido contra os três limites disponíveis, dá 68,51% contra
-  `numVertices`, 68,56% contra `numNormals` e 68,35% contra `numTexCoords` —
-  indistinguível entre os três, o que significa que **nenhum** deles é o limite
-  certo. Mediana 0 e máximo 65535 sugerem campo opcional com sentinela `-1`, mas
-  isso é inferência, não confirmação.
+- O campo em +4 — **resolvido como padding, não como índice**. A distribuição
+  medida em 40.902 amostras é 64,95% zero e **18,18% o valor 0xCDCD**, que é o
+  padrão de preenchimento de memória não inicializada do MSVC. Excluindo essas
+  sentinelas, o campo é menor que `numTexCoords` em apenas **5,33%** dos casos.
+  Não é índice de coisa nenhuma: é padding que o exportador não zerou.
+
+  A leitura anterior ("campo opcional com sentinela −1, mediana 0, máximo
+  65535") era uma inferência que os dados não sustentam. O máximo 65535 vinha de
+  leituras desalinhadas, não de uma sentinela real.
 - **O índice de UV por vértice do triângulo continua não localizado.** O campo
   em +4 era o candidato natural e foi descartado. O *array* de UV, porém, está
   confirmado — ver abaixo.
@@ -916,7 +920,7 @@ para modelos novos — ver `docs/ARCHITECTURE.md`.
 | **Número de materiais/texturas por modelo** | Exige percorrer a tabela de nomes de textura, que só foi localizada em arquivos de malha única. Não foi contada nem validada |
 | **Máximo de ossos por modelo** | Nenhum registro de osso foi localizado nem validado. O campo `boneCount` existe no cabeçalho, mas seu significado não foi confirmado um a um |
 | **Máximo de frames de animação** | Depende de ossos e da seção de ações, ambas bloqueadas |
-| **Campo em +4 da referência de triângulo** | Mediana 0, máximo 65535. Indistinguível entre os três limites testados (68,35–68,56%), então nenhum é o correto. Provável campo opcional com sentinela, não confirmado |
+| **Bytes 24..59 do registro de triângulo** | Não zero em 59,1% dos registros. Sem quarto canto (offsets +24..+56 dão 50–81%, nível de ruído). Conteúdo não identificado |
 | **UV por vértice do triângulo** | O candidato em +4 foi descartado. UV segue sem localização |
 | **Bytes 24..59 do registro de triângulo** | Todos zero em só 40,9% dos registros; conteúdo não identificado |
 | **Limite de malhas por modelo** | Máximo observado 18, mas sem confirmação de que o campo é contagem de malhas, 18 é observação, não limite do formato |

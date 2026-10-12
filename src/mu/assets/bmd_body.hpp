@@ -95,10 +95,11 @@ struct BmdNormal {
 struct BmdTriangleCorner {
   int32_t vertex = -1;
   int32_t normal = -1;
-  /// The u16 at record offset 4. NOT a UV index: measured against all three
-  /// available limits it is indistinguishable between them (68.35-68.56%), so
-  /// none is the right bound. Median 0, maximum 65535, which suggests an
-  /// optional field using -1 as a sentinel. Carried, not interpreted.
+  /// The u16 at record offset 4. This is PADDING, not an index. Measured over
+  /// 40,902 samples: 64.95% zero and 18.18% exactly 0xCDCD, which is the MSVC
+  /// uninitialised-memory fill pattern. Excluding those, it is below the
+  /// texcoord count in only 5.33% of cases. Carried so nothing is silently
+  /// dropped, but it must not be used as an index.
   uint16_t optional = 0;
   uint8_t flag = 0;
 };
