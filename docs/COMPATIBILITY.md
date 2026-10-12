@@ -92,20 +92,87 @@ assets originais. O que pode avançar é o pipeline de renderização em si, tes
 com geometria sintética — desde que rotulado como teste de pipeline e nunca como
 suporte a asset original.
 
-### Tabela final de três níveis — execução final do ciclo 2
+### Tabela final de compatibilidade — seis níveis
 
-| Nível | Resultado | Percentual |
+Árvore completa, 10.090 arquivos `.bmd`, `mutool bmdreport`. Evidência bruta em
+`docs/evidence/ciclo3_scan_final.log` e `docs/evidence/ciclo3_topology_subset.log`.
+
+| Nível | O que mede | Arquivos | % de 10.090 |
+|---|---|---|---|
+| 1 — estrutura de contêiner válida | magic + versão reconhecidos; para v0x0C o tamanho declarado confere | 10.023 | 99,34% |
+| 2 — payload obtível em claro | 1.245 plaintext + 100 bux + 7.226 v0x0C | 8.571 | 84,95% |
+| 3 — vértice + normal | posições e normais realmente lidas pelo parser | 8.406 | 83,31% |
+| 4 — topologia (índices de face) | triângulos lidos | 4.149 | 41,12% |
+| 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.505 | 34,74% |
+| 6 — UV | índice ligando canto de triângulo a coordenada de textura | **0** | **0,00%** |
+
+1.519 arquivos (15,05%) permanecem OPAQUE no nível 2.
+
+#### Os níveis NÃO são cumulativos na mesma população
+
+Esta é a ambiguidade que a auditoria do ciclo 3 pediu para eliminar, e a
+resposta é: **os seis níveis são critérios independentes aplicados à mesma
+população de 10.090 arquivos, não uma hierarquia em que cada linha é
+subconjunto da anterior.** Cada linha responde a uma pergunta própria sobre o
+mesmo arquivo, e o denominador é sempre 10.090.
+
+Há **uma** relação de subconjunto entre linhas, e ela foi verificada em código e
+por teste, não inferida:
+
+- **O nível 4 é subconjunto estrito do nível 3.** Todo arquivo contado no nível
+  4 também está no nível 3. Prova: em `src/mu/assets/bmd_report.cpp`,
+  `triangle_count` só é atribuído dentro do ramo que faz `geometry_parsed = true`
+  e vale 0 caso contrário; o acumulador só incrementa `topology_parsed` sob
+  `if (r.geometry_parsed && r.triangle_count > 0)`. Verificado sobre a árvore
+  inteira por `TestTopologyIsSubsetOfGeometry`.
+- **Os níveis 3, 4 e 5 não formam cadeia.** O nível 4 exige `meshCount == 1` e o
+  nível 5 não; um arquivo pode ter ossos sem topologia e vice-versa. Comparar
+  4.149 com 3.505 como se o segundo fosse subconjunto do primeiro é errado.
+
+#### Por que o nível 4 cai 50,6% em relação ao nível 3
+
+A queda de 8.406 para 4.149 (4.257 arquivos) tem **uma causa única e total,
+medida**: `meshCount != 1`.
+
+| Causa | Arquivos | % dos 4.257 |
 |---|---|---|
-| 1 — estrutura de contêiner válida | 10.023 de 10.090 | 99,34% |
-| 2 — payload obtível em claro | 8.571 de 10.090 | 84,95% |
-| 3 — geometria parseável (vértices e normais) | 8.406 de 10.090 | 83,31% |
+| multi-mesh (`meshCount != 1`) | **4.257** | **100,00%** |
+| declara zero faces | 0 | 0,00% |
+| array declarado não cabe no payload | 0 | 0,00% |
+| payload curto demais para os counts | 0 | 0,00% |
 
-Detalhamento do nível 2: 1.245 plaintext + 100 bux + 7.226 v0x0C = 8.571;
-1.519 OPAQUE.
+**Nenhum arquivo falha por condição de tamanho, por versão, nem por campo
+adicional ausente.** O parser lê um bloco de triângulos; com várias malhas a
+mesma sequência se repete no corpo, e ler um bloco só leria o errado em
+silêncio. É um limite **deste parser**, não do formato.
 
-O nível 3 **não** significa modelo renderizável. Ele conta arquivos dos quais
-posições e normais foram extraídas. A distância entre 83,31% e um modelo
-renderizável é exatamente o que está bloqueado na tabela acima.
+Distribuição de `meshCount` sobre os 8.406 arquivos de nível 3:
+
+| meshCount | Arquivos | % |
+|---|---|---|
+| 0 | 1 | 0,01% |
+| 1 | 4.149 | 49,36% |
+| 2 | 2.280 | 27,12% |
+| 3 | 1.086 | 12,92% |
+| 4 | 449 | 5,34% |
+| 5 | 190 | 2,26% |
+| 6 | 114 | 1,36% |
+| 7 | 42 | 0,50% |
+| 8 | 38 | 0,45% |
+| 9–14 | 50 | 0,59% |
+| > 15 | 7 | 0,08% |
+
+Estender o parser para multi-mesh recupera os 4.257 arquivos e é **trabalho de
+implementação conhecido**, não pesquisa: a sequência por malha é a mesma, falta
+iterar e somar os offsets. Isso não destrava renderização, porque o nível 6
+continua em zero.
+
+#### Nenhum nível é modelo renderizável
+
+O nível 5 conta arquivos com ossos localizáveis; o nível 4, com índices de face.
+Nenhum dos dois implica o outro, e nenhum dos seis produz modelo renderizável,
+porque **UV é zero**. A distância entre 99,34% de estrutura válida e um modelo
+texturizado na tela é exatamente o bloqueio descrito no topo deste documento.
 
 ### Por que um relatório anterior estava errado
 
@@ -116,35 +183,31 @@ respostas é de 99,76% contra 0,00%. A auditoria do ciclo 1 apontou isso
 corretamente. As três métricas estão agora separadas de forma permanente, e
 produzidas por ferramenta em vez de afirmadas em prosa.
 
-### As três métricas, medidas na árvore completa
+### Uma tabela antiga deste documento foi removida
 
-`mutool bmdreport /home/user/Cliente_ref/Data` — 10.090 arquivos `.bmd`:
+Uma versão anterior trazia "payload em claro 1.496 (14,83%)" e "geometria
+extraída 1.191 (11,80%)". Esses números são do ciclo 1, **anteriores à
+recuperação da cifra v0x0C** (DEC-007), e contradiziam a tabela de seis níveis
+acima. Foram removidos em vez de mantidos lado a lado: duas tabelas com
+denominadores iguais e valores diferentes é exatamente a ambiguidade que a
+auditoria do ciclo 3 pediu para eliminar. Os valores atuais são 8.571 (84,95%) e
+8.406 (83,31%), e o salto entre eles é a decifragem v0x0C.
 
-| Nível | O que mede | Arquivos | % |
-|---|---|---|---|
-| **1. Estrutura válida** | magic + versão reconhecidos e, para v0x0C, o tamanho declarado confere com o tamanho real | **10.023** | **99,34%** |
-| **2. Payload em claro** | bytes obtíveis sem cifra desconhecida | **1.496** | **14,83%** |
-| ↳ plaintext | já está em claro | 1.396 | 13,84% |
-| ↳ decifrável por bux | XOR-3 `{0xFC,0xCF,0xAB}` | 100 | 0,99% |
-| ↳ **OPACO** | **cifra não recuperada** | **8.594** | **85,17%** |
-| **3. Geometria extraída** | posições de vértice e normais realmente lidas | **1.191** | **11,80%** |
+Entropia máxima de payload observada: **7,9980 bits/byte**.
 
-Entropia máxima de payload observada: **7,9980 bits/byte**; 8.570 arquivos acima
-de 7,5.
+### O que ainda destravaria os 1.519 opacos
 
-### O que destravaria
+O algoritmo da cifra restante, obtido legitimamente — por exemplo de uma
+implementação open-source de cliente MU sob licença compatível, ou do autor do
+formato. **Não** por desempacotamento do módulo protegido. Ver `AGENTS.md`.
 
-O algoritmo da cifra, obtido legitimamente — por exemplo de uma implementação
-open-source de cliente MU sob licença compatível, ou do autor do formato.
-**Não** por desempacotamento do módulo protegido. Ver `AGENTS.md`.
+### O que já foi possível
 
-### O que já foi possível sem destravar
-
-Os arquivos com payload em claro permitiram implementar e verificar duas seções
-do corpo v0x0A **sem esperar pela cifra**. Isso foi feito no ciclo 1: 1.191
-arquivos agora têm posições de vértice e normais extraídas, com o layout
-confirmado em 145 de 145 arquivos por aritmética exata. É um resultado real, mas
-parcial — não habilita renderização.
+Os arquivos com payload em claro permitiram implementar e verificar as seções de
+vértice, normal e topologia do corpo **sem esperar pela cifra restante**. O
+layout de vértice e normal foi confirmado em 145 de 145 arquivos por aritmética
+exata, e a topologia em 4.149 arquivos com 1.221.030 triângulos. É resultado
+real, mas não habilita renderização: UV é zero.
 
 ---
 

@@ -228,31 +228,71 @@ answers is 99.76% versus 0.00%. The cycle-1 audit caught this correctly.
 misread again. Measured over the whole tree (full output in
 [`evidence/ciclo1_bmdreport.log`](evidence/ciclo1_bmdreport.log)):
 
-| Level | Measures | Files | % |
+> **Correção do ciclo 3.** A tabela que estava aqui mostrava "payload em claro
+> 1.496 (14,83%)" e "geometria extraída 1.191 (11,80%)". Esses números são do
+> ciclo 1, **anteriores à recuperação da cifra v0x0C** (DEC-007). Mantê-los ao
+> lado dos atuais produziria duas tabelas com o mesmo denominador e valores
+> diferentes — exatamente a ambiguidade que a auditoria do ciclo 3 pediu para
+> eliminar. Foram substituídos. O salto entre 11,80% e 83,31% é a decifragem.
+
+| Nível | O que mede | Arquivos | % de 10.090 |
 |---|---|---|---|
-| **1. Structure valid** | magic + version recognised, and for v0x0C the declared payload length matches the real file length | **10,023** | **99.34%** |
-| **2. Payload in the clear** | bytes obtainable without an unknown cipher | **1,496** | **14.83%** |
-| ↳ plaintext | already clear | 1,396 | 13.84% |
-| ↳ bux-decryptable | XOR-3 `{0xFC,0xCF,0xAB}` | 100 | 0.99% |
-| ↳ **OPAQUE** | **cipher not recovered** | **8,594** | **85.17%** |
-| **3. Geometry extracted** | vertex positions and normals actually parsed | **1,191** | **11.80%** |
+| 1 — estrutura de contêiner válida | magic + versão reconhecidos; para v0x0C o tamanho declarado confere | 10.023 | 99,34% |
+| 2 — payload obtível em claro | 1.245 plaintext + 100 bux + 7.226 v0x0C | 8.571 | 84,95% |
+| 3 — vértice + normal | posições e normais realmente lidas pelo parser | 8.406 | 83,31% |
+| 4 — topologia (índices de face) | triângulos lidos | 4.149 | 41,12% |
+| 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.505 | 34,74% |
+| 6 — UV | índice ligando canto de triângulo a coordenada de textura | **0** | **0,00%** |
 
-Level 3 was zero for most of cycle 1 because no body parser existed. It is now
-**measured rather than structural**: a v0x0A body parser was written against the
-verified layout and extracts vertex positions and normals from 1,191 of the
-1,194 v0x0A files.
+1.519 arquivos (15,05%) permanecem OPAQUE. Evidência bruta:
+[`evidence/ciclo3_scan_final.log`](evidence/ciclo3_scan_final.log) e
+[`evidence/ciclo3_topology_subset.log`](evidence/ciclo3_topology_subset.log).
 
-Two qualifications that must travel with the number:
+#### Os níveis NÃO são cumulativos na mesma população
 
-- It counts **vertex positions and normals only**. Face indices, texture
-  coordinates and bones are not decoded, so a file counted here is **not a
-  renderable model**.
-- v0x0C is excluded entirely, because its payload is encrypted and parsing
-  ciphertext would produce noise rather than vertices. That is why the ceiling
-  for level 3 is 11.83%, not 100%.
+**Os seis níveis são critérios independentes aplicados à mesma população de
+10.090 arquivos, não uma hierarquia em que cada linha é subconjunto da
+anterior.** Cada linha responde a uma pergunta própria sobre o mesmo arquivo, e
+o denominador é sempre 10.090.
 
-The column is still reported explicitly rather than omitted, because omitting it
-is what made the earlier single percentage misleading.
+Existe **uma** relação de subconjunto entre linhas, verificada em código e por
+teste — não inferida:
+
+- **O nível 4 é subconjunto estrito do nível 3.** Em
+  `src/mu/assets/bmd_report.cpp`, `triangle_count` só é atribuído dentro do ramo
+  que faz `geometry_parsed = true`; o acumulador só incrementa `topology_parsed`
+  sob `if (r.geometry_parsed && r.triangle_count > 0)`. Verificado sobre a árvore
+  inteira por `TestTopologyIsSubsetOfGeometry`, que também confere que as causas
+  de pulo são exaustivas (soma igual a `geometry_parsed - topology_parsed`), de
+  modo que uma quinta causa não pode aparecer em silêncio.
+- **Os níveis 3, 4 e 5 não formam cadeia.** O nível 4 exige `meshCount == 1`, o
+  nível 5 não. Um arquivo pode ter ossos sem topologia e vice-versa.
+
+#### Por que o nível 4 cai 50,6% em relação ao nível 3
+
+A queda de 8.406 para 4.149 (4.257 arquivos) tem **causa única e total, medida
+no parser**: `meshCount != 1`.
+
+| Causa | Arquivos | % dos 4.257 |
+|---|---|---|
+| multi-mesh (`meshCount != 1`) | **4.257** | **100,00%** |
+| declara zero faces | 0 | 0,00% |
+| array declarado não cabe no payload | 0 | 0,00% |
+| payload curto demais para os counts | 0 | 0,00% |
+
+Nenhum arquivo falha por condição de tamanho, versão ou campo ausente. O parser
+lê **um** bloco de triângulos; com várias malhas a mesma sequência se repete no
+corpo, e ler um bloco só leria o errado em silêncio. É limite **deste parser**,
+não do formato.
+
+Distribuição de `meshCount` sobre os 8.406 arquivos de nível 3: 1 em 4.149
+(49,36%), 2 em 2.280 (27,12%), 3 em 1.086 (12,92%), 4 em 449 (5,34%), 5 em 190
+(2,26%), 6 em 114 (1,36%), 7 em 42, 8 em 38, 9–14 em 50, mais de 15 em 7, e 0 em
+1 arquivo.
+
+Estender o parser para multi-mesh recupera os 4.257 arquivos e é **trabalho de
+implementação conhecido**, não pesquisa. Isso não destrava renderização: o nível
+6 continua em zero.
 
 Container kinds, for completeness:
 
