@@ -679,7 +679,7 @@ com as distribuições medidas, mas não foram verificados um a um.
 |---|---|---|
 | Vértice | 16 B | `f32 x` + `f32 y` + `f32 z` + `i16 node` + `i16 bindVertex` |
 | Normal | 20 B | `f32 nx` + `f32 ny` + `f32 nz` + `f32 aux0` + `f32 aux1` |
-| Triângulo | 64 B | não verificado neste projeto |
+| Triângulo | 64 B | **localização confirmada**, conteúdo interno **não determinado** |
 | Osso | não verificado neste projeto | — |
 
 **As coordenadas vêm primeiro nos dois registros.** Evidência, medida sobre os
@@ -708,6 +708,56 @@ as tabelas de layout, não.
 2. **A varredura de UV que deu razão 0,146 a 0,824 continua inconclusiva.** A
    hipótese de corpo organizado por malha permanece plausível, mas não foi
    demonstrada; foi inferida da mesma fonte cujo layout de registro falhou.
+
+### Topologia — localização CONFIRMADA, conteúdo interno NÃO DETERMINADO
+
+Avanço do ciclo 2 sobre o item que estava bloqueado. O array de triângulos foi
+localizado com controle estatístico, o que este projeto não havia conseguido nas
+tentativas anteriores.
+
+**Localização, para arquivos de malha única:**
+
+```
+tstart = 52 + numVertices*16 + numNormals*20 + numTexCoords*8
+stride = 64 bytes por triângulo
+índices de vértice em +2, +6 e +10 dentro de cada registro
+```
+
+**Evidência** (reproduzível por `python3 tools/bmd_topology_probe.py <Data>`,
+saída em [`evidence/ciclo2_bmd_topology.log`](evidence/ciclo2_bmd_topology.log)):
+
+| Medida | Resultado |
+|---|---|
+| Hipótese — índices em +2/+6/+10 | 134.524/137.205 = **98,05%** |
+| Controle limpo — região `f32` de vértices | 5.961/254.025 = **2,35%** |
+| Acaso — `vc/65536` médio | **0,71%** |
+| Razão hipótese/acaso | **138,3×** |
+| Razão hipótese/controle | **41,78×** |
+| Nome de textura no ponto previsto | 515/586 = **87,9%** |
+
+A última linha é uma confirmação **independente**: se o stride de 64 estiver
+errado, o nome da textura não cai logo depois do último triângulo. Ela não
+depende de interpretar índice nenhum.
+
+**Por que as tentativas anteriores falharam.** Elas buscavam o array de faces
+ancorando em `uv_end` derivado da hipótese `nc*8` sem confirmá-la, e testavam
+stride 8/10/12/14/16 bytes. O stride é 64, muito maior que qualquer um testado.
+
+**O que continua NÃO DETERMINADO.** O conteúdo interno do registro de 64 bytes.
+O primeiro byte **não** é o tamanho do polígono: medido em 35.902 registros, os
+valores 3 e 4 somam apenas **3,01%**, indistinguível de aleatório. As tabelas do
+projeto ISC para esse registro não se aplicam, como já ocorreu com as de vértice
+e normal.
+
+Consequência prática: **este projeto sabe onde estão os triângulos e lê índices
+de vértice plausíveis, mas ainda não sabe ler um triângulo com confiança.** Os
+outros 58 bytes do registro não estão decodificados. Extrair topologia
+parcialmente e renderizar com ela produziria malha silenciosamente errada, que é
+pior que não renderizar.
+
+**Restrição do levantamento.** Tudo acima vale para **arquivos de malha única**
+(586 dos 1.500 examinados). Para malhas múltiplas o corpo se repete por malha e
+a aritmética de um bloco só não se aplica; isso não foi medido.
 
 ### Verificação independente da decifragem v0x0C
 
