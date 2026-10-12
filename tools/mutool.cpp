@@ -7,6 +7,8 @@
 //   info   <file>                    classify one file in detail
 //   verify <manifest> <root>         CRC32 + size check against a patch manifest
 //   dedupe <dir>                     report byte-identical duplicate files
+//   bmdreport <dir>                  three-level BMD usability report
+//   meshimport <dir>                 run the full BMD -> internal mesh pipeline
 //
 // Exit status is 0 on success, 1 on a usage error, 2 when a check found
 // problems. That distinction is what lets CI treat "verify found a corrupt
@@ -21,6 +23,7 @@
 #include "mu/assets/bmd.hpp"
 #include "mu/assets/bmd_body.hpp"
 #include "mu/assets/bmd_report.hpp"
+#include "mu/assets/mesh.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
 #include "mu/assets/ozj.hpp"
@@ -499,6 +502,109 @@ int CmdBmdReport(int argc, char** argv) {
 
 }  // namespace
 
+
+// Runs the whole path A pipeline on a Data tree: recognise the container,
+// decrypt if needed, parse the body, convert to the internal mesh, and count
+// what actually came out. This is an integration check over real files, which
+// unit tests on generated fixtures cannot substitute for.
+int CmdMeshImport(int argc, char** argv) {
+  if (argc < 3) {
+    std::fprintf(stderr, "usage: mutool meshimport <dir>\n");
+    return 1;
+  }
+  std::vector<mu::FileEntry> files;
+  if (!mu::WalkFiles(argv[2], &files)) {
+    std::fprintf(stderr, "error: cannot open directory '%s'\n", argv[2]);
+    return 1;
+  }
+  std::sort(files.begin(), files.end(),
+            [](const mu::FileEntry& a, const mu::FileEntry& b) {
+              return a.path < b.path;
+            });
+
+  std::size_t total = 0;
+  std::size_t decrypted_v0c = 0;
+  std::size_t body_ok = 0;
+  std::size_t mesh_ok = 0;
+  std::size_t with_triangles = 0;
+  std::size_t vertices = 0;
+  std::size_t triangles = 0;
+  std::size_t bad_indices = 0;
+  std::size_t with_bounds = 0;
+  std::size_t with_texcoords = 0;
+
+  for (const mu::FileEntry& f : files) {
+    if (mu::ExtensionOf(f.path) != ".bmd") continue;
+    std::vector<uint8_t> raw;
+    if (!mu::ReadFile(f.path, &raw)) continue;
+    ++total;
+    const std::string& path = f.path;
+    const mu::ByteView view(raw.data(), raw.size());
+
+    mu::BmdInfo info;
+    if (!mu::BmdProbe(view, &info) || !info.length_consistent) continue;
+
+    mu::ByteView payload = view.sub(info.payload_offset, info.payload_size);
+    std::vector<uint8_t> plain;
+    if (info.kind == mu::BmdKind::kPlainV0C) {
+      plain.assign(payload.data, payload.data + payload.size);
+      mu::BmdV0CDecrypt(plain.data(), plain.size());
+      // Plausibility check on the 32-byte name, same as the report uses. A wrong
+      // key must not be counted as a successful decryption.
+      bool printable = plain.size() >= 32;
+      for (std::size_t i = 0; printable && i < 32; ++i) {
+        const uint8_t c = plain[i];
+        if (c != 0 && (c < 32 || c > 126)) printable = false;
+      }
+      if (!printable) {
+        plain.clear();
+        continue;
+      }
+      ++decrypted_v0c;
+      payload = mu::ByteView(plain.data(), plain.size());
+    }
+
+    mu::BmdBody body;
+    const mu::Status bs = mu::BmdParseBodyV0A(payload, &body);
+    if (!bs || !body.complete) continue;
+    ++body_ok;
+
+    const mu::MeshImportResult r = mu::MeshFromBmd(body, path);
+    if (!r.ok) continue;
+    ++mesh_ok;
+    vertices += r.mesh.positions.size();
+    if (!r.mesh.indices.empty()) {
+      ++with_triangles;
+      triangles += r.mesh.indices.size() / 3;
+    }
+    bad_indices += r.mesh.bad_indices;
+    if (r.mesh.bounds.valid) ++with_bounds;
+    if (r.mesh.has_texcoords) ++with_texcoords;
+  }
+
+  std::printf("BMD -> internal mesh pipeline for %s\n\n", argv[2]);
+  std::printf("  .bmd files seen                    %8zu\n", total);
+  std::printf("  v0x0C decrypted and plausible      %8zu\n", decrypted_v0c);
+  std::printf("  body parsed complete               %8zu\n", body_ok);
+  std::printf("  converted to internal mesh         %8zu  (%6.2f%%)\n", mesh_ok,
+              total ? 100.0 * static_cast<double>(mesh_ok) /
+                            static_cast<double>(total)
+                    : 0.0);
+  std::printf("\n");
+  std::printf("  vertices produced                  %8zu\n", vertices);
+  std::printf("  meshes with triangles              %8zu\n", with_triangles);
+  std::printf("  triangles produced                 %8zu\n", triangles);
+  std::printf("  corner refs dropped (out of range) %8zu\n", bad_indices);
+  std::printf("  meshes with a bounding box         %8zu\n", with_bounds);
+  std::printf("  meshes with texture coordinates    %8zu\n", with_texcoords);
+  std::printf("\n");
+  std::printf("  Texture coordinates are ZERO by design, not by failure: the\n");
+  std::printf("  BMD corner-to-UV binding was never located, so the importer\n");
+  std::printf("  refuses to guess. No mesh here is renderable as a textured\n");
+  std::printf("  model. See docs/ASSET_FORMATS.md.\n");
+  return mesh_ok == 0 ? 2 : 0;
+}
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     Usage();
@@ -510,6 +616,7 @@ int main(int argc, char** argv) {
   if (cmd == "verify") return CmdVerify(argc, argv);
   if (cmd == "dedupe") return CmdDedupe(argc, argv);
   if (cmd == "bmdreport") return CmdBmdReport(argc, argv);
+  if (cmd == "meshimport") return CmdMeshImport(argc, argv);
   if (cmd == "-h" || cmd == "--help" || cmd == "help") {
     Usage();
     return 0;
