@@ -590,6 +590,10 @@ void TestBmdMultiMeshLargeCounts();
 void TestBmdMultiMeshExtremeMeshCount();
 void TestBmdMultiMeshTruncated();
 void TestBmdMultiMeshOverflow();
+void TestBmdBonesCircularParent();
+void TestBmdBonesExtremeCount();
+void TestBmdBonesTruncated();
+void TestBmdBonesOverflow();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -630,6 +634,10 @@ const Test kTests[] = {
     {"bmd multi-mesh extreme meshCount 0xFFFF", TestBmdMultiMeshExtremeMeshCount},
     {"bmd multi-mesh truncated payload", TestBmdMultiMeshTruncated},
     {"bmd multi-mesh overflow check", TestBmdMultiMeshOverflow},
+    {"bmd bones circular parent (cycle detection)", TestBmdBonesCircularParent},
+    {"bmd bones extreme boneCount", TestBmdBonesExtremeCount},
+    {"bmd bones truncated payload", TestBmdBonesTruncated},
+    {"bmd bones overflow check", TestBmdBonesOverflow},
 };
 
 }  // namespace
@@ -1772,6 +1780,120 @@ void TestBmdMultiMeshTruncated() {
   if (st.ok()) {
     CHECK(parsed.triangles.size() >= 1);
   }
+}
+
+void TestBmdBonesCircularParent() {
+  // Bone 0 parent =1, bone1 parent=0 => cycle A->B->A, must be rejected
+  std::vector<std::uint8_t> body;
+  const char* name = "Test.SMD";
+  for (std::size_t i = 0; i < mu::kBmdNameSize; ++i) body.push_back(i < 6 ? static_cast<std::uint8_t>(name[i]) : 0);
+  PutU16Le(body, 1); // meshCount
+  PutU16Le(body, 2); // boneCount =2
+  PutU16Le(body, 0); // actionCount
+  // per-mesh header for single mesh
+  PutU16Le(body, 1); PutU16Le(body, 1); PutU16Le(body, 0); PutU16Le(body, 0);
+  PutU16Le(body, 0); PutU16Le(body, 0); PutU16Le(body, 0);
+  // vertex
+  for (int i=0;i<16;i++) body.push_back(0);
+  PutF32Le(body, 0.0f); PutF32Le(body, 0.0f); PutF32Le(body, 0.0f);
+  PutU16Le(body, 0); PutU16Le(body, 0);
+  // normal
+  for (int i=0;i<20;i++) body.push_back(0);
+  PutF32Le(body, 0.0f); PutF32Le(body, 1.0f); PutF32Le(body, 0.0f);
+  PutF32Le(body, 0.0f); PutF32Le(body, 0.0f);
+  // texture name
+  const char* tex="tex.jpg";
+  for (int i=0;i<32;++i) body.push_back(i<7 ? static_cast<std::uint8_t>(tex[i]) : 0);
+  // bone 0: name Box01, parent 1, 6 floats finite, pad 0
+  const char* b0="Box01";
+  for (int i=0;i<32;++i) body.push_back(i<5 ? static_cast<std::uint8_t>(b0[i]) : 0);
+  PutU16Le(body, 1); // parent 1
+  for (int i=0;i<6;++i) PutF32Le(body, 0.0f);
+  body.push_back(0); // pad
+  // bone1: name Bip01, parent 0 => cycle
+  const char* b1="Bip01";
+  for (int i=0;i<32;++i) body.push_back(i<5 ? static_cast<std::uint8_t>(b1[i]) : 0);
+  PutU16Le(body, 0); // parent 0 -> cycle 0->1->0
+  for (int i=0;i<6;++i) PutF32Le(body, 0.0f);
+  // last bone no pad (58 bytes)
+
+  mu::BmdBody parsed;
+  auto st = mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  // Must fail due to cycle detection, not crash
+  CHECK(!st.ok() || !parsed.has_bones || parsed.bones.empty());
+}
+
+void TestBmdBonesExtremeCount() {
+  // boneCount = 0xFFFF extreme, must fail gracefully, not OOM
+  std::vector<std::uint8_t> body;
+  const char* name = "Test.SMD";
+  for (std::size_t i = 0; i < mu::kBmdNameSize; ++i) body.push_back(i < 6 ? static_cast<std::uint8_t>(name[i]) : 0);
+  PutU16Le(body, 1); // meshCount
+  PutU16Le(body, 0xFFFF); // boneCount extreme
+  PutU16Le(body, 0);
+  PutU16Le(body, 1); PutU16Le(body, 1); PutU16Le(body, 0); PutU16Le(body, 0);
+  PutU16Le(body, 0); PutU16Le(body, 0); PutU16Le(body, 0);
+  for (int i=0;i<16;i++) body.push_back(0);
+  PutF32Le(body, 0.0f); PutF32Le(body, 0.0f); PutF32Le(body, 0.0f);
+  PutU16Le(body, 0); PutU16Le(body, 0);
+  for (int i=0;i<20;i++) body.push_back(0);
+  PutF32Le(body, 0.0f); PutF32Le(body, 1.0f); PutF32Le(body, 0.0f);
+  PutF32Le(body, 0.0f); PutF32Le(body, 0.0f);
+  const char* tex="tex.jpg";
+  for (int i=0;i<32;++i) body.push_back(i<7 ? static_cast<std::uint8_t>(tex[i]) : 0);
+  // No bone data, truncated
+
+  mu::BmdBody parsed;
+  auto st = mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  CHECK(!st.ok() || !parsed.has_bones);
+  CHECK(parsed.bones.size() < 1000);
+}
+
+void TestBmdBonesTruncated() {
+  // Payload truncated in middle of bone list
+  std::vector<std::uint8_t> body;
+  const char* name = "Test.SMD";
+  for (std::size_t i = 0; i < mu::kBmdNameSize; ++i) body.push_back(i < 6 ? static_cast<std::uint8_t>(name[i]) : 0);
+  PutU16Le(body, 1); PutU16Le(body, 2); PutU16Le(body, 0);
+  PutU16Le(body, 1); PutU16Le(body, 1); PutU16Le(body, 0); PutU16Le(body, 0);
+  PutU16Le(body, 0); PutU16Le(body, 0); PutU16Le(body, 0);
+  for (int i=0;i<16;i++) body.push_back(0);
+  PutF32Le(body, 0.0f); PutF32Le(body, 0.0f); PutF32Le(body, 0.0f);
+  PutU16Le(body, 0); PutU16Le(body, 0);
+  for (int i=0;i<20;i++) body.push_back(0);
+  PutF32Le(body, 0.0f); PutF32Le(body, 1.0f); PutF32Le(body, 0.0f);
+  PutF32Le(body, 0.0f); PutF32Le(body, 0.0f);
+  const char* tex="tex.jpg";
+  for (int i=0;i<32;++i) body.push_back(i<7 ? static_cast<std::uint8_t>(tex[i]) : 0);
+  // bone0 complete
+  const char* b0="Box01";
+  for (int i=0;i<32;++i) body.push_back(i<5 ? static_cast<std::uint8_t>(b0[i]) : 0);
+  PutU16Le(body, 0xFFFF);
+  for (int i=0;i<6;++i) PutF32Le(body, 0.0f);
+  body.push_back(0);
+  // bone1 truncated: only 10 bytes of second bone
+  const char* b1="Bip01";
+  for (int i=0;i<10;++i) body.push_back(i<5 ? static_cast<std::uint8_t>(b1[i]) : 0);
+
+  mu::BmdBody parsed;
+  auto st = mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  // Must not crash, must not have bones (truncated)
+  CHECK(!parsed.has_bones || parsed.bones.empty() || !st.ok());
+}
+
+void TestBmdBonesOverflow() {
+  // bc*59 overflow check: bc up to 64 safe, but test with bc=0xFFFF would overflow if not checked
+  // Our parser limits bc>64 to fail, so overflow never happens, but we test that it fails gracefully
+  std::vector<std::uint8_t> body;
+  const char* name = "Test.SMD";
+  for (std::size_t i = 0; i < mu::kBmdNameSize; ++i) body.push_back(i < 6 ? static_cast<std::uint8_t>(name[i]) : 0);
+  PutU16Le(body, 1); PutU16Le(body, 0xFFFF); PutU16Le(body, 0);
+  PutU16Le(body, 1); PutU16Le(body, 1); PutU16Le(body, 0); PutU16Le(body, 0);
+  PutU16Le(body, 0); PutU16Le(body, 0); PutU16Le(body, 0);
+  // No need for more data, should fail at boneCount check
+  mu::BmdBody parsed;
+  auto st = mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  CHECK(!parsed.has_bones);
 }
 
 void TestBmdMultiMeshOverflow() {

@@ -131,6 +131,31 @@ bool TryParseBonesAt(ByteView payload, std::size_t base, std::size_t bone_count,
   if (bones.size() != bone_count) return false;
   // Require at least loose names for all bones to avoid garbage
   if (valid_names_loose < bone_count) return false;
+  // Overflow check: bc*59 must not overflow size_t (defensive, bc<=64 already safe)
+  if (bone_count > SIZE_MAX / 59) return false;
+  // Cycle detection: parent chain must not contain a loop (A->B->A) which would
+  // cause infinite traversal in future code that walks the hierarchy.
+  // For each bone, follow parents up to bone_count steps, detecting revisit.
+  for (size_t i = 0; i < bone_count; ++i) {
+    // Use Floyd or visited set limited to bone_count
+    bool visited[64] = {false};
+    int cur = static_cast<int>(i);
+    size_t steps = 0;
+    while (cur != -1 && steps <= bone_count) {
+      if (cur < 0 || static_cast<size_t>(cur) >= bone_count) break;
+      if (visited[cur]) {
+        // cycle detected
+        return false;
+      }
+      visited[cur] = true;
+      cur = bones[static_cast<size_t>(cur)].parent;
+      ++steps;
+    }
+    if (steps > bone_count) {
+      // chain longer than bone_count => must contain cycle or invalid, reject
+      return false;
+    }
+  }
   *out_bones = std::move(bones);
   return true;
 }
