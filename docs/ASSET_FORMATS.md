@@ -841,6 +841,23 @@ liga cada vértice de um triângulo a uma entrada desse array não foi localizad
 Sem esse índice não há como texturizar a malha: sabe-se quais coordenadas
 existem, não qual pertence a cada canto.
 
+Três hipóteses para essa ligação foram testadas e **todas descartadas**:
+
+1. **Campo em +4 do registro de triângulo.** É padding: 64,95% zero e 18,18%
+   0xCDCD (preenchimento de memória não inicializada do MSVC). Excluindo
+   sentinelas, menor que `numTexCoords` em só 5,33%.
+2. **Um quarto canto em +24.** Não existe: offsets +24 a +56 dão 50–81% de
+   validade de índice, o nível de leitura contaminada, contra 94–100% em
+   +0/+8/+16.
+3. **Relação implícita por posição.** Descartada: `numTexCoords` é igual a
+   `numVertices` em apenas 5,74% dos arquivos de malha única e a `numNormals` em
+   3,87% — medido em 802 arquivos. Em 93% dos casos difere de ambos, então o
+   índice de UV não pode ser o de vértice nem o de normal.
+
+**Onde procurar a seguir:** os bytes 24..59 do registro de triângulo, que não são
+zero em 59,1% dos registros e permanecem sem identificação. É o único espaço do
+registro ainda não examinado.
+
 ### Verificação independente da decifragem v0x0C
 
 A decifragem foi confirmada por uma via que não depende do campo de nome: sobre
