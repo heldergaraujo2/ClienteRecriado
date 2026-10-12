@@ -1,0 +1,23 @@
+Multi-mesh validation over /home/user/Cliente_ref/Data
+  multi-mesh files with geometry parsed: 4256
+  total meshes declared (sum): 12590
+  files where at least 1 mesh parsed: 4256 (100.00%)
+
+  Texture name strict matches per mesh:
+    at tri_end+0 : 1 (0.01% of meshes)
+    at tri_end-4 : 1796 (14.27%)
+    at tri_end+4 : 0 (0.00%)
+    at tri_end-8 : 81 (0.64%)
+    at tri_end+8 : 0 (0.00%)
+
+  Weak matches (>=8 printable):
+    at 0 : 6320 (50.20%)
+    at -4: 6572 (52.20%)
+
+  Files with at least one strict name found: 1651 (38.79% of files)
+  Files with at least one weak name found: 4256 (100.00%)
+
+  Control (weak check inside vertex array, should be low):
+    trials: 9229, hits: 7153, rate: 77.51%
+
+  Layout per mesh: 14B header [vc,nc,ntc,ntri,texIdx,u48,u50] + vc*16 + nc*20 + ntc*8 + ntri*64 + 32B name, concatenated

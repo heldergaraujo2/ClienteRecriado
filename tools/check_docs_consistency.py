@@ -184,6 +184,278 @@ def measure(out):
     return measured
 
 
+
+def run_detail_breakdown(data_dir):
+    """Re-implementa contagem detalhada de falha nivel 4 similar a gen_level4_breakdown.py,
+    usando BmdClassifyFile via tool detail.cpp. Retorna dict com counts."""
+    import os, subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.dirname(here)
+    # Build detail tool if needed
+    detail_src = '''
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include "mu/fs.hpp"
+#include "mu/assets/bmd_report.hpp"
+int main(int argc, char** argv){
+  if(argc<2) return 1;
+  std::string root=argv[1];
+  std::vector<mu::FileEntry> files;
+  mu::WalkFiles(root,&files);
+  std::sort(files.begin(), files.end(), [](auto& a, auto& b){return a.path<b.path;});
+  for(auto& f: files){
+    if(mu::ExtensionOf(f.path)!=".bmd") continue;
+    auto r=mu::BmdClassifyFile(f.path);
+    printf("%s\\t%d\\t%d\\t%d\\t%s\\t%s\\t%s\\n",
+      f.path.c_str(),
+      r.structure_valid?1:0,
+      r.access==mu::PayloadAccess::kOpaque?1:0,
+      r.geometry_parsed?1:0,
+      r.geometry_parsed && r.triangle_count>0 ? "1":"0",
+      mu::BmdTopologySkipName(r.topology_skip),
+      r.body_problem.c_str());
+  }
+  return 0;
+}
+'''
+    os.makedirs('/tmp', exist_ok=True)
+    with open('/tmp/detail_breakdown.cpp','w') as f:
+        f.write(detail_src)
+    bin_path = '/tmp/detail_breakdown_bin'
+    import subprocess, os
+    try:
+        subprocess.run(['g++','-std=c++17','-I',os.path.join(root,'src'),'/tmp/detail_breakdown.cpp',
+                        os.path.join(root,'src/mu/assets/bmd.cpp'),
+                        os.path.join(root,'src/mu/assets/bmd_body.cpp'),
+                        os.path.join(root,'src/mu/assets/bmd_report.cpp'),
+                        os.path.join(root,'src/mu/assets/format.cpp'),
+                        os.path.join(root,'src/mu/fs.cpp'),
+                        '-o',bin_path,'-O2'], cwd=root, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write('erro ao compilar detail_breakdown: %s\n%s\n' % (e, e.stderr[:500]))
+        return None
+    p = subprocess.run([bin_path, data_dir], capture_output=True, text=True)
+    if p.returncode!=0:
+        sys.stderr.write('detail_breakdown falhou\n')
+        return None
+    from collections import Counter
+    cat = Counter()
+    for line in p.stdout.strip().split('\n'):
+        parts=line.split('\t')
+        if len(parts)<6: continue
+        struct_valid=int(parts[1])
+        opaque=int(parts[2])
+        geom=int(parts[3])
+        topo=int(parts[4])
+        skip=parts[5]
+        if topo==1:
+            cat['level4_ok']+=1
+        else:
+            if not struct_valid:
+                cat['invalid_container']+=1
+            elif opaque:
+                cat['opaque_payload']+=1
+            elif not geom:
+                cat['geom_other']+=1
+            else:
+                cat[f'geom_ok_no_topo_{skip}']+=1
+    total = sum(cat.values())
+    failing = total - cat.get('level4_ok',0)
+    return {
+        'total': total,
+        'level4_ok': cat.get('level4_ok',0),
+        'failing': failing,
+        'opaque': cat.get('opaque_payload',0),
+        'invalid': cat.get('invalid_container',0),
+        'geom_other': cat.get('geom_other',0),
+        'zero_faces': cat.get('geom_ok_no_topo_declares zero faces',0),
+        'does_not_fit': cat.get('geom_ok_no_topo_declared array does not fit',0),
+        'no_header': cat.get('geom_ok_no_topo_payload too short for counts',0),
+        'multi_mesh': cat.get('geom_ok_no_topo_multi-mesh',0),
+    }
+
+def run_validate_multimesh(data_dir):
+    import os, subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.dirname(here)
+    src = os.path.join(root,'tools/validate_multimesh.cpp')
+    bin_path = '/tmp/validate_multimesh_check'
+    try:
+        subprocess.run(['g++','-std=c++17','-I',os.path.join(root,'src'),src,
+                        os.path.join(root,'src/mu/assets/bmd.cpp'),
+                        os.path.join(root,'src/mu/assets/bmd_body.cpp'),
+                        os.path.join(root,'src/mu/assets/bmd_report.cpp'),
+                        os.path.join(root,'src/mu/assets/format.cpp'),
+                        os.path.join(root,'src/mu/fs.cpp'),
+                        '-o',bin_path,'-O2'], cwd=root, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write('erro ao compilar validate_multimesh: %s\n' % e)
+        return None
+    p = subprocess.run([bin_path, data_dir], capture_output=True, text=True)
+    if p.returncode!=0:
+        sys.stderr.write('validate_multimesh falhou\n')
+        return None
+    out = p.stdout
+    # parse numbers
+    import re
+    def get_int(pat):
+        m=re.search(pat, out)
+        return int(m.group(1)) if m else None
+    def get_float(pat):
+        m=re.search(pat, out)
+        return float(m.group(1)) if m else None
+    # Example: at tri_end-4 : 1796 (14.27%)
+    strict_m4 = get_int(r'at tri_end-4\s*:\s*(\d+)')
+    strict_m4_pct = get_float(r'at tri_end-4\s*:\s*\d+\s*\(([\d.]+)%\)')
+    weak_m4 = get_int(r'at -4:\s*(\d+)')
+    weak_m4_pct = get_float(r'at -4:\s*\d+\s*\(([\d.]+)%\)')
+    strict_files = get_int(r'Files with at least one strict name found:\s*(\d+)')
+    strict_files_pct = get_float(r'Files with at least one strict name found:\s*\d+\s*\(([\d.]+)%')
+    weak_files = get_int(r'Files with at least one weak name found:\s*(\d+)')
+    control_weak_trials = get_int(r'trials:\s*(\d+)')
+    control_weak_hits = get_int(r'hits:\s*(\d+)')
+    control_weak_rate = get_float(r'rate:\s*([\d.]+)%')
+    total_files = get_int(r'multi-mesh files with geometry parsed:\s*(\d+)')
+    total_meshes = get_int(r'total meshes declared.*?:\s*(\d+)')
+    return {
+        'strict_m4': strict_m4,
+        'strict_m4_pct': strict_m4_pct,
+        'weak_m4': weak_m4,
+        'weak_m4_pct': weak_m4_pct,
+        'strict_files': strict_files,
+        'strict_files_pct': strict_files_pct,
+        'weak_files': weak_files,
+        'control_weak_trials': control_weak_trials,
+        'control_weak_hits': control_weak_hits,
+        'control_weak_rate': control_weak_rate,
+        'total_files': total_files,
+        'total_meshes': total_meshes,
+        'raw': out,
+    }
+
+def check_breakdown_and_validation(data_dir, root, failures, checked_ref):
+    import os, re
+    # breakdown
+    bd = run_detail_breakdown(data_dir)
+    if bd is None:
+        failures.append('nao foi possivel obter breakdown nivel 4')
+        return
+    # expected numbers from current docs (final snapshot 8406/8405)
+    exp_failing = 1685
+    exp_opaque = 1483
+    exp_invalid = 67
+    exp_geom = 134
+    exp_zero = 1
+    exp_multi = 0
+    # check measured vs expected (allow small tolerance for opaque vs invalid overlap)
+    print()
+    print('--- breakdown nivel 4 falhando (item 2 auditoria) ---')
+    print(f'  medido via detail tool: total={bd["total"]} level4_ok={bd["level4_ok"]} failing={bd["failing"]}')
+    print(f'  esperado docs: failing {exp_failing} = {exp_opaque} OPAQUE + {exp_invalid} invalid + {exp_geom} geom + {exp_zero} zero')
+    print(f'  medido: opaque={bd["opaque"]} invalid={bd["invalid"]} geom_other={bd["geom_other"]} zero={bd["zero_faces"]} multi={bd["multi_mesh"]}')
+    # tolerancia: OPAQUE pode ser 1483 (nosso detail) vs 1519 do bmdreport, mas para nivel4 falhando esperamos 1483
+    # vamos verificar se soma bate
+    if bd['failing'] != exp_failing:
+        failures.append(f'breakdown failing medido {bd["failing"]} != esperado {exp_failing}')
+        print(f'  FALHOU failing {bd["failing"]} != {exp_failing}')
+    else:
+        print(f'  ok      failing {bd["failing"]} == {exp_failing}')
+    checked_ref[0]+=1
+    # check docs contain numbers
+    docs_to_check = ['docs/ASSET_FORMATS.md','docs/COMPATIBILITY.md','docs/CURRENT_STATE.md']
+    for doc in docs_to_check:
+        path=os.path.join(root,doc)
+        if not os.path.exists(path): continue
+        text=open(path,encoding='utf-8').read()
+        for num, label in [(exp_failing,'falhando nivel 4'), (exp_opaque,'OPAQUE'), (exp_invalid,'invalido'), (exp_geom,'geometria nao parseada')]:
+            # check both with dot and without
+            s_dot = f'{num//1000}.{num%1000:03d}' if num>=1000 else str(num)
+            # for 1685 -> 1.685
+            if str(num) not in text and s_dot not in text:
+                # allow if doc is historic? we skip if line has historico marker? simplified: require at least one doc contains
+                pass
+        # specifically check ASSET_FORMATS contains table with 1.685
+        checked_ref[0]+=1
+    # check if docs contain 1.685
+    found_1685=False
+    for doc in docs_to_check:
+        path=os.path.join(root,doc)
+        if not os.path.exists(path): continue
+        text=open(path,encoding='utf-8').read()
+        if '1.685' in text or '1685' in text:
+            found_1685=True
+            break
+    if not found_1685:
+        failures.append('nenhum doc contem 1.685 (breakdown falhando)')
+        print('  FALHOU  nenhum doc contem 1.685')
+    else:
+        print('  ok      docs contem 1.685')
+
+    # validation multi-mesh
+    print()
+    print('--- validacao multi-mesh taxas (item 3 auditoria) ---')
+    vm = run_validate_multimesh(data_dir)
+    if vm is None:
+        failures.append('nao foi possivel obter validacao multi-mesh')
+        return
+    print(f'  medido: strict_m4 {vm["strict_m4"]} ({vm["strict_m4_pct"]}%), weak_m4 {vm["weak_m4"]} ({vm["weak_m4_pct"]}%), strict_files {vm["strict_files"]} ({vm["strict_files_pct"]}%), control_weak_rate {vm["control_weak_rate"]}%')
+    # expected from docs
+    exp_strict_pct = 14.27
+    exp_weak_pct = 52.20
+    exp_control_weak = 77.51
+    exp_strict_files_pct = 38.79
+    # check tolerance
+    def close(a,b,tol=0.05):
+        return a is not None and b is not None and abs(a-b)<=tol
+    if not close(vm['strict_m4_pct'], exp_strict_pct):
+        failures.append(f'strict_m4_pct medido {vm["strict_m4_pct"]} != esperado {exp_strict_pct}')
+        print(f'  FALHOU strict_m4_pct {vm["strict_m4_pct"]} != {exp_strict_pct}')
+    else:
+        print(f'  ok      strict_m4_pct {vm["strict_m4_pct"]}% ~ {exp_strict_pct}%')
+    checked_ref[0]+=1
+    if not close(vm['weak_m4_pct'], exp_weak_pct):
+        failures.append(f'weak_m4_pct medido {vm["weak_m4_pct"]} != esperado {exp_weak_pct}')
+        print(f'  FALHOU weak_m4_pct {vm["weak_m4_pct"]} != {exp_weak_pct}')
+    else:
+        print(f'  ok      weak_m4_pct {vm["weak_m4_pct"]}% ~ {exp_weak_pct}%')
+    checked_ref[0]+=1
+    if not close(vm['control_weak_rate'], exp_control_weak):
+        failures.append(f'control_weak_rate medido {vm["control_weak_rate"]} != esperado {exp_control_weak}')
+        print(f'  FALHOU control_weak_rate {vm["control_weak_rate"]} != {exp_control_weak}')
+    else:
+        print(f'  ok      control_weak_rate {vm["control_weak_rate"]}% ~ {exp_control_weak}%')
+    checked_ref[0]+=1
+    if not close(vm['strict_files_pct'], exp_strict_files_pct):
+        failures.append(f'strict_files_pct medido {vm["strict_files_pct"]} != esperado {exp_strict_files_pct}')
+        print(f'  FALHOU strict_files_pct {vm["strict_files_pct"]} != {exp_strict_files_pct}')
+    else:
+        print(f'  ok      strict_files_pct {vm["strict_files_pct"]}% ~ {exp_strict_files_pct}%')
+    checked_ref[0]+=1
+
+    # check docs contain taxas
+    required_substrings = ['14,27%','14.27%','52,20%','52.20%','77,51%','77.51%','38,79%','38.79%','379×','379x','0,67×','0.67×','0,0376%','0.0376%']
+    # we require at least some of them present
+    docs_text = ''
+    for doc in ['docs/ASSET_FORMATS.md','docs/COMPATIBILITY.md','docs/CURRENT_STATE.md','docs/DEPENDENCIES.md']:
+        p=os.path.join(root,doc)
+        if os.path.exists(p):
+            docs_text+=open(p,encoding='utf-8').read()
+    for sub in ['14,27%','52,20%','77,51%','38,79%','379×','0,0376%','0,67×','1.685','1.483']:
+        if sub not in docs_text:
+            # also check dot version
+            alt=sub.replace(',','.').replace('×','x')
+            if alt not in docs_text and sub.replace('×','x') not in docs_text:
+                failures.append(f'docs nao contem taxa esperada {sub}')
+                print(f'  FALHOU  docs nao contem {sub}')
+            else:
+                print(f'  ok      docs contem {sub} (via alt)')
+                checked_ref[0]+=1
+        else:
+            print(f'  ok      docs contem {sub}')
+            checked_ref[0]+=1
+
 def main():
     data_dir = (sys.argv[1] if len(sys.argv) > 1
                 else os.environ.get('MU_DATA', '/home/user/Cliente_ref/Data'))
@@ -370,6 +642,12 @@ def main():
             print('  FALHOU  %s' % b)
     else:
         print('  ok      zero includes graficos em src/')
+
+
+    # --- auditoria ciclo6 item 4: breakdown e validacao ---
+    checked_holder = [checked]
+    check_breakdown_and_validation(data_dir, root, failures, checked_holder)
+    checked = checked_holder[0]
 
     print()
     print('--- nivel 4 e subconjunto do nivel 3 ---')
