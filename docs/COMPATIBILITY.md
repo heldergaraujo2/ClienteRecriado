@@ -43,7 +43,9 @@ zero (`make clean && make test`). Saída completa em
 | **Índice de UV por canto do triângulo** | **BLOQUEADO — sem localização** | O candidato em +4 foi descartado (68,35–68,56% contra os três limites, indistinguível). Sem ele não há como ligar cada canto a uma coordenada |
 | **Contagem de malhas** | **BLOQUEADO** | `u16@32` tem mediana 1 e máximo 18, coerente com contagem de malhas, mas não foi verificado um a um |
 | Nomes de osso e tamanho do registro | **CONCLUÍDO — 98,0%** | Registro intercalado de 59 B (32 B nome + 27 B transformação); `boneCount` em payload 34. 901 de 919 arquivos cujo tamanho bate com `bc×59−1` |
-| **Transformações e hierarquia de ossos** | **BLOQUEADO** | Floats aparecem após os nomes, mas sem estrutura identificada. Sem isso não há skinning |
+| Hierarquia de ossos | **CONCLUÍDO** | `u16` pai em +0 do bloco de 27 B; 65535 = raiz (75,9%), resto em índices pequenos. 6 floats 100% finitos |
+| **Ordem dos 6 floats de transformação** | **NÃO CONFIRMADO** | Padrão de dois grupos de três sugere posição + rotação, mas a ordem não foi verificada. Aplicar trocado daria esqueleto silenciosamente errado |
+| **Seção de animação** | **BLOQUEADO** | Aparece após os ossos nos arquivos com sobra acima do previsto; não examinada |
 | **Animação** | **BLOQUEADO** | Depende de ossos, que estão bloqueados |
 | 1.519 arquivos v0x0C | **BLOQUEADO** | A verificação de plausibilidade rejeitou a decifragem; causa não determinada |
 

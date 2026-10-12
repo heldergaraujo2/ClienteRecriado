@@ -988,17 +988,57 @@ prevista. É uma confirmação dupla — o tamanho fecha e o conteúdo confere.
 
 O `− 1` do modelo permanece sem explicação.
 
-**Estado: nomes e tamanho do registro confirmados; o conteúdo dos 27 bytes de
-transformação NÃO foi decodificado.** Uma amostra mostra `u16 = 65535` seguido de
-floats quase todos zero, o que é compatível com "sem osso pai" e transformação
-identidade, mas uma amostra não é evidência. Skinning continua **BLOQUEADO**.
+### Transformação de osso — decodificada em 174 ossos
 
-**O que não foi determinado:**
+Os 27 bytes de transformação foram analisados campo a campo em 174 ossos de
+arquivos cujo tamanho bate com `boneCount × 59 − 1`:
 
-- O conteúdo dos 27 bytes de transformação, campo a campo.
+```
++0   2   u16  índice do osso pai      65535 = sem pai (raiz)
++2  24   6× f32                       100% finitos
++26  1   u8   sempre 0 (174 de 174)
+```
+
+**O `u16` inicial é índice do osso pai.** Distribuição em 174 ossos:
+
+| Valor | Ocorrências | Leitura |
+|---|---|---|
+| 65535 | 132 (75,9%) | sem pai — osso raiz |
+| 0 | 27 (15,5%) | pai é o osso 0 |
+| 2 | 6 (3,4%) | |
+| 1 | 4 (2,3%) | |
+| 3, 4 | 2 cada | |
+
+`65535` como sentinela de raiz e o resto concentrado em índices pequenos é
+exatamente o que uma hierarquia de esqueleto produz. Não é um campo arbitrário.
+
+**Os 6 floats são 100% finitos** (174 de 174 em cada uma das seis posições).
+Pelo teste de não-finitos usado neste projeto, isso descarta que sejam bytes
+arbitrários: o acaso daria ~0,39% de NaN/Inf.
+
+Os três primeiros são não-zero em 66,1%, 67,2% e 62,1% dos ossos; os três
+últimos em 29,9%, 31,6% e 29,9%. O padrão de dois grupos de três é coerente com
+**posição (x,y,z) e rotação (x,y,z)**, e a diferença de frequência faz sentido:
+um osso quase sempre tem posição, mas rotação identidade (zero) é comum.
+**Isso é inferência a partir do padrão, não confirmação** — confirmar exigiria
+comparar com o modelo de origem, que este projeto não tem para estes arquivos.
+
+**O byte final é 0 em 174 de 174.** Padding.
+
+**O que permanece não determinado:**
+
+- A ordem e o sistema de coordenadas dos 6 floats. Posição antes de rotação é o
+  plausível, mas não foi verificado.
+- Se a rotação é em graus ou radianos, e em qual convenção (Euler, quaternion
+  comprimido).
 - Por que o modelo tem `− 1` byte.
 - A seção de animação, que vem depois dos ossos nos arquivos com sobra maior que
   a prevista.
+
+**Estado: hierarquia de ossos decodificada; skinning ainda BLOQUEADO.** Ler a
+hierarquia não é o mesmo que poder animar: falta a seção de animação, e a ordem
+dos floats não está confirmada. Aplicar uma transformação com posição e rotação
+trocadas produziria um esqueleto silenciosamente errado.
 
   | Sobra | Arquivos |
   |---|---|
