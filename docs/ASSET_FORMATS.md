@@ -904,8 +904,41 @@ atributo por face — não foi determinado.
 índice. `u16@50` contém 0xCDCD, o preenchimento de memória não inicializada do
 MSVC, então é ao menos parcialmente padding. **Nenhum dos dois é índice de UV.**
 
-Com isso **os dois caminhos restantes estão fechados** e o índice de UV por canto
-permanece **NÃO RESOLVIDO**, com seis hipóteses descartadas e documentadas.
+### Índice de UV por canto — NÃO RESOLVIDO, investigação encerrada
+
+**Sétima e última hipótese testada: array paralelo de `ntri` entradas fora do
+registro.** Varrido o corpo a partir do fim do array de triângulos, em passos de
+2 bytes, procurando um bloco de `ntri` valores `u16` todos menores que
+`numTexCoords`. Resultado em 161 arquivos: encontrado em **19 = 11,8%**, com
+distâncias dispersas (84, 66, 40, 636, 3252, 2650, 42, 10) e **nenhum offset
+consistente**.
+
+Um array paralelo real apareceria na mesma distância em quase todos os arquivos.
+A dispersão mostra que os 19 acertos são coincidência — blocos de valores
+pequenos que existem por acaso, não uma estrutura.
+
+**Investigação encerrada por critério, não por falta de tempo.** Sete hipóteses
+descartadas em sequência:
+
+| # | Hipótese | Resultado |
+|---|---|---|
+| 1 | Campo em +4 do registro | padding — 64,95% zero, 18,18% 0xCDCD |
+| 2 | Quarto canto em +24 | não existe — nível de ruído |
+| 3 | Relação implícita por posição | refutada — 93% dos arquivos diferem |
+| 4 | Bytes 24..59 do registro | platô sem pico; confirmado serem `f32` |
+| 5 | `u16@48` do cabeçalho | contagem, não índice |
+| 6 | `u16@50` do cabeçalho | parcialmente padding (0xCDCD) |
+| 7 | Array paralelo no corpo | 11,8% com distâncias dispersas — coincidência |
+
+Sete falhas seguidas são evidência de que **a pergunta pode estar mal formulada**,
+não de que falta tentar mais uma vez. As possibilidades que este projeto não
+conseguiu formular incluem: o índice de UV ser derivado aritmeticamente dos
+outros índices; não existir UV por canto neste formato, com texturização feita
+por outro mecanismo; ou `numTexCoords` não significar o que se assumiu.
+
+**Consequência prática, declarada:** os 8.406 arquivos com vértice e normal e os
+4.149 com topologia **não podem ser texturizados**. Malha sem textura pode servir
+para colisão, caixa delimitadora e análise, não para renderização fiel.
 
 ### Verificação independente da decifragem v0x0C
 

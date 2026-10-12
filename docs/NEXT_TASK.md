@@ -1,5 +1,31 @@
 # Próxima tarefa
 
+> **Índice de UV: investigação ENCERRADA no ciclo 2.** Sete hipóteses descartadas
+> e documentadas em `ASSET_FORMATS.md`. Não retomar sem uma hipótese nova e
+> diferente das sete — repetir uma delas é desperdício. A próxima tarefa é a que
+> está abaixo.
+
+## Decodificar ossos e animação, ou iniciar o pipeline de renderização
+
+Duas opções, e a escolha depende de um julgamento que deve ser explícito:
+
+**Ossos e animação.** Nenhum registro de osso foi localizado. É o último grande
+bloco do formato BMD não examinado. Se for decodificado, o formato fica completo
+exceto pelo índice de UV — e ainda assim sem texturização.
+
+**Pipeline de renderização (DEC-008).** VBO/VAO não tem nenhuma linha de código.
+Pode avançar com geometria sintética, rotulada como **"teste sintético de
+pipeline"** conforme DEC-009, sem depender do bloqueio nº 1.
+
+Argumento para o pipeline: ele não está bloqueado por nada, e é pré-requisito de
+todo o requisito de desempenho. Argumento para ossos: é o último bloco do formato
+e sem ele o requisito de reaproveitar 100% dos assets fica inatingível mesmo que
+UV seja resolvido.
+
+---
+
+## (Encerrada) Localizar o índice de UV por canto do triângulo
+
 > **Atualizado no fim do ciclo 2.** A tarefa abaixo foi executada e o registro de
 > triângulo foi decodificado em sua parte essencial. O que resta dela está na
 > seção seguinte. Os números citados no texto original continuam válidos como
