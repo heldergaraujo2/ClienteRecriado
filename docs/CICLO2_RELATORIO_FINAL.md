@@ -26,8 +26,15 @@ por leitura de especificação externa. Cada conclusão tem um controle ao lado.
 - Seção de animação: localizada após os ossos, não decodificada
 
 **Altura de terreno.** Descoberta que corrigiu uma suposição: a altura **não
-está** nos arquivos `.att`, que são atributos. Está em `TerrainHeight.OZB`, e 47
-dos 76 desses arquivos são imagens BMP de 8 bits cujo dado de pixel é a grade.
+está** nos arquivos `.att`, que são atributos. Está em `TerrainHeight.OZB`. Os 76
+arquivos são **um formato só**: BMP de 8 bits com prefixo duplicado de 4 bytes,
+sendo que em 29 deles o cabeçalho está zerado. O cabeçalho real fica no offset 4,
+confirmado em 44 dos 47 que o têm legível.
+
+**Animação BMD.** O bloco que segue os ossos tem tamanho
+`boneCount × keyframes × 12`, com 12 bytes = 3 floats. Confirmado em 385 de 500
+arquivos (77,00%) sobre a árvore completa. O conteúdo dos três floats **não foi
+determinado**.
 
 **Índice de UV por canto.** Investigação encerrada com **oito hipóteses
 descartadas e documentadas**. Nenhuma se sustentou.
@@ -42,6 +49,7 @@ descartadas e documentadas**. Nenhuma se sustentou.
 | `mutool meshimport` | Pipeline BMD completo sobre a árvore real | **executado** |
 | `mutool culltest` | Mede culling sobre malhas reais | **executado** |
 | `mutool terrain` | Lê as 76 grades de altura e mede suavidade | **executado** |
+| `mutool bmdanim` | Mede o tamanho do registro de animação | **executado** |
 
 **Nada disso é renderização.** Não há nenhuma linha de código OpenGL, porque não
 há GPU nem headers de GL neste ambiente. O que existe é a camada de dados e a
@@ -93,9 +101,21 @@ triângulos, 242.177 referências de canto descartadas por estarem fora de faixa
 
 **Altura de terreno** (`docs/evidence/ciclo2_terrain.log`): 76 grades, diferença
 média entre vizinhos **8,038** contra ~85,3 do aleatório; 72 de 76 (94,74%)
-claramente suaves.
+claramente suaves. 42 lidas pelo cabeçalho BMP, 5 em fallback, 29 sem cabeçalho.
 
-**Testes:** 329 checks, 0 failures (eram 208 no fim do ciclo 1).
+**Animação** (`docs/evidence/ciclo2_bmdanim.log`): 500 arquivos com bloco após os
+ossos, 385 (77,00%) com tamanho divisível por `12 × boneCount`; keyframes por osso
+concentrados em 8, 12 e 14.
+
+**Testes:** 344 checks, 0 failures (eram 208 no fim do ciclo 1).
+
+**Um padrão que este ciclo produziu cinco vezes, e que vale mais que qualquer
+número individual:** medir em subconjunto e publicar como se fosse o todo.
+Ocorreu no cabeçalho BMD, no array de UV, no registro de triângulo, na suavidade
+de altura (4,4 de um arquivo contra 8,038 reais) e no registro de animação (86,4%
+de 88 contra 77,00% de 500). Todos foram corrigidos. A correção estrutural foi
+transformar cada medição em comando de `mutool`, porque um script com teto não
+declara o teto na saída.
 
 ## 6. Comparação com a linha de base
 
@@ -145,8 +165,9 @@ não tem implementação. Exige GPU e headers de GL.
 
 **Não determinados:** ordem dos 6 floats de transformação de osso (inferida, não
 confirmada — aplicar posição e rotação trocadas daria esqueleto silenciosamente
-errado); seção de animação; escala vertical da altura de terreno; prefixo
-duplicado dos 46 arquivos BMP; malhas múltiplas.
+errado); conteúdo dos 3 floats de keyframe; escala vertical da altura de terreno
+(três caminhos examinados e fechados: prefixo todo zero, `pixelsPerMeter` é o
+default de 72 DPI, paleta é identidade); malhas múltiplas.
 
 **Limitação de ambiente registrada:** sem Windows, sem GPU, sem headers de dev de
 GL/zlib/png/jpeg/SDL2, `apt-get install` inutilizável. Nada que exija esses
@@ -154,22 +175,20 @@ recursos pode ser declarado aprovado.
 
 ## 10. Próxima tarefa e por quê
 
-**Decodificar o prefixo duplicado dos arquivos de altura de terreno.**
+**A tarefa registrada foi executada durante o ciclo.** O prefixo duplicado dos
+arquivos de altura foi decodificado: o cabeçalho BMP real está no offset 4, e 42
+arquivos passaram a ser lidos pela estrutura em vez de por fallback.
 
-É a única descoberta recente com caminho concreto aberto. Os 47 arquivos
-`TerrainHeight.OZB` que abrem com `"BM"` têm cabeçalho ilegível (`pixoff = 0`,
-`bpp = 0`, valor 40 onde deveria estar a largura) e os primeiros quatro bytes
-aparecem **duas vezes** — o mesmo padrão de prefixo duplicado que o formato OZJ
-deste cliente usa. A hipótese é que o cabeçalho real comece após o prefixo.
+**O que está aberto agora, em ordem de impacto:**
 
-**Por que essa e não outra:** hoje 46 arquivos são lidos por fallback, o que
-funciona em 94,74% dos casos mas não é decodificação — o campo `header_ignored`
-marca isso no código.
-
-**Por que não é urgente, e isso está registrado para o próximo ciclo não
-superestimar:** o fallback já produz campo suave na maioria dos casos, e a escala
-vertical continua desconhecida. Sem ela a altura é relativa, não métrica, e
-terreno não fica renderizável de qualquer forma.
+1. **Conteúdo dos 3 floats de keyframe.** O tamanho do registro é conhecido
+   (`boneCount × keyframes × 12`), o significado não. Sem isso não há animação.
+   Exige o modelo de origem, que este projeto não tem.
+2. **Escala vertical da altura.** Três caminhos fechados dentro do arquivo. Resta
+   procurar em outro arquivo do mundo ou tratar como parâmetro de renderização.
+3. **Unificar os dois caminhos do parser de terreno.** Os 29 arquivos sem
+   cabeçalho são provavelmente o mesmo formato BMP. É simplificação, não correção
+   de bug — a saída já é a mesma.
 
 **Alternativa de maior impacto, se houver acesso a GPU:** iniciar o pipeline
 VBO/VAO (DEC-008). É pré-requisito de todo o requisito de desempenho e não está
