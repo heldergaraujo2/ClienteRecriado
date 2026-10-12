@@ -776,3 +776,56 @@ A partir de `e858c69` (item 0) e `44b5c92` (item 1), cada item tem commit própr
 
 Processo corrigido, histórico preservado, desvio registrado. Não afeta funcionalidade (docs apenas), mas afeta auditabilidade.
 
+
+---
+
+## DEC-012 — Prioridade formal: UV vs ossos/animação após validação ciclo 9 itens 1-3
+
+**Data:** ciclo 9, itens 1-3 validação ossos · **Status:** decisão registrada, prioridade UV escolhida
+
+### Contexto e estado atual após validação
+
+**Frente UV (nível 6):**
+- Nível 6 = 0% — índice ligando canto de triângulo a coordenada de textura não localizado
+- 9 hipóteses descartadas no ciclo 3, com critério de parada e controle mesma classe
+  - Hipótese 9 (bytes 24..59 como UV por canto): 79,42% em [0,1] vs controle aleatório 24,82% razão 3,2× parecia forte, mas controle correto array de normais 70,34% razão 1,13× rejeita
+  - Lição: controle tem que ser mesma classe, não dados vs ruído
+- Sem UV, **nenhum dos 8.405 arquivos com topologia pode ser texturizado**. Malha sem textura serve para colisão, bbox, análise, não para renderização fiel visualmente comparável ao cliente original
+- UV é pré-requisito para QUALQUER renderização visualmente reconhecível dos modelos originais, mesmo estático
+
+**Frente ossos/animação (nível 5):**
+- Após validação ciclo 9 itens 1-3:
+  - Loose (>=3 printable + parent válido + 6 f32 finitos): 3.800 arquivos (45,21% de geom, 37,66% total) — era 3.505 (34,74%) ciclo 7
+  - Strict (NUL-padded ASCII >=3, zeros após NUL): 1.601 arquivos (19,05% de geom) — altamente discriminativo
+  - Validação estatística item 2: loose real 45,21% vs controle 8,3234% (dentro de vertex/tri area, bc=1) razão **5,43× MARGINAL** (>=5x mas <10x); strict real 19,05% vs controle 0,0040% razão **4803× ALTAMENTE DISCRIMINATIVO**
+  - Segurança item 3: ciclo detection implementado (A->B->A rejeita), bc extremo 0xFFFF falha graciosa, truncado, overflow bc*59, 389 checks 0 failures ASan/UBSan 0
+- Ossos são pré-requisito para animação (skinning), mas modelo sem UV não pode ser comparado visualmente ao cliente original mesmo estático
+- Animação após ossos: 500 arquivos com bloco extra, 385 divisível por 12*boneCount 77% (modelo bc*keyframes*12), 3 f32 por keyframe não decodificados, actionCount não verificado
+
+### Comparação explícita de valor
+
+| Critério | UV | Ossos/Animação |
+|---|---|---|
+| Pré-requisito para renderização fiel reconhecível | **SIM — sem UV, textura não pode ser aplicada, modelo não é comparável visualmente** | NÃO — esqueleto sem textura ainda não é comparável |
+| Pré-requisito para animação | NÃO | SIM |
+| Estado atual | 0%, 9 hipóteses descartadas, investigação encerrada com critério parada | 37,66% loose marginal 5,43x, 19,05% strict 4803x confirmado, ciclo detection, 389 checks |
+| Esforço recente | Ciclo 3 último, nenhum progresso desde | Ciclos 7-8-9 focados, +295 arquivos, validação e segurança completas |
+| Risco de escolher pela tarefa mais fácil | UV é mais difícil (9 hipóteses descartadas), ossos foi mais recentemente trabalhada e mais fácil continuar | Escolher ossos seria viés de recência e facilidade |
+| Impacto para fidelidade visual (prioridade 7 do projeto) | **Alto — textura é 50% da fidelidade visual** | Médio — animação sem textura não aumenta fidelidade visual comparável |
+| Testável sem GPU | SIM — parsing puro CPU, controle mesma classe | SIM — parsing puro CPU |
+
+### Decisão
+
+**Prioridade escolhida para restante deste ciclo: retomar UV (nível 6).**
+
+Justificativa formal, não por facilidade ou recência:
+1. UV é pré-requisito para QUALQUER modelo renderizável texturizado visualmente reconhecível dos originais. Ossos são pré-requisito para animação, mas modelo animado sem textura continua não comparável visualmente ao cliente original, mesmo estático.
+2. Estado ossos após itens 1-3 está em nível aceitável para pausa: 3.800 loose marginal 5,43x documentado, 1.601 strict altamente discriminativo 4803x confirmado, segurança com ciclo detection e 389 checks ASan 0. Continuar em ossos seria otimização incremental (+295) sem destravar fidelidade visual.
+3. UV está em 0% há 5 ciclos, com 9 hipóteses descartadas mas sem considerar offsets descobertos desde então (v0x0A offset 4 vs v0x0C decifrado offset 8, delta multi-mesh ±4, posição real ossos 59B/58B como âncora para localizar UV por eliminação). Há espaço não explicado entre fim de triângulos e início de ossos em alguns arquivos que pode conter UV.
+4. Escolher UV não é escolher tarefa mais fácil — é mais difícil, com histórico de 9 falhas — mas é a de maior valor para fidelidade visual (prioridade 7) e para desbloquear comparação visual com cliente original.
+5. Se UV não progredir após esforço razoável com mesmo rigor estatístico (controle mesma classe, full-scan), documentar bloqueio atualizado com lista completa 10+ tentativas e voltar para animação/OPAQUE 15,05%.
+
+**O que isso NÃO significa:** abandonar ossos. Ossos 37,66% com validação e segurança permanecem, e animação continua como próxima após UV. Significa apenas que, para restante deste ciclo, recurso é alocado em UV por ter maior impacto em fidelidade visual reconhecível.
+
+Evidência: ciclo9_item1_criteria_adjustment.log, ciclo9_item2_validation.log (5,43x marginal, 4803x discriminativo), ciclo9_item3_security_test.log (389 checks ASan 0).
+
