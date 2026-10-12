@@ -462,6 +462,40 @@ int CmdBmdReport(int argc, char** argv) {
   std::printf("    located and bones are NOT decoded, so a file counted here\n");
   std::printf("    is still NOT a renderable model.\n\n");
 
+  const std::size_t geom_no_topo =
+      sum.geometry_parsed > sum.topology_parsed
+          ? sum.geometry_parsed - sum.topology_parsed
+          : 0;
+  std::printf("LEVEL 4b - why the level-3 files without topology have none\n");
+  std::printf("    level 3 with no topology              %8zu\n", geom_no_topo);
+  std::printf("      multi-mesh (meshCount != 1)          %8zu  (%6.2f%% of them)\n",
+              sum.skip_multi_mesh,
+              mu::PercentOf(sum.skip_multi_mesh, geom_no_topo));
+  std::printf("      declares zero faces                  %8zu  (%6.2f%% of them)\n",
+              sum.skip_zero_faces, mu::PercentOf(sum.skip_zero_faces, geom_no_topo));
+  std::printf("      declared array does not fit          %8zu  (%6.2f%% of them)\n",
+              sum.skip_does_not_fit,
+              mu::PercentOf(sum.skip_does_not_fit, geom_no_topo));
+  std::printf("      payload too short for counts         %8zu  (%6.2f%% of them)\n",
+              sum.skip_no_header, mu::PercentOf(sum.skip_no_header, geom_no_topo));
+  std::printf("    Level 4 is a STRICT SUBSET of level 3: every file counted\n");
+  std::printf("    in level 4 was necessarily counted in level 3. Verified by\n");
+  std::printf("    TestTopologyIsSubsetOfGeometry over the whole tree.\n\n");
+
+  std::printf("declared meshCount over the level-3 files\n");
+  for (std::size_t i = 0; i < 16; ++i) {
+    if (sum.mesh_count_hist[i] == 0) continue;
+    std::printf("    meshCount %2zu                         %8zu  (%6.2f%%)\n", i,
+                sum.mesh_count_hist[i],
+                mu::PercentOf(sum.mesh_count_hist[i], sum.geometry_parsed));
+  }
+  if (sum.mesh_count_above_15 != 0) {
+    std::printf("    meshCount > 15                         %8zu  (%6.2f%%)\n",
+                sum.mesh_count_above_15,
+                mu::PercentOf(sum.mesh_count_above_15, sum.geometry_parsed));
+  }
+  std::printf("\n");
+
   std::printf("container kinds\n");
   std::printf("    BMD v0x0C                              %8zu  (%6.2f%%)\n",
               sum.kind_v0c, mu::PercentOf(sum.kind_v0c, sum.total));

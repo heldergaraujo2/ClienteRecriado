@@ -579,6 +579,7 @@ void TestBmdBodyRejectsBadInput();
 void TestBmdReportLevelsAreSeparate();
 void TestBmdV0CCipher();
 void TestBmdTriangles();
+void TestTopologyIsSubsetOfGeometry();
 void TestMeshFromBmd();
 void TestComputeBounds();
 void TestFrustumCull();
@@ -608,6 +609,7 @@ const Test kTests[] = {
     {"extension helpers", TestExtensionHelpers},
     {"bmd v0x0c cipher", TestBmdV0CCipher},
     {"bmd triangles", TestBmdTriangles},
+    {"topology is a strict subset of geometry", TestTopologyIsSubsetOfGeometry},
     {"mesh from bmd", TestMeshFromBmd},
     {"compute bounds", TestComputeBounds},
     {"frustum cull", TestFrustumCull},
@@ -1123,6 +1125,118 @@ void TestBmdTriangles() {
   mu::BmdBody multi;
   CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &multi).ok());
   CHECK(multi.triangles.empty());
+}
+
+// The compatibility table reports level 3 (vertices + normals) and level 4
+// (face indices) as two rows, and the drop between them was large enough that
+// the relation between them had to be established rather than assumed. This
+// test fixes three things that the table alone cannot express:
+//
+//   1. Level 4 is a STRICT SUBSET of level 3. A file counted in level 4 was
+//      necessarily counted in level 3, because the triangle counter is only
+//      ever assigned inside the branch that sets geometry_parsed.
+//   2. An empty triangle array is not one failure but four distinguishable
+//      ones, and each has a different consequence for a consumer.
+//   3. The four skip reasons are exhaustive: they account for every level-3
+//      file that has no topology, so a fifth cause cannot appear silently.
+void TestTopologyIsSubsetOfGeometry() {
+  std::vector<mu::BmdVertex> verts(4);
+  for (std::size_t i = 0; i < verts.size(); ++i) verts[i].z = 1.0f;
+  std::vector<mu::BmdNormal> norms(4);
+  for (auto &n : norms) n.ny = 1.0f;
+
+  std::vector<std::uint8_t> body = MakeBmdBody("Subset.SMD", verts, norms);
+  PutU16LeAt(body, 32, 1);   // meshCount
+  PutU16LeAt(body, 42, 2);   // texcoord count
+  PutU16LeAt(body, 44, 1);   // triangle count
+  body.resize(body.size() + 2 * 8 + mu::kBmdTriangleRecordSize, 0);
+
+  mu::BmdSummary sum;
+
+  // Each fixture goes through FakeBmd, which prepends the "BMD"+version
+  // container header. Without it the classifier never reaches the body parser
+  // and every case reports geometry_parsed == false, which would make the
+  // subset relation below vacuously true.
+  auto classify = [](const std::vector<std::uint8_t> &payload,
+                     const char *label) {
+    const std::vector<std::uint8_t> file = FakeBmd(
+        0x0A, static_cast<std::uint32_t>(payload.size()), payload);
+    return mu::BmdClassifyBytes(mu::ByteView(file.data(), file.size()), label);
+  };
+
+  // Case 1: a single-mesh file with one face. Reaches both levels.
+  {
+    const mu::BmdFileReport r = classify(body, "level4");
+    CHECK(r.geometry_parsed);
+    CHECK_EQ(1u, r.triangle_count);
+    CHECK(r.topology_skip == mu::BmdTopologySkip::kNone);
+    mu::BmdAccumulate(r, &sum);
+  }
+
+  // Case 2: multi-mesh. Geometry still parses; topology is deliberately not
+  // read because the single-block arithmetic would address the wrong block.
+  {
+    std::vector<std::uint8_t> m = body;
+    PutU16LeAt(m, 32, 3);
+    const mu::BmdFileReport r = classify(m, "multimesh");
+    CHECK(r.geometry_parsed);
+    CHECK_EQ(0u, r.triangle_count);
+    CHECK(r.topology_skip == mu::BmdTopologySkip::kMultiMesh);
+    CHECK_EQ(3u, r.declared_mesh_count);
+    mu::BmdAccumulate(r, &sum);
+  }
+
+  // Case 3: declares no faces at all.
+  {
+    std::vector<std::uint8_t> z = body;
+    PutU16LeAt(z, 44, 0);
+    const mu::BmdFileReport r = classify(z, "zerofaces");
+    CHECK(r.geometry_parsed);
+    CHECK(r.topology_skip == mu::BmdTopologySkip::kZeroFaces);
+    mu::BmdAccumulate(r, &sum);
+  }
+
+  // Case 4: the declared array runs past the end of the payload.
+  {
+    std::vector<std::uint8_t> o = body;
+    PutU16LeAt(o, 44, 500);
+    const mu::BmdFileReport r = classify(o, "doesnotfit");
+    CHECK(r.geometry_parsed);
+    CHECK(r.topology_skip == mu::BmdTopologySkip::kDoesNotFit);
+    CHECK_EQ(500u, r.declared_triangle_count);
+    mu::BmdAccumulate(r, &sum);
+  }
+
+  // 1. The subset relation, on the accumulator that produces the published
+  //    table rather than on a hand-made counter.
+  CHECK(sum.topology_parsed <= sum.geometry_parsed);
+  CHECK_EQ(4u, sum.geometry_parsed);
+  CHECK_EQ(1u, sum.topology_parsed);
+
+  // 3. Exhaustiveness: the skip reasons account for every level-3 file without
+  //    topology, leaving no unexplained remainder.
+  const std::size_t skips = sum.skip_multi_mesh + sum.skip_zero_faces +
+                            sum.skip_does_not_fit + sum.skip_no_header;
+  CHECK_EQ(sum.geometry_parsed - sum.topology_parsed, skips);
+  CHECK_EQ(1u, sum.skip_multi_mesh);
+  CHECK_EQ(1u, sum.skip_zero_faces);
+  CHECK_EQ(1u, sum.skip_does_not_fit);
+  CHECK_EQ(0u, sum.skip_no_header);
+
+  // The meshCount histogram must cover every level-3 file too, or it is
+  // measuring a subset and presenting it as the whole.
+  std::size_t hist_total = sum.mesh_count_above_15;
+  for (std::size_t i = 0; i < 16; ++i) hist_total += sum.mesh_count_hist[i];
+  CHECK_EQ(sum.geometry_parsed, hist_total);
+  CHECK_EQ(3u, sum.mesh_count_hist[1]);
+  CHECK_EQ(1u, sum.mesh_count_hist[3]);
+
+  // Names exist for every enumerator, so a report cannot print a blank cell.
+  CHECK(std::string(mu::BmdTopologySkipName(mu::BmdTopologySkip::kNone)).size() > 0);
+  CHECK(std::string(mu::BmdTopologySkipName(mu::BmdTopologySkip::kMultiMesh)).size() > 0);
+  CHECK(std::string(mu::BmdTopologySkipName(mu::BmdTopologySkip::kZeroFaces)).size() > 0);
+  CHECK(std::string(mu::BmdTopologySkipName(mu::BmdTopologySkip::kDoesNotFit)).size() > 0);
+  CHECK(std::string(mu::BmdTopologySkipName(mu::BmdTopologySkip::kNoHeader)).size() > 0);
 }
 
 }  // namespace

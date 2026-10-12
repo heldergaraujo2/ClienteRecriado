@@ -125,6 +125,9 @@ BmdFileReport Classify(ByteView data, const std::string& label) {
       r.triangle_count = body.triangles.size();
       r.bad_corner_refs =
           body.out_of_range_vertices + body.out_of_range_normals;
+      r.topology_skip = body.topology_skip;
+      r.declared_mesh_count = body.declared_mesh_count;
+      r.declared_triangle_count = body.declared_triangle_count;
     } else {
       r.body_problem = body.problem.empty() ? bs.message : body.problem;
     }
@@ -175,8 +178,24 @@ void BmdAccumulate(const BmdFileReport& r, BmdSummary* s) {
     case PayloadAccess::kOpaque: ++s->opaque; break;
   }
 
-  if (r.geometry_parsed) ++s->geometry_parsed;
-  if (r.triangle_count > 0) {
+  if (r.geometry_parsed) {
+    ++s->geometry_parsed;
+    switch (r.topology_skip) {
+      case BmdTopologySkip::kNone: break;
+      case BmdTopologySkip::kMultiMesh: ++s->skip_multi_mesh; break;
+      case BmdTopologySkip::kZeroFaces: ++s->skip_zero_faces; break;
+      case BmdTopologySkip::kDoesNotFit: ++s->skip_does_not_fit; break;
+      case BmdTopologySkip::kNoHeader: ++s->skip_no_header; break;
+    }
+    if (r.declared_mesh_count < 16) s->mesh_count_hist[r.declared_mesh_count]++;
+    else ++s->mesh_count_above_15;
+  }
+  // Level 4 is a STRICT SUBSET of level 3, by construction: |triangle_count|
+  // is only ever assigned inside the |geometry_parsed| branch above and stays
+  // 0 otherwise, so a file cannot be counted here without also being counted
+  // there. TestTopologyIsSubsetOfGeometry asserts it over the whole tree so the
+  // relation is verified, not just asserted in a comment.
+  if (r.geometry_parsed && r.triangle_count > 0) {
     ++s->topology_parsed;
     s->triangles_total += r.triangle_count;
     s->bad_corner_refs += r.bad_corner_refs;

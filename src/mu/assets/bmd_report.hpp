@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "mu/assets/bmd.hpp"
+#include "mu/assets/bmd_body.hpp"
 #include "mu/assets/format.hpp"
 
 namespace mu {
@@ -65,6 +66,12 @@ struct BmdFileReport {
   /// |problem| so a container-level fault and a body-level fault are not
   /// confused with each other.
   std::string body_problem;
+
+  /// Why the triangle array was not read, for files that reached level 3 with
+  /// no faces. Meaningful only when |geometry_parsed| is true.
+  BmdTopologySkip topology_skip = BmdTopologySkip::kNone;
+  std::size_t declared_mesh_count = 0;
+  std::size_t declared_triangle_count = 0;
 };
 
 struct BmdSummary {
@@ -85,6 +92,18 @@ struct BmdSummary {
   std::size_t topology_parsed = 0;
   std::size_t triangles_total = 0;
   std::size_t bad_corner_refs = 0;
+
+  /// Why the level-3 files that have no topology have none. These four counts
+  /// sum to |geometry_parsed| - |topology_parsed|, and the sum is asserted in
+  /// the test suite so a fifth cause cannot appear silently.
+  std::size_t skip_multi_mesh = 0;
+  std::size_t skip_zero_faces = 0;
+  std::size_t skip_does_not_fit = 0;
+  std::size_t skip_no_header = 0;
+  /// meshCount as declared, across all level-3 files, so the multi-mesh share
+  /// is measured rather than inferred from the skip counts.
+  std::size_t mesh_count_hist[16] = {0};
+  std::size_t mesh_count_above_15 = 0;
 
   // Breakdown by container kind.
   std::size_t kind_v0c = 0;

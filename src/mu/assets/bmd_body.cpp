@@ -114,12 +114,16 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
     const std::size_t triangle_count =
         ReadU16LE(payload.data + kBmdTriangleCountOffset);
 
+    out->declared_mesh_count = mesh_count;
+    out->declared_triangle_count = triangle_count;
+
     const std::size_t triangles_offset = required + texcoord_count * 8;
     const std::size_t triangles_end =
         triangles_offset + triangle_count * kBmdTriangleRecordSize;
 
     if (mesh_count == 1 && triangle_count > 0 &&
         triangles_end >= triangles_offset && triangles_end <= payload.size) {
+      out->topology_skip = BmdTopologySkip::kNone;
       out->triangles.reserve(triangle_count);
       for (std::size_t i = 0; i < triangle_count; ++i) {
         const uint8_t* base =
@@ -150,11 +154,33 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
           }
         }
       }
+    } else if (mesh_count != 1) {
+      // The dominant case. The single-mesh arithmetic addresses one block; with
+      // several meshes the same sequence repeats and reading one block would
+      // silently read the wrong one. Not an error, and not a corrupt file.
+      out->topology_skip = BmdTopologySkip::kMultiMesh;
+    } else if (triangle_count == 0) {
+      out->topology_skip = BmdTopologySkip::kZeroFaces;
+    } else {
+      out->topology_skip = BmdTopologySkip::kDoesNotFit;
     }
+  } else {
+    out->topology_skip = BmdTopologySkip::kNoHeader;
   }
 
   out->complete = true;
   return Status::Ok();
+}
+
+const char* BmdTopologySkipName(BmdTopologySkip s) {
+  switch (s) {
+    case BmdTopologySkip::kNone: return "read";
+    case BmdTopologySkip::kMultiMesh: return "multi-mesh";
+    case BmdTopologySkip::kZeroFaces: return "declares zero faces";
+    case BmdTopologySkip::kDoesNotFit: return "declared array does not fit";
+    case BmdTopologySkip::kNoHeader: return "payload too short for counts";
+  }
+  return "unknown";
 }
 
 }  // namespace mu

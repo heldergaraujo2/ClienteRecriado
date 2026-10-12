@@ -114,6 +114,22 @@ struct BmdTriangle {
   BmdTriangleCorner corners[3];
 };
 
+/// Why the triangle array was not read. Recorded because "triangles is empty"
+/// on its own cannot be interpreted: the same empty vector means "this file has
+/// no faces", "this file has several meshes and we only handle one" or "the
+/// declared array does not fit", and those have different consequences for a
+/// consumer. Measured over the whole asset tree in
+/// docs/evidence/ciclo4_topology_skip_reasons.log.
+enum class BmdTopologySkip : uint8_t {
+  kNone = 0,      ///< Triangles were read.
+  kMultiMesh,     ///< meshCount != 1; the single-mesh arithmetic does not apply.
+  kZeroFaces,     ///< The file declares no triangles at all.
+  kDoesNotFit,    ///< The declared array runs past the end of the payload.
+  kNoHeader,      ///< Payload shorter than the triangle count field.
+};
+
+const char* BmdTopologySkipName(BmdTopologySkip s);
+
 struct BmdBody {
   std::string source_name;      ///< From the 32-byte field; may be empty.
   bool has_source_name = false;
@@ -122,6 +138,15 @@ struct BmdBody {
   /// Triangles, when the mesh counts allowed locating the array. Empty when the
   /// body was not laid out as a single mesh, which is not an error.
   std::vector<BmdTriangle> triangles;
+  /// Why `triangles` is empty. `kNone` when it is not. Only meaningful once the
+  /// vertex and normal arrays parsed successfully, since the same arithmetic
+  /// that fails here would already have failed there.
+  BmdTopologySkip topology_skip = BmdTopologySkip::kNone;
+  /// `meshCount` as declared, recorded for every file whether or not triangles
+  /// were read, so the multi-mesh share can be measured instead of assumed.
+  std::size_t declared_mesh_count = 0;
+  /// `numTriangles` as declared, for the same reason.
+  std::size_t declared_triangle_count = 0;
   /// Texture coordinates per vertex of a triangle are NOT located. The u16 at
   /// corner offset 4 was the natural candidate and was ruled out. A mesh
   /// therefore cannot be textured correctly from this parser yet.
