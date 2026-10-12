@@ -382,7 +382,7 @@ mestre quando justificada: continua sendo OpenGL, não é troca de API.
 > excluídos como caminho de produção. Permanecem OpenGL; não há troca de API.
 
 **Justificativa baseada na medição.** No carregamento, expandir índice → flat
-custa **5,16×** mais que subir o buffer indexado (18.760,4 µs contra 3.632,5 µs,
+custa **5,49×** mais que subir o buffer indexado (19190,9 µs contra 3493,1 µs,
 N=5). Por quadro, o modelo sem índice submete **1,29×** mais volume e faz
 **63,9%** de envios de vértice redundantes (2.936.559 envios de canto contra
 1.792.108 vértices únicos). A segunda parte é uma **quantidade exata** derivada
@@ -460,7 +460,7 @@ Os quatro eixos que a auditoria pediu, cada um com o que se sabe e de onde vem:
 
 | Eixo | Fixed-function / immediate mode (como o original) | VBO/VAO com draw indexado |
 |---|---|---|
-| **Capacidade de suportar malha pesada** | Teto estrutural, em dois lugares diferentes. **Carregamento:** sem `glDrawElements` o array tem que ser expandido — **medido: 18.760,4 µs** para a árvore inteira, **5,16×** o custo do upload indexado. **Por quadro:** o volume submetido é o expandido — **67,21 MiB por draw**, **2.936.559 envios de canto**, dos quais **63,9% reenviam vértice que já foi enviado**. O custo por quadro é driver/barramento e está `BLOCKED` | Vértice único enviado uma vez e residente. **Carregamento: 3.632,5 µs** de upload. **Por quadro:** 52,22 MiB residentes no total, draw indexado, volume independente da contagem de vértice. Custo por quadro `BLOCKED` |
+| **Capacidade de suportar malha pesada** | Teto estrutural, em dois lugares diferentes. **Carregamento:** sem `glDrawElements` o array tem que ser expandido — **medido: 19190,9 µs** para a árvore inteira, **5,49×** o custo do upload indexado. **Por quadro:** o volume submetido é o expandido — **67,21 MiB por draw**, **2.936.559 envios de canto**, dos quais **63,9% reenviam vértice que já foi enviado**. O custo por quadro é driver/barramento e está `BLOCKED` | Vértice único enviado uma vez e residente. **Carregamento: 3493,1 µs** de upload. **Por quadro:** 52,22 MiB residentes no total, draw indexado, volume independente da contagem de vértice. Custo por quadro `BLOCKED` |
 | **Número de draw calls** | Uma chamada por primitiva em immediate mode; display list agrupa mas é estática e opaca. Sem índice, não há como reduzir o volume dentro de uma chamada | Uma chamada por malha via `glDrawElements`, volume independente da contagem de vértice. Instancing disponível. **Contagem real de draw call em tempo de execução: BLOQUEADA** — exige contexto |
 | **Compatibilidade com hardware e drivers modernos** | OpenGL 1.1 fixed-function está **deprecado** desde GL 3.1 e **removido do perfil core** desde GL 3.2. Drivers modernos mantêm caminho de compatibilidade, mas em camadas de tradução (ex.: D3D12/Vulkan por baixo no Windows), o que tipicamente custa mais, não menos. Hardware antigo que roda o cliente original roda GL 2.0+ | GL 2.0 como piso, disponível em todo hardware que hoje roda o cliente original. Não exige driver recente nem troca de API. **Desempenho em driver específico: BLOQUEADO** |
 | **Complexidade de implementação** | Zero — é o que o original faz. Mas não atende ao requisito de conteúdo pesado, então o custo zero compra um teto intransponível | Moderada e conhecida: buffer + VAO + shader mínimo substituindo a função fixa. Mesmo conjunto de conceitos, sem biblioteca nova. Estimativa de esforço: **não medida**, e não será afirmada como prazo |
@@ -537,9 +537,9 @@ disponível.**
 
 | Medida | Mediana (N=5) | Amplitude entre execuções |
 |---|---|---|
-| Expansão índice → flat, árvore inteira | 18.760,4 µs | 4,95×–6,18× na razão |
-| Upload VBO, só vértices únicos | 3.632,5 µs | — |
-| Razão expansão/upload | **5,16×** | 4,95× a 6,18× |
+| Expansão índice → flat, árvore inteira | 19190,9 µs | 5,14×–5,62× na razão |
+| Upload VBO, só vértices únicos | 3493,1 µs | — |
+| Razão expansão/upload | **5,49×** | 5,14× a 5,62× |
 
 **VOLUME POR QUADRO — quantidade exata; custo `BLOCKED`:**
 
@@ -564,7 +564,7 @@ na contagem de vértice.
 #### 3.3 Critério objetivo de validação, em três partes
 
 - **PARTE A — CONCLUÍDA.** Custo de CPU do **carregamento**. Sustentado:
-  expandir custa **5,16×** mais que subir o buffer indexado. Isso é trabalho de
+  expandir custa **5,49×** mais que subir o buffer indexado. Isso é trabalho de
   carregamento, e o orçamento relevante é o de carga, não o de quadro.
 - **PARTE A' — CONCLUÍDA, e é quantidade, não custo.** Volume de submissão por
   quadro: **1,29×** maior e **63,9%** mais envios de vértice no modelo sem índice.

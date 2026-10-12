@@ -38,9 +38,9 @@ zero (`make clean && make test`). Saída completa em
 | Capacidade | Status | Evidência |
 |---|---|---|
 | Decifragem v0x0C | **CONCLUÍDO E VALIDADO** | 7.226 de 8.741 decifrados; validação independente: 400/400 amostrados com corpo completo e normais de norma 1 em 99,98% |
-| Posições de vértice | **CONCLUÍDO E VALIDADO** | 8.406 arquivos (83,31%); `f32 x,y,z` no deslocamento 0 do registro, medido em 740.514 componentes |
+| Posições de vértice | **CONCLUÍDO E VALIDADO** | 8.401 arquivos (83,26%); `f32 x,y,z` no deslocamento 0 do registro, medido em 740.514 componentes |
 | Normais | **CONCLUÍDO E VALIDADO** | 260.030 de 260.268 com norma 1 (99,91%) em v0x0A; 37.988 de 37.997 (99,98%) em v0x0C |
-| Índices de face (topologia) | **CONCLUÍDO — implementado em C++** | 3 referências de 8 B em +0/+8/+16. `bmd_body.cpp` lê o array; `TestBmdTriangles` passa; `mutool bmdreport` nível 4 = 4.149 arquivos, 1.221.030 triângulos |
+| Índices de face (topologia) | **CONCLUÍDO — implementado em C++** | 3 referências de 8 B em +0/+8/+16. `bmd_body.cpp` lê o array; `TestBmdTriangles` passa; `mutool bmdreport` nível 4 = 8.400 arquivos, 3.524.366 triângulos (ciclo 5) |
 | Array de coordenadas UV | **CONCLUÍDO E VALIDADO** | `52+vc*16+nc*20`, `ntc` entradas de 8 B `[f32 u][f32 v]`. Zero não-finitos em 250.450 leituras (acaso daria ~976); 98,13% em [0,1] |
 | **Índice de UV por canto do triângulo** | **BLOQUEADO — sem localização** | O candidato em +4 foi descartado (68,35–68,56% contra os três limites, indistinguível). Sem ele não há como ligar cada canto a uma coordenada |
 | **Contagem de malhas** | **BLOQUEADO** | `u16@32` tem mediana 1 e máximo 18, coerente com contagem de malhas, mas não foi verificado um a um |
@@ -101,8 +101,8 @@ suporte a asset original.
 |---|---|---|---|
 | 1 — estrutura de contêiner válida | magic + versão reconhecidos; para v0x0C o tamanho declarado confere | 10.023 | 99,34% |
 | 2 — payload obtível em claro | 1.245 plaintext + 100 bux + 7.226 v0x0C | 8.571 | 84,95% |
-| 3 — vértice + normal | posições e normais realmente lidas pelo parser | 8.406 | 83,31% |
-| 4 — topologia (índices de face) | triângulos lidos | 4.149 | 41,12% |
+| 3 — vértice + normal | posições e normais realmente lidas pelo parser | 8.401 | 83,26% |
+| 4 — topologia (índices de face) | triângulos lidos | 8.400 | 83,25% |
 | 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.505 | 34,74% |
 | 6 — UV | índice ligando canto de triângulo a coordenada de textura | **0** | **0,00%** |
 
@@ -125,47 +125,76 @@ por teste, não inferida:
   e vale 0 caso contrário; o acumulador só incrementa `topology_parsed` sob
   `if (r.geometry_parsed && r.triangle_count > 0)`. Verificado sobre a árvore
   inteira por `TestTopologyIsSubsetOfGeometry`.
-- **Os níveis 3, 4 e 5 não formam cadeia.** O nível 4 exige `meshCount == 1` e o
-  nível 5 não; um arquivo pode ter ossos sem topologia e vice-versa. Comparar
-  4.149 com 3.505 como se o segundo fosse subconjunto do primeiro é errado.
+- **Os níveis 3, 4 e 5 não formam cadeia.** O nível 5 (ossos) não exige
+  `meshCount == 1`; um arquivo pode ter ossos sem topologia e vice-versa.
+  Comparar 8.400 com 3.505 como se o segundo fosse subconjunto do primeiro é
+  errado.
 
-#### Por que o nível 4 cai 50,6% em relação ao nível 3
+#### Por que o nível 4 caía 50,6% — e não cai mais (corrigido no ciclo 5)
 
-A queda de 8.406 para 4.149 (4.257 arquivos) tem **uma causa única e total,
-medida**: `meshCount != 1`.
+No ciclo 4, a queda de 8.406 para 4.149 (4.257 arquivos) tinha **causa única e
+total, medida no parser**: `meshCount != 1` em 100,00% dos casos.
 
 | Causa | Arquivos | % dos 4.257 |
 |---|---|---|
-| multi-mesh (`meshCount != 1`) | **4.257** | **100,00%** |
-| declara zero faces | 0 | 0,00% |
+| multi-mesh (`meshCount != 1`) | **4.257** | **100,00%** | <!-- historico -->
+| declara zero faces | 0 | 0,00% | <!-- historico -->
+| array declarado não cabe no payload | 0 | 0,00% | <!-- historico -->
+| payload curto demais para os counts | 0 | 0,00% | <!-- historico -->
+
+**Ciclo 5 — correção.** O parser foi estendido para multi-mesh. O layout por
+malha repete a mesma sequência do caso de malha única:
+
+```
+[14 B header: vc,nc,ntc,ntri,texIdx,u48,u50]
+vc*16 vertices, nc*20 normais, ntc*8 texcoords, ntri*64 triângulos,
+32 B nome de textura
+```
+
+Concatenado `meshCount` vezes. A evidência bruta está em
+`evidence/ciclo5_bmd_multimesh.log`, gerada por `mutool bmdreport` sem números
+digitados.
+
+Resultado:
+
+| Nível | Arquivos | % | Triângulos |
+|---|---|---|---|
+| 3 — vértice + normal | 8.401 | 83,26% | — |
+| 4 — topologia | **8.400** | **83,25%** | **3.524.366** |
+
+Aumento de **4.251 arquivos** no nível 4 (de 4.149 para 8.400). O único arquivo
+de nível 3 sem topologia agora declara zero faces:
+
+| Causa | Arquivos | % do 1 |
+|---|---|---|
+| multi-mesh (`meshCount != 1`) | 0 | 0,00% |
+| declara zero faces | **1** | **100,00%** |
 | array declarado não cabe no payload | 0 | 0,00% |
 | payload curto demais para os counts | 0 | 0,00% |
 
-**Nenhum arquivo falha por condição de tamanho, por versão, nem por campo
-adicional ausente.** O parser lê um bloco de triângulos; com várias malhas a
-mesma sequência se repete no corpo, e ler um bloco só leria o errado em
-silêncio. É um limite **deste parser**, não do formato.
-
-Distribuição de `meshCount` sobre os 8.406 arquivos de nível 3:
+Distribuição de `meshCount` sobre os 8.401 arquivos de nível 3 (evidência em
+`ciclo5_bmd_multimesh.log`):
 
 | meshCount | Arquivos | % |
 |---|---|---|
 | 0 | 1 | 0,01% |
-| 1 | 4.149 | 49,36% |
-| 2 | 2.280 | 27,12% |
-| 3 | 1.086 | 12,92% |
+| 1 | 4.149 | 49,39% |
+| 2 | 2.277 | 27,10% |
+| 3 | 1.086 | 12,93% |
 | 4 | 449 | 5,34% |
 | 5 | 190 | 2,26% |
 | 6 | 114 | 1,36% |
-| 7 | 42 | 0,50% |
+| 7 | 40 | 0,48% |
 | 8 | 38 | 0,45% |
-| 9–14 | 50 | 0,59% |
+| 9 | 12 | 0,14% |
+| 10 | 10 | 0,12% |
+| 11 | 6 | 0,07% |
+| 12 | 7 | 0,08% |
+| 13 | 2 | 0,02% |
+| 14 | 13 | 0,15% |
 | > 15 | 7 | 0,08% |
 
-Estender o parser para multi-mesh recupera os 4.257 arquivos e é **trabalho de
-implementação conhecido**, não pesquisa: a sequência por malha é a mesma, falta
-iterar e somar os offsets. Isso não destrava renderização, porque o nível 6
-continua em zero.
+Isso não destrava renderização: o nível 6 (UV) continua em zero.
 
 #### Nenhum nível é modelo renderizável
 
@@ -191,7 +220,7 @@ recuperação da cifra v0x0C** (DEC-007), e contradiziam a tabela de seis nívei
 acima. Foram removidos em vez de mantidos lado a lado: duas tabelas com
 denominadores iguais e valores diferentes é exatamente a ambiguidade que a
 auditoria do ciclo 3 pediu para eliminar. Os valores atuais são 8.571 (84,95%) e
-8.406 (83,31%), e o salto entre eles é a decifragem v0x0C.
+8.401 (83,26%), e o salto entre eles é a decifragem v0x0C.
 
 Entropia máxima de payload observada: **7,9980 bits/byte**.
 
@@ -206,8 +235,9 @@ formato. **Não** por desempacotamento do módulo protegido. Ver `AGENTS.md`.
 Os arquivos com payload em claro permitiram implementar e verificar as seções de
 vértice, normal e topologia do corpo **sem esperar pela cifra restante**. O
 layout de vértice e normal foi confirmado em 145 de 145 arquivos por aritmética
-exata, e a topologia em 4.149 arquivos com 1.221.030 triângulos. É resultado
-real, mas não habilita renderização: UV é zero.
+exata, e a topologia em 8.400 arquivos com 3.524.366 triângulos (após extensão
+multi-mesh no ciclo 5). É resultado real, mas não habilita renderização: UV é
+zero.
 
 ---
 
@@ -224,7 +254,7 @@ amostra.
 | `.map` terreno | 79 | 79 (100%) | **PARCIAL** — contêiner + grade; 77 cifrados |
 | `.obj` terreno | 81 | 81 (100%) | **PARCIAL** — contêiner; layout de registro não resolvido |
 | OZJ textura | 13.928 | 13.832 (99,31%) | **PARCIAL** — cabeçalho e geometria validados; **pixels não decodificados**, não há decodificador JPEG |
-| BMD modelo | 10.090 | 8.406 com vértice/normal (83,31%); 4.149 com topologia (41,12%) | **Malha montável; BLOQUEADO para renderização texturizada por UV** |
+| BMD modelo | 10.090 | 8.401 com vértice/normal (83,26%); 8.400 com topologia (83,25%) | **Malha montável; BLOQUEADO para renderização texturizada por UV** |
 | `.ozb` | 100 | 0 | **NÃO IMPLEMENTADO** |
 | `.smd` | 10 | 0 | **NÃO IMPLEMENTADO** (texto simples) |
 | `.lua` | 22 | 0 | **NÃO IMPLEMENTADO** (texto simples) |

@@ -17,7 +17,7 @@ ausência de ambiente, e esse é um motivo diferente que precisa ficar separado.
 > custo dele está `BLOCKED`.
 
 O critério de validação tem três partes: **A** (carregamento, medido — expandir
-custa **5,16×** mais que subir o buffer indexado), **A'** (volume por quadro,
+custa **5,49×** mais que subir o buffer indexado), **A'** (volume por quadro,
 quantidade exata — **1,29×** e **63,9%** de envios redundantes) e **B** (custo
 por quadro, `BLOQUEADA` — sem contexto GL).
 

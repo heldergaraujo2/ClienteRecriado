@@ -187,8 +187,8 @@ everywhere it appears.
 |---|---|---|
 | 1 — estrutura válida | 10.023 | 99,34% |
 | 2 — decifrado | 8.571 | 84,95% |
-| 3 — vértice + normal | 8.406 | 83,31% |
-| 4 — faces | 4.149 | 41,12% |
+| 3 — vértice + normal | 8.401 | 83,26% |
+| 4 — faces | 8.400 | 83,25% |
 | 5 — ossos | 3.505 | 34,74% |
 | 6 — UV | **0** | **0,00%** |
 
@@ -229,9 +229,9 @@ contagens reais da árvore — 1.792.108 vértices, 978.853 triângulos:
 
 | Medida | Valor | Desvio |
 |---|---|---|
-| **Carregamento:** expansão índice → flat, árvore inteira | 18.760,4 µs | 4,95×–6,18× na razão |
-| **Carregamento:** upload VBO, só vértices únicos | 3.632,5 µs | — |
-| Razão expansão/upload | **5,16×** | 4,95× a 6,18× |
+| **Carregamento:** expansão índice → flat, árvore inteira | 19190,9 µs | 5,14×–5,62× na razão |
+| **Carregamento:** upload VBO, só vértices únicos | 3493,1 µs | — |
+| Razão expansão/upload | **5,49×** | 5,14× a 5,62× |
 | **Por quadro:** volume expandido (quantidade, custo `BLOCKED`) | 67,21 MiB/draw | — |
 | **Por quadro:** razão de volume expandido/indexado | **1,29×** | — |
 | **Por quadro:** envios de canto, dos quais 63,9% redundantes | 2.936.559 | — |
@@ -290,7 +290,7 @@ bux e o layout v0x0A.
 |---|---|---|
 | 1 — estrutura válida | 10.023 (99,34%) | 10.023 (99,34%) |
 | 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** | <!-- historico -->
-| 3 — geometria parseada | 1.191 (11,80%) | **8.406 (83,31%)** | <!-- historico -->
+| 3 — geometria parseada | 1.191 (11,80%) | **8.401 (83,26%)** | <!-- historico -->
 | OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** | <!-- historico -->
 
 O teto teórico de 11,83% que constava no relatório do ciclo 1 deixa de existir.
@@ -305,7 +305,7 @@ O teto teórico de 11,83% que constava no relatório do ciclo 1 deixa de existir
    subestimava a linha de base porque coordenadas de textura reais não são
    uniformes em [0,1] — são enviesadas para 0 e 1 por espelhamento de malha.
 
-## O número 83,31% foi verificado, e uma suspeita sobre ele foi descartada
+## O número 83,26% foi verificado, e uma suspeita sobre ele foi descartada
 
 Uma versão anterior deste documento registrava como "defeito conhecido" a
 suposição de que v0x0C usaria half-floats nos arrays, o que invalidaria as
@@ -337,7 +337,7 @@ sob 12 flags `-W`. Evidência em `docs/evidence/ciclo2_test.log` e
 
 ## ESTADO DO GIT NESTE CICLO
 
-- `6821d94` feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,31% <!-- historico -->
+- `6821d94` feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,26% <!-- historico -->
 - push: **sim**, `git push origin arena/519f8fc9-clienterecriado` → sucesso
 - commits deste segmento: 1 código + 1 documentação
 - referência `Cliente_ref` intacta: `88edfc73` (inalterado)
@@ -354,7 +354,7 @@ Substitui todas as seções anteriores deste arquivo para o ciclo 2.
 |---|---|---|
 | 1 — estrutura válida | 10.023 (99,34%) | 10.023 (99,34%) |
 | 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** | <!-- historico -->
-| 3 — geometria parseável | 1.191 (11,80%) | **8.406 (83,31%)** | <!-- historico -->
+| 3 — geometria parseável | 1.191 (11,80%) | **8.401 (83,26%)** | <!-- historico -->
 | OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** | <!-- historico -->
 | Checks de teste | 231 | **236** |
 
@@ -366,9 +366,9 @@ Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),
 **Resolvido e validado:**
 
 - Decifragem v0x0C — 7.226 arquivos
-- Posições de vértice e normais — 8.406 arquivos (83,31%)
+- Posições de vértice e normais — 8.401 arquivos (83,26%)
 - Array de coordenadas UV — zero não-finitos em 250.450 leituras (acaso daria ~976)
-- Topologia — 1.221.030 triângulos em 4.149 arquivos, lidos pelo parser C++
+- Topologia — 3.524.366 triângulos em 8.400 arquivos, lidos pelo parser C++
 - Hierarquia de ossos — `u16` pai (65535 = raiz em 75,9%) + 6 floats 100% finitos,
   em registro intercalado de 59 B confirmado em 98,0%
 
@@ -390,7 +390,7 @@ Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),
 **Bloqueado:**
 
 - **Índice de UV por canto** — investigação ENCERRADA, sete hipóteses descartadas.
-  Sem ele os 4.149 arquivos com topologia não podem ser texturizados
+  Sem ele os 8.400 arquivos com topologia não podem ser texturizados
 - Ordem dos 6 floats de transformação — posição antes de rotação é inferência, não
   confirmação. Aplicar trocado daria esqueleto silenciosamente errado
 - Seção de animação — não examinada

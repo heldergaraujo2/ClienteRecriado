@@ -1,30 +1,12 @@
 === EVIDENCIA DE DEC-008: custo do caminho de submissao (CPU) ===
-data: 2026-10-12T15:57:22Z
-HEAD ClienteRecriado: 7d10a18daa06ece71a735e1eb8ecf781f1319db7
+data: 2026-10-12T16:32:45Z
+HEAD ClienteRecriado: 4a50d5aa3c345784f6f3706f5ce2c2e79021c111
 HEAD Cliente_ref    : 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
 hardware: 2 nucleos, Intel(R) Xeon(R) Processor @ 2.60GHz
 memoria : 3.8 GiB
 compilador: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
 flags: 
 comando: python3 tools/gen_dec008_evidence.py 5
-
----------------------------------------------------------------------------
-O QUE ESTA E O QUE NAO ESTA SENDO MEDIDO
----------------------------------------------------------------------------
-MEDIDO: custo de CPU de preparar dados de vertice no layout que cada modelo de
-submissao exige. Usa as contagens REAIS medidas na arvore de assets
-(mutool meshimport: 1.792.108 vertices, 978.853 triangulos em 4.071 malhas).
-
-NAO MEDIDO, e que NAO pode ser inferido destes numeros:
-  - overhead de chamada do driver (nao existe contexto GL aqui)
-  - processamento de vertice, transformacao ou rasterizacao na GPU
-  - custo de transferencia pelo barramento ate o dispositivo
-  - FPS, frametime ou VRAM
-
-Estado de cache: os buffers sao alocados uma vez e reutilizados entre
-repeticoes, entao estao RESIDENTES.
-
-AMOSTRA: N=5 execucoes completas do binario. Indicativa, nao definitiva.
 
 
 Gerado por tools/gen_dec008_evidence.py. Nenhum numero deste arquivo
@@ -68,27 +50,27 @@ uma execucao). Isso nao e o mesmo que a dispersao ENTRE execucoes,
 que e a que importa para citar um numero. As duas sao reportadas.
 
 CARREGAMENTO: expansao indice -> flat
-  medianas por execucao : 19833.4, 18327.6, 22452.6, 18760.4, 17569.2 us
-  mediana das medianas  : 18760.4 us
-  min / max             : 17569.2 / 22452.6 us
-  amplitude             : 4883.4 us (26.03% da mediana)
-  media reportada       : 20218.7 us (entre execucoes: 17951.2 a 22615.2)
+  medianas por execucao : 19190.9, 21943.7, 17760.9, 19163.7, 25260.8 us
+  mediana das medianas  : 19190.9 us
+  min / max             : 17760.9 / 25260.8 us
+  amplitude             : 7499.9 us (39.08% da mediana)
+  media reportada       : 19603.7 us (entre execucoes: 18068.2 a 25107.7)
 
 CARREGAMENTO: upload do vertex buffer (unicos)
-  medianas por execucao : 3638.7, 3486.9, 3632.5, 3789.0, 3427.0 us
-  mediana das medianas  : 3632.5 us
-  min / max             : 3427.0 / 3789.0 us
-  amplitude             : 362.0 us (9.97% da mediana)
-  media reportada       : 3670.1 us (entre execucoes: 3435.4 a 3689.1)
+  medianas por execucao : 3464.9, 4271.2, 3428.8, 3493.1, 4491.3 us
+  mediana das medianas  : 3493.1 us
+  min / max             : 3428.8 / 4491.3 us
+  amplitude             : 1062.5 us (30.42% da mediana)
+  media reportada       : 3599.2 us (entre execucoes: 3464.3 a 4405.9)
 
 ---------------------------------------------------------------------------
 CONTAS DE FECHAMENTO - derivadas das medianas acima, nao digitadas
 ---------------------------------------------------------------------------
 
 ORCAMENTO DE CARREGAMENTO (o correto para a expansao):
-  expansao de TODA a arvore           :   18760.4 us =   0.02 s
-  upload VBO de TODA a arvore         :    3632.5 us =   0.00 s
-  razao expansao/upload               :      5.16x  (entre execucoes: 4.95x a 6.18x)
+  expansao de TODA a arvore           :   19190.9 us =   0.02 s
+  upload VBO de TODA a arvore         :    3493.1 us =   0.00 s
+  razao expansao/upload               :      5.49x  (entre execucoes: 5.14x a 5.62x)
 
   Referencia: carregar TODOS os 10.090 modelos de uma vez nao e o que
   um jogo faz. Uma cena carrega um subconjunto. O numero acima e o
@@ -108,27 +90,34 @@ SAIDA BRUTA DO BENCHMARK
 SAIDA BRUTA DO BENCHMARK, EXECUCAO 1 DE 5
 ---------------------------------------------------------------------------
 
-    reps=300  mean=27.9 us  stddev=2.8 us (10.18% of mean)  min=27.0  max=47.3
-    reps=300  mean=457.2 us  stddev=13.5 us (2.94% of mean)  min=433.3  max=528.2
-    reps=20  mean=7988.5 us  stddev=189.4 us (2.37% of mean)  min=7729.2  max=8652.5
-LOAD-TIME expand indexed -> flat    19833.4  24883.6  24883.6  20462.3      67.21    3388.8
-    reps=20  mean=20462.3 us  stddev=2159.7 us (10.55% of mean)  min=17733.5  max=25127.6
-LOAD-TIME vertex buffer upload       3638.7   3943.4   4156.6   3684.4      41.02   11272.9
-    reps=50  mean=3684.4 us  stddev=163.5 us (4.44% of mean)  min=3526.4  max=4474.1
+    reps=300  mean=27.7 us  stddev=2.8 us (9.98% of mean)  min=27.0  max=48.8
+    reps=300  mean=441.7 us  stddev=26.4 us (5.98% of mean)  min=400.9  max=558.6
+    reps=20  mean=7179.5 us  stddev=248.4 us (3.46% of mean)  min=6985.3  max=8092.9
+LOAD-TIME expand indexed -> flat    19190.9  20900.1  20900.1  19216.5      67.21    3502.3
+    reps=20  mean=19216.5 us  stddev=998.3 us (5.20% of mean)  min=17924.1  max=21359.0
+LOAD-TIME vertex buffer upload       3464.9   3532.5   3549.0   3464.3      41.02   11838.2
+    reps=50  mean=3464.3 us  stddev=37.8 us (1.09% of mean)  min=3375.4  max=3556.4
 
 ---------------------------------------------------------------------------
 LIMITE DA CONCLUSAO
 ---------------------------------------------------------------------------
 
-O que SUSTENTA: o modelo de submissao expandido custa, em marshalling
-de CPU, mais que o orcamento inteiro de um quadro a 60 FPS para o
-volume de geometria desta arvore. Independente de driver e de GPU,
-porque e trabalho que a CPU faz antes de qualquer chamada.
+O que SUSTENTA:
+  - CARREGAMENTO: expandir custa 5.49x mais que subir o buffer
+    indexado (19190.9 us contra 3493.1 us para a arvore inteira).
+    E trabalho de carregamento; orcamento relevante e o de carga, nao
+    o de quadro. A razao se preserva em qualquer subconjunto porque
+    ambos os custos sao lineares na contagem de vertice.
+  - VOLUME POR QUADRO: quantidade exata, nao custo. Sem glDrawElements,
+    o volume por draw e o tamanho expandido. O CUSTO desse volume e
+    driver/barramento/overhead de chamada e esta BLOCKED, sem contexto.
 
 O que NAO SUSTENTA: nenhum numero de FPS, nenhum ganho de desempenho,
 nenhuma comparacao de draw call em tempo real. A validacao final de
-DEC-008 exige contexto grafico e esta BLOQUEADA.
+DEC-008 (Parte B) exige contexto grafico e esta BLOQUEADA. Uma versao
+anterior desta secao comparava a expansao com orcamento de quadro e
+estava errada - corrigido no ciclo 5, item 1 da auditoria.
 
 Ressalvas: buffers RESIDENTES entre repeticoes, que e o caso FAVORAVEL
 ao caminho expandido. Contagens da arvore inteira, nao do subconjunto
-visivel de um quadro.
+visivel de um quadro. Amostra pequena (N=5), indicativa, nao definitiva.

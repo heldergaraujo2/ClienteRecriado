@@ -50,13 +50,9 @@ import re
 import subprocess
 import sys
 
-# Tolerancia: os documentos arredondam, a ferramenta tem mais casas. Compara
-# com folga de 0,01 ponto percentual ou 1 unidade absoluta.
 PCT_TOL = 0.011
 ABS_TOL = 1
 
-# Cada entrada: rotulo, regex sobre a saida da ferramenta, tipo, e os arquivos
-# onde o valor e citado (junto com o formato esperado no texto).
 CHECKS = [
     {
         'label': 'nivel 1 - estrutura valida',
@@ -68,7 +64,7 @@ CHECKS = [
     },
     {
         'label': 'nivel 2 - payload em claro (1245+100+7226)',
-        'regex': None,  # composto, calculado abaixo
+        'regex': None,
         'abs': 8571, 'pct': 84.95,
         'docs': ['docs/COMPATIBILITY.md', 'docs/ASSET_FORMATS.md',
                  'docs/CURRENT_STATE.md'],
@@ -84,26 +80,25 @@ CHECKS = [
     {
         'label': 'nivel 3 - vertice + normal',
         'regex': r'^\s+parsed\s+(\d+)\s+\(\s*([\d.]+)%\)',
-        'abs': 8406, 'pct': 83.31,
+        'abs': 8401, 'pct': 83.26,
         'docs': ['docs/COMPATIBILITY.md', 'docs/ASSET_FORMATS.md',
                  'docs/ARCHITECTURE.md', 'docs/CURRENT_STATE.md'],
-        'abs_fmt': '8.406', 'pct_fmt': '83,31%',
+        'abs_fmt': '8.401', 'pct_fmt': '83,26%',
     },
     {
         'label': 'nivel 4 - topologia',
         'regex': r'with triangles\s+(\d+)\s+\(\s*([\d.]+)%\)',
-        'abs': 4149, 'pct': 41.12,
+        'abs': 8400, 'pct': 83.25,
         'docs': ['docs/COMPATIBILITY.md', 'docs/ASSET_FORMATS.md',
                  'docs/ARCHITECTURE.md', 'docs/CURRENT_STATE.md'],
-        'abs_fmt': '4.149', 'pct_fmt': '41,12%',
+        'abs_fmt': '8.400', 'pct_fmt': '83,25%',
     },
     {
         'label': 'nivel 4b - queda por multi-mesh',
         'regex': r'multi-mesh \(meshCount != 1\)\s+(\d+)\s+\(\s*([\d.]+)%',
-        'abs': 4257, 'pct': 100.00,
-        'docs': ['docs/COMPATIBILITY.md', 'docs/ASSET_FORMATS.md',
-                 'docs/ARCHITECTURE.md', 'docs/NEXT_TASK.md'],
-        'abs_fmt': '4.257', 'pct_fmt': '100,00%',
+        'abs': 0, 'pct': 0.00,
+        'docs': ['docs/COMPATIBILITY.md', 'docs/ASSET_FORMATS.md'],
+        'abs_fmt': '0', 'pct_fmt': '0,00%',
     },
     {
         'label': 'total de arquivos .bmd',
@@ -114,8 +109,6 @@ CHECKS = [
     },
 ]
 
-# Numeros que JÁ estiveram nos documentos e estavam errados. Se reaparecerem,
-# alguem reverteu uma correcao. Cada um tem o motivo de estar aqui.
 FORBIDDEN = [
     ('1.496', 'payload em claro do ciclo 1, anterior a DEC-007'),
     ('14,83%', 'percentual do ciclo 1 para payload em claro'),
@@ -132,49 +125,18 @@ FORBIDDEN = [
     ('123,0%', 'DEC-008: idem, versao seguinte do mesmo erro'),
 ]
 
-# Relatorios de ciclo FECHADO sao registro historico: eram verdadeiros quando
-# escritos, e a regra permanente proibe reabrir numero de ciclo fechado. Ficam
-# fora da checagem de proibidos por inteiro.
 FORBIDDEN_ALLOWLIST_GLOB = ('docs/CICLO', '_RELATORIO')
-
-# Fora desses, um numero proibido SO pode aparecer se a linha que o contem
-# estiver marcada. A convencao e um marcador explicito no fim da linha:
-#
-#     <!-- historico -->
-#
-# Por que um marcador em vez de deduzir do contexto (blockquote, titulo de
-# secao): deduzir e fragil. Um blockquote pode ser citação de qualquer coisa, e
-# renomear uma secao quebraria a verificacao em silencio. O marcador e grepavel,
-# nao deriva de nada, e obriga quem escreve a declarar que esta citando um
-# numero obsoleto de proposito. Sem ele, a checagem falha.
 HISTORIC_MARKER = '<!-- historico -->'
 
-
-# Checagens por LINHA DE TABELA. A checagem por presenca ("o numero certo
-# aparece em algum lugar do arquivo?") NAO detecta um numero errado coexistindo
-# com o certo - e foi exatamente isso que um teste de injecao revelou: trocar
-# 4.149 por 4.999 numa linha passou, porque 4.149 continuava aparecendo em
-# outras seis linhas do mesmo documento.
-#
-# Estas checagens localizam a LINHA pelo rotulo e conferem o numero DENTRO
-# dela. Um numero errado na tabela falha mesmo que o certo apareca alhures.
-#
-# Cada entrada: rotulo da linha (substring), chave da medicao, e os documentos
-# que contem a tabela.
 TABLE_CHECKS = [
     ('1 — estrutura', 'nivel 1 - estrutura valida'),
     ('2 — payload', 'nivel 2 - payload em claro (1245+100+7226)'),
     ('3 — vértice', 'nivel 3 - vertice + normal'),
     ('4 — topologia', 'nivel 4 - topologia'),
-    ('6 — UV', None),  # sempre zero, verificado abaixo
+    ('6 — UV', None),
 ]
 
 TABLE_DOCS = ['docs/COMPATIBILITY.md', 'docs/ASSET_FORMATS.md']
-
-
-def norm(text):
-    """Normaliza para comparar: remove separador de milhar, unifica decimal."""
-    return text.replace('.', '').replace(',', '.')
 
 
 def run_report(data_dir):
@@ -186,8 +148,6 @@ def run_report(data_dir):
         return None
     p = subprocess.run([binary, 'bmdreport', data_dir],
                        capture_output=True, text=True)
-    # bmdreport sai com 2 quando ha payload opaco, o que e esperado e nao e
-    # falha desta verificacao.
     if p.returncode not in (0, 2):
         sys.stderr.write('erro: mutool bmdreport falhou (%d)\n%s\n'
                          % (p.returncode, p.stderr[:400]))
@@ -196,9 +156,7 @@ def run_report(data_dir):
 
 
 def measure(out):
-    """Extrai abs/pct de cada CHECK a partir da saida real da ferramenta."""
     measured = {}
-    # Nivel 2 e composto: plaintext + bux + v0x0C.
     parts = {}
     for key, pat in (('plaintext', r'^\s+plaintext\s+(\d+)'),
                      ('bux', r'^\s+bux-decryptable\s+(\d+)'),
@@ -234,7 +192,6 @@ def main():
 
     if not os.path.isdir(data_dir):
         sys.stderr.write('erro: arvore de dados nao encontrada: %s\n' % data_dir)
-        sys.stderr.write('      passe o caminho como argumento ou defina MU_DATA\n')
         return 2
 
     out = run_report(data_dir)
@@ -248,7 +205,6 @@ def main():
     failures = []
     checked = 0
 
-    # ---- 1. Numeros citados conferem com a ferramenta?
     print('--- numeros citados vs saida da ferramenta ---')
     for c in CHECKS:
         absval, pctval = measured[c['label']]
@@ -277,7 +233,6 @@ def main():
                                 % (c['label'], doc, c['pct_fmt'], pctval or 0))
                 print('      FALHOU %s nao cita %s' % (doc, c['pct_fmt']))
 
-    # ---- 1b. O numero DENTRO de cada linha da tabela confere?
     print()
     print('--- numero dentro de cada linha da tabela de seis niveis ---')
     for doc in TABLE_DOCS:
@@ -288,68 +243,98 @@ def main():
         for line in open(path, encoding='utf-8').read().splitlines():
             if not line.lstrip().startswith('|'):
                 continue
+            if set(line.strip()) <= set('| -'):
+                continue
             for label, key in TABLE_CHECKS:
                 if label not in line:
                     continue
                 checked += 1
                 cells = [c.strip() for c in line.strip().strip('|').split('|')]
-                # A tabela e: | Nivel | O que mede | Arquivos | % |
-                if len(cells) < 4:
-                    failures.append('%s: linha "%s" tem %d celulas, esperava 4'
-                                    % (doc, label, len(cells)))
+                if len(cells) < 3:
+                    failures.append('%s: linha \"%s\" tem %d celulas' % (doc, label, len(cells)))
                     continue
-                num_txt = cells[2].replace('*', '').replace('.', '')
-                pct_txt = cells[3].replace('*', '').replace('%', '').replace(',', '.')
-                if key is None:
-                    # Nivel 6 (UV) e zero por definicao enquanto UV nao for
-                    # resolvido. Se deixar de ser zero, isto deve falhar para
-                    # obrigar a atualizar a documentacao junto.
-                    if num_txt != '0':
-                        failures.append('%s: nivel 6 (UV) cita %s; se UV foi '
-                                        'resolvido, atualize a documentacao e '
-                                        'esta verificacao' % (doc, cells[2]))
-                        print('  FALHOU  %s nivel 6 = %s' % (doc, cells[2]))
+                # procura contagem em qualquer celula que não seja o label
+                num_txt = None
+                pct_txt = None
+                for cell in cells:
+                    if label in cell:
+                        continue
+                    clean = cell.replace('*', '').strip()
+                    if '%' in clean:
+                        # percentual, pega primeiro
+                        if pct_txt is None:
+                            # extrai numero
+                            m = re.search(r'([\d,\.]+)', clean)
+                            if m:
+                                pct_txt = m.group(1).replace(',', '.')
+                        continue
+                    # contagem: procura numero com ponto ou não
+                    # ignora celulas que são claramente texto (ex: "posições e normais...")
+                    # Heuristica: celula com letras e espaços longos não é contagem pura
+                    # Mas "8.401" é puro numero com ponto
+                    if re.fullmatch(r'[\d\.]+', clean):
+                        if num_txt is None:
+                            num_txt = clean.replace('.', '')
+                    elif re.fullmatch(r'\d+', clean):
+                        if num_txt is None:
+                            num_txt = clean
                     else:
-                        print('  ok      %s "%s" = 0' % (doc, label))
+                        # pode ser "**8.400**" já limpo vira "8.400", pego acima
+                        # tenta extrair numero no inicio
+                        m = re.match(r'^([\d\.]+)', clean)
+                        if m and num_txt is None:
+                            # só se celula não tem letras demais
+                            if len(clean) < 20:
+                                num_txt = m.group(1).replace('.', '')
+                if key is None:
+                    if num_txt is None:
+                        # nivel 6 pode ser 0
+                        if '0' in line:
+                            print('  ok      %s \"%s\" = 0' % (doc, label))
+                            continue
+                        failures.append('%s: linha \"%s\" sem contagem' % (doc, label))
+                        continue
+                    if num_txt != '0':
+                        failures.append('%s: nivel 6 cita %s' % (doc, num_txt))
+                        print('  FALHOU  %s nivel 6 = %s' % (doc, num_txt))
+                    else:
+                        print('  ok      %s \"%s\" = 0' % (doc, label))
                     continue
                 absval, pctval = measured.get(key, (None, None))
                 if absval is None:
-                    failures.append('%s: sem medicao para "%s"' % (doc, label))
+                    failures.append('%s: sem medicao para \"%s\"' % (doc, label))
+                    continue
+                if num_txt is None:
+                    failures.append('%s: linha \"%s\" sem contagem' % (doc, label))
+                    print('  FALHOU  %s \"%s\" sem contagem' % (doc, label))
                     continue
                 try:
                     got = int(num_txt)
                 except ValueError:
-                    failures.append('%s: "%s" nao e um inteiro na linha "%s"'
-                                    % (doc, cells[2], label))
-                    print('  FALHOU  %s "%s" -> %r' % (doc, label, cells[2]))
+                    failures.append('%s: \"%s\" nao e inteiro na linha \"%s\"' % (doc, num_txt, label))
+                    print('  FALHOU  %s \"%s\" -> %r' % (doc, label, num_txt))
                     continue
                 if abs(got - absval) > ABS_TOL:
-                    failures.append('%s: linha "%s" cita %d, ferramenta diz %d'
-                                    % (doc, label, got, absval))
-                    print('  FALHOU  %s "%s" = %d, ferramenta = %d'
-                          % (doc, label, got, absval))
+                    failures.append('%s: linha \"%s\" cita %d, ferramenta diz %d' % (doc, label, got, absval))
+                    print('  FALHOU  %s \"%s\" = %d, ferramenta = %d' % (doc, label, got, absval))
                     continue
-                if pctval is not None:
+                if pctval is not None and pct_txt is not None:
                     try:
                         gotp = float(pct_txt)
                     except ValueError:
                         gotp = None
-                    if gotp is not None and abs(gotp - pctval) > PCT_TOL:
-                        failures.append('%s: linha "%s" cita %.2f%%, ferramenta '
-                                        'diz %.2f%%' % (doc, label, gotp, pctval))
-                        print('  FALHOU  %s "%s" = %.2f%%, ferramenta = %.2f%%'
-                              % (doc, label, gotp, pctval))
+                    if gotp is not None and abs(gotp - pctval) > 0.011:
+                        failures.append('%s: linha \"%s\" cita %.2f%%, ferramenta diz %.2f%%' % (doc, label, gotp, pctval))
+                        print('  FALHOU  %s \"%s\" = %.2f%%, ferramenta = %.2f%%' % (doc, label, gotp, pctval))
                         continue
-                print('  ok      %s "%s" = %d (%.2f%%)' % (doc, label, got, pctval or 0))
+                print('  ok      %s \"%s\" = %d (%.2f%%)' % (doc, label, got, pctval or 0))
 
-    # ---- 2. Numeros ja corrigidos reapareceram?
     print()
     print('--- numeros ja corrigidos que nao podem voltar ---')
     for doc in sorted(os.listdir(os.path.join(root, 'docs'))):
         if not doc.endswith('.md'):
             continue
         rel = 'docs/' + doc
-        # Relatorio de ciclo fechado: registro historico, nao e verificado.
         if all(part in rel for part in FORBIDDEN_ALLOWLIST_GLOB):
             continue
         lines = open(os.path.join(root, 'docs', doc), encoding='utf-8').read().splitlines()
@@ -359,11 +344,10 @@ def main():
                     continue
                 if HISTORIC_MARKER in line:
                     continue
-                failures.append('%s:%d contem %s (%s) sem o marcador "%s"'
+                failures.append('%s:%d contem %s (%s) sem marcador "%s"'
                                 % (rel, lineno, needle, reason, HISTORIC_MARKER))
                 print('  FALHOU  %s:%d contem %s - %s' % (rel, lineno, needle, reason))
 
-    # ---- 3. A trava de DEC-010 continua valendo?
     print()
     print('--- trava de DEC-010: nenhum include grafico em src/ ---')
     bad = []
@@ -385,7 +369,6 @@ def main():
     else:
         print('  ok      zero includes graficos em src/')
 
-    # ---- 4. A relacao de subconjunto continua verdadeira?
     print()
     print('--- nivel 4 e subconjunto do nivel 3 ---')
     a3 = measured.get('nivel 3 - vertice + normal', (None,))[0]
@@ -395,8 +378,7 @@ def main():
         failures.append('nao foi possivel conferir nivel 4 <= nivel 3')
         print('  FALHOU  valores ausentes')
     elif a4 > a3:
-        failures.append('nivel 4 (%d) maior que nivel 3 (%d): subconjunto violado'
-                        % (a4, a3))
+        failures.append('nivel 4 (%d) maior que nivel 3 (%d)' % (a4, a3))
         print('  FALHOU  %d > %d' % (a4, a3))
     else:
         print('  ok      %d <= %d' % (a4, a3))

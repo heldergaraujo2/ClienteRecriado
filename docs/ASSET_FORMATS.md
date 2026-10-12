@@ -239,8 +239,8 @@ misread again. Measured over the whole tree (full output in
 |---|---|---|---|
 | 1 — estrutura de contêiner válida | magic + versão reconhecidos; para v0x0C o tamanho declarado confere | 10.023 | 99,34% |
 | 2 — payload obtível em claro | 1.245 plaintext + 100 bux + 7.226 v0x0C | 8.571 | 84,95% |
-| 3 — vértice + normal | posições e normais realmente lidas pelo parser | 8.406 | 83,31% |
-| 4 — topologia (índices de face) | triângulos lidos | 4.149 | 41,12% |
+| 3 — vértice + normal | posições e normais realmente lidas pelo parser | 8.401 | 83,26% |
+| 4 — topologia (índices de face) | triângulos lidos | 8.400 | 83,25% |
 | 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.505 | 34,74% |
 | 6 — UV | índice ligando canto de triângulo a coordenada de textura | **0** | **0,00%** |
 
@@ -268,31 +268,47 @@ teste — não inferida:
 - **Os níveis 3, 4 e 5 não formam cadeia.** O nível 4 exige `meshCount == 1`, o
   nível 5 não. Um arquivo pode ter ossos sem topologia e vice-versa.
 
-#### Por que o nível 4 cai 50,6% em relação ao nível 3
+#### Por que o nível 4 caía 50,6% — e não cai mais (corrigido no ciclo 5)
 
-A queda de 8.406 para 4.149 (4.257 arquivos) tem **causa única e total, medida
-no parser**: `meshCount != 1`.
+No ciclo 4, a queda de 8.406 para 4.149 (4.257 arquivos) tinha **causa única e
+total, medida no parser**: `meshCount != 1` em 100,00% dos casos.
 
 | Causa | Arquivos | % dos 4.257 |
 |---|---|---|
-| multi-mesh (`meshCount != 1`) | **4.257** | **100,00%** |
-| declara zero faces | 0 | 0,00% |
-| array declarado não cabe no payload | 0 | 0,00% |
-| payload curto demais para os counts | 0 | 0,00% |
+| multi-mesh (`meshCount != 1`) | **4.257** | **100,00%** | <!-- historico -->
+| declara zero faces | 0 | 0,00% | <!-- historico -->
+| array declarado não cabe no payload | 0 | 0,00% | <!-- historico -->
+| payload curto demais para os counts | 0 | 0,00% | <!-- historico -->
 
-Nenhum arquivo falha por condição de tamanho, versão ou campo ausente. O parser
-lê **um** bloco de triângulos; com várias malhas a mesma sequência se repete no
-corpo, e ler um bloco só leria o errado em silêncio. É limite **deste parser**,
-não do formato.
+**Ciclo 5 — correção.** O parser foi estendido para multi-mesh. O layout por
+malha repete a mesma sequência do caso de malha única (evidência em
+`evidence/ciclo5_bmd_multimesh.log`):
 
-Distribuição de `meshCount` sobre os 8.406 arquivos de nível 3: 1 em 4.149
-(49,36%), 2 em 2.280 (27,12%), 3 em 1.086 (12,92%), 4 em 449 (5,34%), 5 em 190
-(2,26%), 6 em 114 (1,36%), 7 em 42, 8 em 38, 9–14 em 50, mais de 15 em 7, e 0 em
-1 arquivo.
+```
+[14 B header: vc,nc,ntc,ntri,texIdx,u48,u50]
+vc*16 vertices, nc*20 normais, ntc*8 texcoords, ntri*64 triângulos,
+32 B nome de textura
+```
 
-Estender o parser para multi-mesh recupera os 4.257 arquivos e é **trabalho de
-implementação conhecido**, não pesquisa. Isso não destrava renderização: o nível
-6 continua em zero.
+Concatenado `meshCount` vezes.
+
+Resultado:
+
+| Nível | Arquivos | % | Triângulos |
+|---|---|---|---|
+| 3 — vértice + normal | 8.401 | 83,26% | — |
+| 4 — topologia | **8.400** | **83,25%** | **3.524.366** |
+
+Aumento de **4.251 arquivos** no nível 4 (de 4.149 para 8.400). O único arquivo
+de nível 3 sem topologia agora declara zero faces.
+
+Distribuição de `meshCount` sobre os 8.401 arquivos de nível 3 (evidência em
+`ciclo5_bmd_multimesh.log`): 1 em 4.149 (49,39%), 2 em 2.277 (27,10%), 3 em
+1.086 (12,93%), 4 em 449 (5,34%), 5 em 190 (2,26%), 6 em 114 (1,36%), 7 em 40
+(0,48%), 8 em 38 (0,45%), 9 em 12, 10 em 10, 11 em 6, 12 em 7, 13 em 2, 14 em 13,
+>15 em 7, e 0 em 1 arquivo.
+
+Isso não destrava renderização: o nível 6 (UV) continua em zero.
 
 Container kinds, for completeness:
 
@@ -852,8 +868,10 @@ revelou a estrutura: **três referências de 8 bytes** no início do registro.
 **Restrição de confiança, e uma discrepância que precisa constar.** Os 97,66% e
 97,20% foram medidos sobre 58.836 referências em 319 arquivos, **limitando a 80
 triângulos por arquivo**. Ao rodar o parser C++ sobre a população inteira
-(1.221.030 triângulos em 4.149 arquivos), as referências fora de faixa somam
-**8,357%**, não ~2,4%.
+antes da extensão multi-mesh (1.221.030 triângulos em 4.149 arquivos), as
+referências fora de faixa somavam **8,357%**, não ~2,4%. Após multi-mesh
+(ciclo 5, 3.524.366 triângulos em 8.400 arquivos), a taxa é **9,517%** (evidência
+em `ciclo5_bmd_multimesh.log`).
 
 A amostra truncada subestimava o problema: os primeiros 80 triângulos de um
 arquivo são mais bem comportados que o conjunto. **A cifra correta é 8,357%.**
@@ -1037,8 +1055,8 @@ conseguiu formular incluem: o índice de UV ser derivado aritmeticamente dos
 outros índices; não existir UV por canto neste formato, com texturização feita
 por outro mecanismo; ou `numTexCoords` não significar o que se assumiu.
 
-**Consequência prática, declarada:** os 8.406 arquivos com vértice e normal e os
-4.149 com topologia **não podem ser texturizados**. Malha sem textura pode servir
+**Consequência prática, declarada:** os 8.401 arquivos com vértice e normal e os
+8.400 com topologia **não podem ser texturizados**. Malha sem textura pode servir
 para colisão, caixa delimitadora e análise, não para renderização fiel.
 
 ### Ossos — localização PARCIAL, 73,7% dos arquivos
