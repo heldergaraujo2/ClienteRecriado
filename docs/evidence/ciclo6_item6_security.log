@@ -1,0 +1,184 @@
+=== EVIDENCIA ITEM 6 AUDITORIA CICLO 6: commit seguranca multi-mesh + ASan ===
+
+Comando exigido: git show --stat do commit com TestBmdMultiMeshExtremeMeshCount/Truncated/Overflow
+
+commit 0a09a2bd4efbb610abd76d7518730901074cd5f5
+Author: heldergaraujo2 <323230170+heldergaraujo2@users.noreply.github.com>
+Date:   Mon Oct 12 16:53:50 2026 +0000
+
+    fix(assets): corrige regressao nivel 3 (8406->8401) - limite 10k rejeitava 5 arquivos reais
+    
+    Causa: limite fixo vc>10000 etc no parser multi-mesh rejeitava arquivos com
+    ntri 11771-17694 (Monster865 15576, Ozarugold 12616, bann 11771). Esses passaram
+    no parser antigo (single-mesh) e falharam no novo.
+    
+    Correcao: removido limite fixo, substituido por verificacao de overflow
+    (mul_overflows) e limite de seguranca meshCount max 64 (observado max 18).
+    Checa que vc*16 etc nao excedem payload.size. meshCount 0xFFFF falha
+    graciosamente sem OOM.
+    
+    Resultado: nivel 3 volta a 8.406 (83,31%), nivel 4 vai a 8.405 (83,30%),
+    +5 vs 8.400, triangulos 3.681.664.
+    
+    Testes: 384/0 (era 373), 4 novos testes:
+    - TestBmdMultiMeshLargeCounts (regressao 8406)
+    - TestBmdMultiMeshExtremeMeshCount (0xFFFF)
+    - TestBmdMultiMeshTruncated
+    - TestBmdMultiMeshOverflow
+    ASan+UBSan 384/0, evidencia em ciclo6_level3_regression.log e test_san_final.log
+    
+    Item 1 e 5 da auditoria ciclo 5.
+    
+    Co-authored-by: arena-agent <297053741+arena-agent@users.noreply.github.com>
+
+ docs/evidence/ciclo5_test_san_final.log    |  67 ++++++++++
+ docs/evidence/ciclo6_level3_regression.log |  42 ++++++
+ docs/evidence/ciclo6_test_san_final.log    |  67 ++++++++++
+ src/mu/assets/bmd_body.cpp                 |  90 ++++++++++++-
+ tests/test_assets.cpp                      | 202 +++++++++++++++++++++++++++++
+ tools/check_docs_consistency.py            |  10 +-
+ 6 files changed, 469 insertions(+), 9 deletions(-)
+
+=== git log --oneline com testes ===
+677a2cb docs: relatorio ciclo 6 com 11 itens + estado git + correcao numeros
+0a09a2b fix(assets): corrige regressao nivel 3 (8406->8401) - limite 10k rejeitava 5 arquivos reais
+a3030b9 Decode and verify two sections of the BMD v0x0A body layout
+
+=== grep testes em tests/test_assets.cpp ===
+589:void TestBmdMultiMeshLargeCounts();
+590:void TestBmdMultiMeshExtremeMeshCount();
+591:void TestBmdMultiMeshTruncated();
+592:void TestBmdMultiMeshOverflow();
+629:    {"bmd multi-mesh large counts (regression 8406)", TestBmdMultiMeshLargeCounts},
+630:    {"bmd multi-mesh extreme meshCount 0xFFFF", TestBmdMultiMeshExtremeMeshCount},
+631:    {"bmd multi-mesh truncated payload", TestBmdMultiMeshTruncated},
+632:    {"bmd multi-mesh overflow check", TestBmdMultiMeshOverflow},
+1684:void TestBmdMultiMeshLargeCounts() {
+1715:void TestBmdMultiMeshExtremeMeshCount() {
+1741:void TestBmdMultiMeshTruncated() {
+1777:void TestBmdMultiMeshOverflow() {
+
+=== make clean && make test-san (ASan+UBSan) - log completo ja em ciclo6_test_san_clean.log ===
+g++ -std=c++17 -Wall -Wextra -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc tests/test_assets.cpp src/mu/assets/format.cpp src/mu/assets/ozt.cpp src/mu/assets/ozj.cpp src/mu/assets/bmd.cpp src/mu/assets/bmd_body.cpp src/mu/assets/mesh.cpp src/mu/render/cull.cpp src/mu/assets/bmd_report.cpp src/mu/assets/terrain.cpp src/mu/assets/tga.cpp src/mu/assets/manifest.cpp src/mu/fs.cpp -o build-san/test_assets
+build-san/test_assets
+ClienteRecriado asset library tests
+[ RUN  ] crc32 known vectors
+[  OK  ] crc32 known vectors
+[ RUN  ] ozt round trip
+[  OK  ] ozt round trip
+[ RUN  ] ozt variant with extra prefix
+[  OK  ] ozt variant with extra prefix
+[ RUN  ] ozt rejects bad input
+[  OK  ] ozt rejects bad input
+[ RUN  ] ozj probe
+[  OK  ] ozj probe
+[ RUN  ] ozj duplicated header prefix
+[  OK  ] ozj duplicated header prefix
+[ RUN  ] bux cipher is self inverse
+[  OK  ] bux cipher is self inverse
+[ RUN  ] bmd probe
+[  OK  ] bmd probe
+[ RUN  ] entropy separates plaintext from ciphertext
+[  OK  ] entropy separates plaintext from ciphertext
+[ RUN  ] terrain probe
+[  OK  ] terrain probe
+[ RUN  ] manifest parse
+[  OK  ] manifest parse
+[ RUN  ] manifest verify
+[  OK  ] manifest verify
+[ RUN  ] extension helpers
+[  OK  ] extension helpers
+[ RUN  ] bmd v0x0c cipher
+[  OK  ] bmd v0x0c cipher
+[ RUN  ] bmd triangles
+[  OK  ] bmd triangles
+[ RUN  ] topology is a strict subset of geometry
+[  OK  ] topology is a strict subset of geometry
+[ RUN  ] mesh from bmd
+[  OK  ] mesh from bmd
+[ RUN  ] compute bounds
+[  OK  ] compute bounds
+[ RUN  ] frustum cull
+[  OK  ] frustum cull
+[ RUN  ] frustum from view projection
+[  OK  ] frustum from view projection
+[ RUN  ] terrain height
+[  OK  ] terrain height
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
+[ RUN  ] bmd report levels are separate
+[  OK  ] bmd report levels are separate
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
+[ RUN  ] bmd percent helper
+[  OK  ] bmd percent helper
+[ RUN  ] bmd report accumulates kinds
+[  OK  ] bmd report accumulates kinds
+[ RUN  ] bmd multi-mesh large counts (regression 8406)
+[  OK  ] bmd multi-mesh large counts (regression 8406)
+[ RUN  ] bmd multi-mesh extreme meshCount 0xFFFF
+[  OK  ] bmd multi-mesh extreme meshCount 0xFFFF
+[ RUN  ] bmd multi-mesh truncated payload
+[  OK  ] bmd multi-mesh truncated payload
+[ RUN  ] bmd multi-mesh overflow check
+[  OK  ] bmd multi-mesh overflow check
+
+384 checks, 0 failures
+EXIT:0
+
+=== Verificacao ASan 0 reports ===
+OK: 0 reports ASan+UBSan, 384 checks 0 failures
+
+=== git show do diff dos testes (trecho) ===
+    
+    Testes: 384/0 (era 373), 4 novos testes:
+    - TestBmdMultiMeshLargeCounts (regressao 8406)
+    - TestBmdMultiMeshExtremeMeshCount (0xFFFF)
+    - TestBmdMultiMeshTruncated
+    - TestBmdMultiMeshOverflow
+    ASan+UBSan 384/0, evidencia em ciclo6_level3_regression.log e test_san_final.log
+    
+--
+ void TestFrustumFromViewProjection();
+ void TestTerrainHeight();
++void TestBmdMultiMeshLargeCounts();
++void TestBmdMultiMeshExtremeMeshCount();
++void TestBmdMultiMeshTruncated();
++void TestBmdMultiMeshOverflow();
+ std::vector<std::uint8_t> MakeBmdBody(
+     const char* name, const std::vector<mu::BmdVertex>& verts,
+--
+     {"bmd percent helper", TestBmdReportPercent},
+     {"bmd report accumulates kinds", TestBmdReportAccumulatesKinds},
++    {"bmd multi-mesh large counts (regression 8406)", TestBmdMultiMeshLargeCounts},
++    {"bmd multi-mesh extreme meshCount 0xFFFF", TestBmdMultiMeshExtremeMeshCount},
++    {"bmd multi-mesh truncated payload", TestBmdMultiMeshTruncated},
++    {"bmd multi-mesh overflow check", TestBmdMultiMeshOverflow},
+ };
+ 
+--
++}
++
++void TestBmdMultiMeshLargeCounts() {
++  // Regression for ciclo5 item 1: files with ntri=15576 (Monster865 etc)
++  // were rejected by a fixed 10k limit. The parser must accept up to u16 max.
+--
++}
++
++void TestBmdMultiMeshExtremeMeshCount() {
++  // meshCount = 0xFFFF must fail gracefully, not loop forever or OOM.
++  // Build a tiny payload that declares 0xFFFF meshes but contains only 1.
+--
++}
++
++void TestBmdMultiMeshTruncated() {
++  // Payload truncated in middle of second mesh: first mesh valid, second header
++  // present but arrays missing. Must not read out of bounds (ASan would catch).
+--
++}
++
++void TestBmdMultiMeshOverflow() {
++  // Overflow in multiplication: vc * 16 etc must be checked. Since vc is u16,
++  // overflow in 64-bit size_t is impossible, but we test that the parser
