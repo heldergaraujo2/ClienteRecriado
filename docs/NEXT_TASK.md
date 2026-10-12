@@ -1,200 +1,109 @@
 # Próxima tarefa
 
-## (EXECUTADA) Decodificar o prefixo duplicado dos arquivos de altura
+> **Ciclo 3 fechado** com `docs/CICLO3_RELATORIO.md`. Este arquivo foi atualizado
+> no ciclo 3, conforme a regra permanente — o que não aconteceu durante o ciclo,
+> e é a segunda vez que este documento fica para trás.
 
-**Resolvida.** O cabeçalho BMP real está no **offset 4**, após um prefixo
-duplicado de quatro bytes — o mesmo padrão que o formato OZJ deste cliente usa.
-Medido nos 47 arquivos BMP: cabeçalho válido no offset 4 em 44, no offset 0 em 1.
+## Completar `DEC-008` com a comparação de custo/risco
 
-Resultado: 42 arquivos agora são lidos pela estrutura em vez de por fallback.
-O campo `header_ignored` distingue decodificação de palpite.
+É o que está na frente de tudo, e não é tarefa de código.
 
-**O que isso revelou:** a versão anterior lia o cabeçalho no offset 0, obtinha
-`bpp = 0`, caía no fallback — e **o fallback produzia campo suave, então o defeito
-era invisível**. Só localizar o cabeçalho de verdade mostrou que 46 arquivos
-estavam sendo lidos por adivinhação.
+`DEC-008` registra a **intenção** (VBO/VAO como piso mínimo) mas não a comparação
+de custo/risco que este projeto exige para decisões de arquitetura. Enquanto
+estiver incompleta:
 
-## Próxima tarefa: escala vertical da altura de terreno
+- **Nenhum código de backend pode ser escrito** — `DEC-010` lista o que está
+  bloqueado: `wglCreateContext`, `glGenBuffers`, `glBindBuffer`, `glBufferData`,
+  `glGenVertexArrays`, `glDrawElements`, `glDrawArrays`, shaders, FBOs
+- Sem backend não há como medir desempenho, que é o objetivo declarado do projeto
+- `PERFORMANCE_BASELINE.md` continua sem baseline de FPS, e continuará
 
-Sem ela os valores de altura são relativos, não métricos, e o terreno não fica
-renderizável — independentemente de o campo estar legível.
+**O que `DEC-008` precisa para ficar completa:**
 
-**O prefixo já foi examinado e está fechado:** os 1.082 bytes são **inteiramente
-zero** em `World1/TerrainHeight.OZB`. Não há escala aí. Não repetir.
+1. Custo de implementação de cada alternativa considerada
+2. Risco de cada uma, **incluindo o risco de não conseguir medir neste ambiente**
+3. O que será medido para decidir entre elas, e em que hardware
+4. O que acontece com o requisito de compatibilidade visual em cada caso
 
-**Três caminhos fechados, não repetir:**
+**Verificação de conformidade enquanto estiver pendente:**
+
+```
+grep -rn "glGenBuffers\|wglCreateContext\|glDrawElements\|GL/gl.h" src/
+```
+
+Deve retornar apenas comentários. Se retornar código, ele foi escrito antes da
+decisão e deve ser revertido, ou a decisão completada.
+
+## Alternativa, se houver acesso a GPU
+
+Iniciar o pipeline VBO/VAO. Não está bloqueado por nenhuma descoberta pendente —
+apenas pela ausência de hardware e pela decisão incompleta.
+
+---
+
+## O que NÃO adianta retomar
+
+### Índice de UV por canto — nove hipóteses descartadas
+
+Investigação encerrada. As nove, para não repetição:
+
+| # | Hipótese | Por que falhou |
+|---|---|---|
+| 1 | Campo em +4 do registro de triângulo | padding — 64,95% zero, 18,18% 0xCDCD |
+| 2 | Quarto canto em +24 | não existe — nível de ruído |
+| 3 | Relação implícita por posição | refutada — 93% dos arquivos diferem |
+| 4 | Bytes 24..59 como índices | platô sem pico; confirmado serem `f32` |
+| 5 | `u16@48` do cabeçalho | contagem, não índice |
+| 6 | `u16@50` do cabeçalho | parcialmente padding (0xCDCD) |
+| 7 | Array paralelo no corpo | 11,8% com distâncias dispersas |
+| 8 | `u16@12`/`@14` do vértice | teste não discrimina |
+| 9 | Bytes 24..59 como coordenadas UV | 79,42% contra controle de 70,34% — razão 1,13× |
+
+**Não reabrir sem hipótese genuinamente nova** — não uma variação das nove. O
+critério de parada existe porque nove falhas seguidas são evidência de que a
+pergunta pode estar mal formulada, não de que falta tentar mais uma vez.
+
+### Escala vertical da altura — três caminhos fechados
 
 1. Prefixo dos 29 arquivos de grade crua — inteiramente zero em 29 de 29
 2. `xPixelsPerMeter`/`yPixelsPerMeter` do BMP — 2.834 em 42 de 45, que é o padrão
    de 72 DPI, valor default e não medição
-3. Paleta BMP — identidade (`palette[i] = (i,i,i)`), então o byte **é** a altura,
-   sem remapeamento
+3. Paleta BMP — identidade (`palette[i] = (i,i,i)`), então o byte **é** a altura
 
 **O que resta:** procurar em outro arquivo do mundo, ou tratar a escala como
-parâmetro de renderização ajustado visualmente. A segunda opção é provavelmente a
+parâmetro de renderização ajustado visualmente. A segunda é provavelmente a
 correta — motores desse período costumavam ter a escala como constante.
 
-**Descoberta lateral que muda a tarefa:** 1.082 = 1.078 + 4, onde 1.078 é
-exatamente cabeçalho BMP (14) + DIB (40) + paleta (1.024). Os 29 arquivos tratados
-como "grade crua" têm o tamanho de um BMP de 8 bits com prefixo duplicado e
-**cabeçalho zerado** — provavelmente o mesmo formato dos 47 BMP. **Hipótese, não
-resultado.** Se confirmada, o parser tem um só caminho, não dois.
+---
 
-**Alternativa de maior impacto, se houver acesso a GPU:** iniciar o pipeline
-VBO/VAO (DEC-008). É pré-requisito de todo o requisito de desempenho e não está
-bloqueado por nenhuma descoberta pendente — apenas pela ausência de hardware.
+## Problema estrutural não resolvido, e é o mais importante
+
+**Nada obriga o commit que muda o código a mudar o documento.**
+
+A topologia ficou registrada como "não implementada em C++" por dezenas de commits
+depois de implementada, justamente porque os testes passavam e a ferramenta
+funcionava. **Não havia sinal de que algo estava errado.**
+
+Este ciclo corrigiu quatro afirmações falsas e aplicou quatro correções
+estruturais (medições viraram comandos, denominador impresso, regra de controle
+da mesma classe, documentos sem hash de ponta). **Nenhuma delas impede a próxima
+defasagem.**
+
+Uma verificação automática — por exemplo, um teste que falhe se `COMPATIBILITY.md`
+afirmar que algo não está implementado quando há símbolo correspondente em `src/`
+— atacaria a causa. Não foi construída neste ciclo.
 
 ---
 
+## Números de referência, do full-scan do ciclo 3
 
+Para o próximo ciclo não repetir medição amostral:
 
-> **Índice de UV: investigação ENCERRADA no ciclo 2.** Sete hipóteses descartadas
-> e documentadas em `ASSET_FORMATS.md`. Não retomar sem uma hipótese nova e
-> diferente das sete — repetir uma delas é desperdício. A próxima tarefa é a que
-> está abaixo.
-
-## Decodificar ossos e animação, ou iniciar o pipeline de renderização
-
-Duas opções, e a escolha depende de um julgamento que deve ser explícito:
-
-**Ossos e animação.** Nenhum registro de osso foi localizado. É o último grande
-bloco do formato BMD não examinado. Se for decodificado, o formato fica completo
-exceto pelo índice de UV — e ainda assim sem texturização.
-
-**Pipeline de renderização (DEC-008).** VBO/VAO não tem nenhuma linha de código.
-Pode avançar com geometria sintética, rotulada como **"teste sintético de
-pipeline"** conforme DEC-009, sem depender do bloqueio nº 1.
-
-Argumento para o pipeline: ele não está bloqueado por nada, e é pré-requisito de
-todo o requisito de desempenho. Argumento para ossos: é o último bloco do formato
-e sem ele o requisito de reaproveitar 100% dos assets fica inatingível mesmo que
-UV seja resolvido.
-
----
-
-## (Encerrada) Localizar o índice de UV por canto do triângulo
-
-> **Atualizado no fim do ciclo 2.** A tarefa abaixo foi executada e o registro de
-> triângulo foi decodificado em sua parte essencial. O que resta dela está na
-> seção seguinte. Os números citados no texto original continuam válidos como
-> registro do método.
-
-## Localizar o índice de UV por canto do triângulo
-
-Este é agora **o único bloqueio entre a malha montada e a malha texturizada**.
-
-O array de UV está confirmado e legível (`52+vc*16+nc*20`, `ntc` entradas de 8 B
-`[f32 u][f32 v]`; zero não-finitos em 250.450 leituras, quando o acaso daria
-~976). Falta apenas saber **qual entrada pertence a cada canto**.
-
-**Quatro hipóteses já descartadas — não repetir:**
-
-1. Campo em +4 do registro: é **padding** (64,95% zero, 18,18% 0xCDCD, o
-   preenchimento de memória não inicializada do MSVC).
-2. Quarto canto em +24: **não existe** (offsets +24..+56 dão 50–81% de validade,
-   nível de ruído, contra 94–100% em +0/+8/+16).
-3. Relação implícita por posição: **refutada** — `numTexCoords` difere de
-   `numVertices` e `numNormals` em 93% dos 802 arquivos medidos.
-4. Bytes 24..59 do registro: **platô sem pico**. Os 39 deslocamentos de 24 a 62
-   dão 40–94% com razão de 7,3× a 17,1× sobre o controle, variando de forma
-   gradual. Um índice verdadeiro daria pico nítido num offset par, como os de
-   vértice deram em +0/+8/+16 (94–100%). Provavelmente são `f32`, não índices.
-
-**Seis hipóteses descartadas — não repetir:**
-
-4. Bytes 24..59 do registro: **platô sem pico**, e confirmado serem `f32`
-   (0,055% de não-finitos contra 0,39% esperado por acaso). Não há índices ali.
-5. `u16@48` do cabeçalho: dominado por inteiros pequenos (0 em 57,4%, depois
-   1, 2, 4, 3) — assinatura de **contagem**, não de índice.
-6. `u16@50` do cabeçalho: zero em 60,0% e 0xCDCD em 62 arquivos — ao menos
-   parcialmente padding.
-
-**O que resta, e é a única via não examinada:** que o índice de UV esteja num
-**array paralelo de `ntri` entradas** em outra parte do corpo, fora do registro
-de triângulo. Procurar por um bloco de `ntri` valores `u16` todos menores que
-`numTexCoords`, varrendo o corpo a partir do fim do array de triângulos.
-
-Se isso também falhar, o índice de UV deve ser registrado como
-**NÃO RESOLVIDO** com as seis tentativas documentadas, e o projeto deve seguir
-para ossos/animação ou para o pipeline de renderização — não insistir.
-
----
-
-## (Executada) Decodificar os 58 bytes restantes do registro de triângulo
-
-### Por que esta tarefa
-
-O bloqueio nº 1 mudou de natureza no ciclo 2. A cifra foi quebrada e o array de
-triângulos foi **localizado** com controle estatístico — razão de 138,3× sobre o
-acaso, mais confirmação independente pela posição do nome de textura em 87,9% dos
-arquivos de malha única. O problema deixou de ser *onde estão os triângulos* e
-passou a ser *o que há dentro de cada registro*.
-
-É a única tarefa que separa 83,31% de "arquivos com vértices lidos" de "modelos
-renderizáveis", e é pré-requisito do requisito de reaproveitar 100% dos assets
-originais. Também destrava UV e LOD de assets originais.
-
-### O que já se sabe
-
-```
-tstart = 52 + numVertices*16 + numNormals*20 + numTexCoords*8
-stride = 64 bytes
-índices de vértice em +2, +6 e +10   -> 98,05% válidos (controle limpo 2,35%)
-```
-
-Vale para **arquivos de malha única** (586 medidos). Para malhas múltiplas o
-corpo se repete e não foi medido.
-
-### O que já foi refutado — não repetir
-
-- **Primeiro byte = tamanho do polígono.** Valores 3 e 4 somam 3,01% em 35.902
-  registros, indistinguível de aleatório.
-- **As tabelas de registro do projeto `xulek/muonline-bmd-viewer`.** Não
-  correspondem a estes arquivos para vértice nem para normal; não há razão para
-  esperar que correspondam para triângulo.
-- **Stride 8/10/12/14/16.** Testados no ciclo 1, todos descartados. O stride é 64.
-- **Busca ancorada em `uv_end` derivado de hipótese não confirmada.** Foi o erro
-  de método que invalidou as tentativas anteriores.
-
-### Teste concreto a executar
-
-1. Para cada um dos 64 deslocamentos do registro, ler `u16` e medir a fração
-   abaixo de `numVertices`, nos mesmos 586 arquivos de malha única.
-2. **Controle obrigatório:** a mesma medição na região `f32` de vértices, onde não
-   há índice. Deu 2,35%; acaso puro deu 0,71%.
-3. Aceitar um campo como índice de vértice só com razão **acima de 10×** sobre o
-   controle. Abaixo disso é ruído.
-4. Repetir para índice de normal, comparando com `numNormals`.
-5. Repetir o item 1 para os 6 primeiros bytes, que são os únicos já
-   identificados, como verificação de que o método recupera o que já se sabe.
-
-Reprodutível por `python3 tools/bmd_topology_probe.py <Data>`; o docstring
-documenta o método e as duas armadilhas (controle contaminado dentro do próprio
-array, e base de payload 4 vs 8 por versão).
-
-### Regras que se aplicam
-
-- Separar sempre **estrutura válida** de **payload utilizável** de **geometria
-  renderizável**.
-- Toda medição exige linha de base calculada, não apenas "parece bater".
-- Se não houver progresso após esforço razoável, registrar como
-  **topologia BMD: NÃO RESOLVIDO — tentativas documentadas: [lista]** e avançar.
-
-## Tarefas seguintes, em ordem
-
-1. Coordenadas UV — dependem de topologia para validação.
-2. Ossos e animação — nenhum registro localizado ainda.
-3. Estender a topologia para malhas múltiplas.
-4. Investigar os 1.519 arquivos v0x0C cuja decifragem foi rejeitada.
-5. Implementar VBO/VAO (DEC-008) — só depois que houver malha para desenhar, ou
-   com geometria sintética **rotulada como "teste sintético de pipeline"**
-   (DEC-009).
-
-## O que NÃO fazer
-
-- Não declarar renderização funcionando com base em geometria sintética.
-- Não declarar ganho de desempenho: **não há baseline de FPS/frametime/VRAM**
-  neste projeto, porque não há Windows nem GPU no ambiente.
-- Não extrair topologia parcial e renderizar com ela. Malha silenciosamente
-  errada é pior que nenhuma malha.
-- Não adotar tabela de layout de fonte externa sem medir contra os arquivos.
+| Medição | Valor | População |
+|---|---|---|
+| Faces parseáveis | 4.149 (41,12%) | 10.090, full-scan |
+| Vértice + normal | 8.406 (83,31%) | 10.090, full-scan |
+| Hierarquia de ossos | 3.505 = 98,68% dos que fecham | **85,09% dos 4.119 elegíveis** |
+| Animação divisível por `12×bc` | 385 (77,00%) | 500, população total |
+| Altura de terreno | 76 = 47 BMP + 29 sem cabeçalho | 76, 100% |
+| Testes | 344 checks, 0 failures | — |
