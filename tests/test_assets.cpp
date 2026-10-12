@@ -18,6 +18,7 @@
 #include "mu/assets/bmd.hpp"
 #include "mu/assets/bmd_body.hpp"
 #include "mu/assets/mesh.hpp"
+#include "mu/render/cull.hpp"
 #include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
@@ -580,6 +581,8 @@ void TestBmdV0CCipher();
 void TestBmdTriangles();
 void TestMeshFromBmd();
 void TestComputeBounds();
+void TestFrustumCull();
+void TestFrustumFromViewProjection();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -606,6 +609,8 @@ const Test kTests[] = {
     {"bmd triangles", TestBmdTriangles},
     {"mesh from bmd", TestMeshFromBmd},
     {"compute bounds", TestComputeBounds},
+    {"frustum cull", TestFrustumCull},
+    {"frustum from view projection", TestFrustumFromViewProjection},
     {"bmd body parses verified layout", TestBmdBodyParsesVerifiedLayout},
     {"bmd body rejects bad input", TestBmdBodyRejectsBadInput},
     {"bmd report levels are separate", TestBmdReportLevelsAreSeparate},
@@ -1230,6 +1235,107 @@ void TestComputeBounds() {
   const std::vector<mu::Vec3> allnan{
       {std::numeric_limits<float>::quiet_NaN(), 0.0f, 0.0f}};
   CHECK(!mu::ComputeBounds(allnan).valid);
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// Frustum culling. The expected answers here are built by hand from planes whose
+// inside direction is known, rather than derived by calling the code under test.
+// A test that builds its expectation from the implementation would pass even if
+// the inside/outside sign were inverted -- and an inverted sign is exactly the
+// bug this code is most likely to have, because it culls the visible half of the
+// scene without reporting anything.
+// ---------------------------------------------------------------------------
+namespace {
+
+void TestFrustumCull() {
+  // A frustum built directly, not from a matrix: everything with x >= 0 and
+  // x <= 10, unbounded in y and z. Plane normals point inward.
+  mu::Frustum f{};
+  f.planes[0].normal = {1.0f, 0.0f, 0.0f};
+  f.planes[0].d = 0.0f;      // x >= 0
+  f.planes[1].normal = {-1.0f, 0.0f, 0.0f};
+  f.planes[1].d = 10.0f;     // x <= 10
+  for (int i = 2; i < 6; ++i) {
+    f.planes[i].normal = {0.0f, 1.0f, 0.0f};
+    f.planes[i].d = 1e6f;    // effectively unbounded
+  }
+
+  auto box = [](float x0, float x1) {
+    mu::Bounds b;
+    b.min = {x0, -1.0f, -1.0f};
+    b.max = {x1, 1.0f, 1.0f};
+    b.valid = true;
+    return b;
+  };
+
+  // Fully inside.
+  CHECK(mu::CullBox(f, box(2.0f, 8.0f)) == mu::CullResult::kInside);
+  CHECK(mu::IsVisible(f, box(2.0f, 8.0f)));
+
+  // Fully outside on the left. This is the case that proves the sign is right:
+  // if normals pointed outward, this box would read as inside.
+  CHECK(mu::CullBox(f, box(-8.0f, -2.0f)) == mu::CullResult::kOutside);
+  CHECK(!mu::IsVisible(f, box(-8.0f, -2.0f)));
+
+  // Fully outside on the right.
+  CHECK(mu::CullBox(f, box(12.0f, 18.0f)) == mu::CullResult::kOutside);
+  CHECK(!mu::IsVisible(f, box(12.0f, 18.0f)));
+
+  // Straddling the left plane: must be drawn, not culled.
+  CHECK(mu::CullBox(f, box(-2.0f, 2.0f)) == mu::CullResult::kIntersect);
+  CHECK(mu::IsVisible(f, box(-2.0f, 2.0f)));
+
+  // Touching a plane exactly is visible. Culling a box that merely touches would
+  // pop geometry at the frustum edge.
+  CHECK(mu::IsVisible(f, box(-1.0f, 0.0f)));
+  CHECK(mu::IsVisible(f, box(10.0f, 12.0f)));
+
+  // An invalid box must never be culled: no bounds means nothing was proven.
+  mu::Bounds invalid;
+  CHECK(!invalid.valid);
+  CHECK(mu::IsVisible(f, invalid));
+  CHECK(mu::CullBox(f, invalid) == mu::CullResult::kIntersect);
+
+  // PlaneDistance: positive inside, negative outside, by construction.
+  const mu::Plane p{{1.0f, 0.0f, 0.0f}, -5.0f};
+  CHECK(mu::PlaneDistance(p, {6.0f, 0.0f, 0.0f}) == 1.0f);
+  CHECK(mu::PlaneDistance(p, {4.0f, 0.0f, 0.0f}) == -1.0f);
+  CHECK(mu::PlaneDistance(p, {5.0f, 0.0f, 0.0f}) == 0.0f);
+}
+
+void TestFrustumFromViewProjection() {
+  // Identity view-projection maps the clip cube -1..1 straight through, so the
+  // extracted frustum must accept the origin and reject anything beyond x = 1.
+  float ident[16] = {0};
+  ident[0] = ident[5] = ident[10] = ident[15] = 1.0f;
+  const mu::Frustum f = mu::FrustumFromViewProjection(ident);
+
+  mu::Bounds centre;
+  centre.min = {-0.25f, -0.25f, -0.25f};
+  centre.max = {0.25f, 0.25f, 0.25f};
+  centre.valid = true;
+  CHECK(mu::IsVisible(f, centre));
+
+  mu::Bounds far_right;
+  far_right.min = {5.0f, -0.25f, -0.25f};
+  far_right.max = {6.0f, 0.25f, 0.25f};
+  far_right.valid = true;
+  CHECK(!mu::IsVisible(f, far_right));
+
+  mu::Bounds behind;
+  behind.min = {-6.0f, -0.25f, -0.25f};
+  behind.max = {-5.0f, 0.25f, 0.25f};
+  behind.valid = true;
+  CHECK(!mu::IsVisible(f, behind));
+
+  // A box straddling the right clip plane must survive.
+  mu::Bounds straddle;
+  straddle.min = {0.5f, -0.25f, -0.25f};
+  straddle.max = {1.5f, 0.25f, 0.25f};
+  straddle.valid = true;
+  CHECK(mu::IsVisible(f, straddle));
 }
 
 }  // namespace
