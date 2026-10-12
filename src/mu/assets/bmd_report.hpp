@@ -59,6 +59,8 @@ struct BmdFileReport {
   bool geometry_parsed = false;
   std::size_t vertex_count = 0;
   std::size_t normal_count = 0;
+  std::size_t triangle_count = 0;
+  std::size_t bad_corner_refs = 0;
   /// Non-empty when a body parse was attempted and failed. Kept separate from
   /// |problem| so a container-level fault and a body-level fault are not
   /// confused with each other.
@@ -80,6 +82,9 @@ struct BmdSummary {
 
   // Level 3
   std::size_t geometry_parsed = 0;
+  std::size_t topology_parsed = 0;
+  std::size_t triangles_total = 0;
+  std::size_t bad_corner_refs = 0;
 
   // Breakdown by container kind.
   std::size_t kind_v0c = 0;

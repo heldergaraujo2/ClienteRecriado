@@ -85,11 +85,46 @@ struct BmdNormal {
   float aux1 = 0.0f;
 };
 
+/// One corner of a triangle. The record holds three of these, 8 bytes each, at
+/// record offsets 0, 8 and 16.
+///
+/// Measured over 58,836 references in 319 single-mesh files: |vertex| is below
+/// the mesh vertex count in 97.66% of cases and |normal| below the normal count
+/// in 97.20%. Those are not 100%, so a consumer must bounds-check rather than
+/// trust the file. See docs/ASSET_FORMATS.md.
+struct BmdTriangleCorner {
+  int32_t vertex = -1;
+  int32_t normal = -1;
+  /// The u16 at record offset 4. NOT a UV index: measured against all three
+  /// available limits it is indistinguishable between them (68.35-68.56%), so
+  /// none is the right bound. Median 0, maximum 65535, which suggests an
+  /// optional field using -1 as a sentinel. Carried, not interpreted.
+  uint16_t optional = 0;
+  uint8_t flag = 0;
+};
+
+struct BmdTriangle {
+  BmdTriangleCorner corners[3];
+};
+
 struct BmdBody {
   std::string source_name;      ///< From the 32-byte field; may be empty.
   bool has_source_name = false;
   std::vector<BmdVertex> vertices;
   std::vector<BmdNormal> normals;
+  /// Triangles, when the mesh counts allowed locating the array. Empty when the
+  /// body was not laid out as a single mesh, which is not an error.
+  std::vector<BmdTriangle> triangles;
+  /// Texture coordinates per vertex of a triangle are NOT located. The u16 at
+  /// corner offset 4 was the natural candidate and was ruled out. A mesh
+  /// therefore cannot be textured correctly from this parser yet.
+  bool has_texcoords = false;
+
+  /// Corner indices that fall outside the vertex or normal array. Measured at
+  /// roughly 2.4% of all references, cause not established. Reported rather than
+  /// rejected so a caller can bounds-check instead of reading out of bounds.
+  std::size_t out_of_range_vertices = 0;
+  std::size_t out_of_range_normals = 0;
 
   /// Set when parsing stopped, with the reason. Empty on success.
   std::string problem;
@@ -106,6 +141,11 @@ constexpr std::size_t kBmdNormalCountOffset = 40;
 constexpr std::size_t kBmdVertexArrayOffset = 52;
 constexpr std::size_t kBmdVertexRecordSize = 16;
 constexpr std::size_t kBmdNormalRecordSize = 20;
+constexpr std::size_t kBmdTriangleRecordSize = 64;
+constexpr std::size_t kBmdCornerRecordSize = 8;
+constexpr std::size_t kBmdTexCoordCountOffset = 42;
+constexpr std::size_t kBmdTriangleCountOffset = 44;
+constexpr std::size_t kBmdMeshCountOffset = 32;
 
 
 /// Parses the body of a v0x0A BMD payload. The caller passes the payload only

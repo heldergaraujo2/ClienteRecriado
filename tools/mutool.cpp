@@ -438,9 +438,18 @@ int CmdBmdReport(int argc, char** argv) {
   std::printf("    parsed                                 %8zu  (%6.2f%%)\n",
               sum.geometry_parsed,
               mu::PercentOf(sum.geometry_parsed, sum.total));
-  std::printf("    Counts vertex positions and normals only. Face indices,\n");
-  std::printf("    texture coordinates and bones are NOT decoded, so a file\n");
-  std::printf("    counted here is not a renderable model.\n\n");
+  std::printf("    Counts vertex positions and normals only.\n\n");
+
+  std::printf("LEVEL 4 - topology (face indices) parsed\n");
+  std::printf("    with triangles                        %8zu  (%6.2f%%)\n",
+              sum.topology_parsed, mu::PercentOf(sum.topology_parsed, sum.total));
+  std::printf("    triangles read                       %8zu\n", sum.triangles_total);
+  std::printf("    corner refs out of range             %8zu  (%6.3f%% of refs)\n",
+              sum.bad_corner_refs,
+              sum.triangles_total ? 100.0 * sum.bad_corner_refs / (3.0 * sum.triangles_total) : 0.0);
+  std::printf("    Single-mesh files only. Texture coordinates are NOT\n");
+  std::printf("    located and bones are NOT decoded, so a file counted here\n");
+  std::printf("    is still NOT a renderable model.\n\n");
 
   std::printf("container kinds\n");
   std::printf("    BMD v0x0C                              %8zu  (%6.2f%%)\n",

@@ -779,10 +779,17 @@ revelou a estrutura: **três referências de 8 bytes** no início do registro.
 - O primeiro byte **não** é tamanho do polígono: valores 3 e 4 somam 3,01%,
   indistinguível de aleatório. As tabelas do projeto ISC não se aplicam.
 
-**Restrição de confiança.** Os 97,66% e 97,20% são medidos sobre 58.836
-referências em 319 arquivos de malha única. Não é 100%, então ~2,4% das
-referências apontam fora da faixa — causa não determinada. Renderizar sem tratar
-esse caso produziria leitura fora dos limites.
+**Restrição de confiança, e uma discrepância que precisa constar.** Os 97,66% e
+97,20% foram medidos sobre 58.836 referências em 319 arquivos, **limitando a 80
+triângulos por arquivo**. Ao rodar o parser C++ sobre a população inteira
+(1.221.030 triângulos em 4.149 arquivos), as referências fora de faixa somam
+**8,357%**, não ~2,4%.
+
+A amostra truncada subestimava o problema: os primeiros 80 triângulos de um
+arquivo são mais bem comportados que o conjunto. **A cifra correta é 8,357%.**
+Causa não determinada. Renderizar sem validar limites leria fora dos arrays em
+cerca de uma em cada doze referências, o que é inaceitável — por isso o parser
+conta e reporta esses casos em vez de aceitá-los silenciosamente.
 
 **Restrição do levantamento.** Tudo acima vale para **arquivos de malha única**
 (586 dos 1.500 examinados). Para malhas múltiplas o corpo se repete por malha e

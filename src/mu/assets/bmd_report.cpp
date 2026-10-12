@@ -122,6 +122,9 @@ BmdFileReport Classify(ByteView data, const std::string& label) {
       r.geometry_parsed = true;
       r.vertex_count = body.vertices.size();
       r.normal_count = body.normals.size();
+      r.triangle_count = body.triangles.size();
+      r.bad_corner_refs =
+          body.out_of_range_vertices + body.out_of_range_normals;
     } else {
       r.body_problem = body.problem.empty() ? bs.message : body.problem;
     }
@@ -173,6 +176,11 @@ void BmdAccumulate(const BmdFileReport& r, BmdSummary* s) {
   }
 
   if (r.geometry_parsed) ++s->geometry_parsed;
+  if (r.triangle_count > 0) {
+    ++s->topology_parsed;
+    s->triangles_total += r.triangle_count;
+    s->bad_corner_refs += r.bad_corner_refs;
+  }
 
   if (r.payload_entropy > s->max_entropy) s->max_entropy = r.payload_entropy;
   if (r.payload_entropy > kEncryptedEntropyThreshold) ++s->entropy_above_7_5;

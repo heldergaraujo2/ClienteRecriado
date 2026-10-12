@@ -575,6 +575,7 @@ void TestBmdBodyParsesVerifiedLayout();
 void TestBmdBodyRejectsBadInput();
 void TestBmdReportLevelsAreSeparate();
 void TestBmdV0CCipher();
+void TestBmdTriangles();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -598,6 +599,7 @@ const Test kTests[] = {
     {"manifest verify", TestManifestVerify},
     {"extension helpers", TestExtensionHelpers},
     {"bmd v0x0c cipher", TestBmdV0CCipher},
+    {"bmd triangles", TestBmdTriangles},
     {"bmd body parses verified layout", TestBmdBodyParsesVerifiedLayout},
     {"bmd body rejects bad input", TestBmdBodyRejectsBadInput},
     {"bmd report levels are separate", TestBmdReportLevelsAreSeparate},
@@ -1013,6 +1015,101 @@ void TestBmdV0CCipher() {
   std::vector<std::uint8_t> empty;
   mu::BmdV0CDecrypt(empty.data(), empty.size());
   CHECK(empty.empty());
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// Triangle records: three 8-byte corners at record offsets 0, 8 and 16, each
+// [u16 vertex][u16 normal][u16 optional][u8 flag][u8 pad], inside a 64-byte
+// record. The array sits after the texcoord array. Layout measured against the
+// reference assets; see docs/ASSET_FORMATS.md.
+// ---------------------------------------------------------------------------
+namespace {
+
+void TestBmdTriangles() {
+  // Four vertices, four normals, two texcoords, one triangle.
+  std::vector<mu::BmdVertex> verts;
+  for (int i = 0; i < 4; ++i) {
+    mu::BmdVertex v;
+    v.x = static_cast<float>(i);
+    v.y = 0.0f;
+    v.z = 1.0f;
+    verts.push_back(v);
+  }
+  std::vector<mu::BmdNormal> norms;
+  for (int i = 0; i < 4; ++i) {
+    mu::BmdNormal n;
+    n.ny = 1.0f;
+    norms.push_back(n);
+  }
+
+  std::vector<std::uint8_t> body = MakeBmdBody("Tri.SMD", verts, norms);
+  const std::size_t counts_base = 52 + verts.size() * mu::kBmdVertexRecordSize +
+                                  norms.size() * mu::kBmdNormalRecordSize;
+
+  // Header fields the triangle reader depends on: meshCount at 32, texcoord
+  // count at 42, triangle count at 44.
+  PutU16LeAt(body, 32, 1);
+  PutU16LeAt(body, 42, 2);
+  PutU16LeAt(body, 44, 1);
+
+  // Texcoord array: 2 entries x 8 bytes.
+  for (int i = 0; i < 2 * 8; ++i) body.push_back(0);
+
+  // One triangle record of 64 bytes: corners (0,0), (1,1), (2,2).
+  const std::size_t tri_off = body.size();
+  body.resize(tri_off + mu::kBmdTriangleRecordSize, 0);
+  for (std::size_t k = 0; k < 3; ++k) {
+    const std::size_t p = tri_off + k * mu::kBmdCornerRecordSize;
+    PutU16LeAt(body, p, static_cast<std::uint16_t>(k));
+    PutU16LeAt(body, p + 2, static_cast<std::uint16_t>(k));
+    PutU16LeAt(body, p + 4, 0xFFFF);  // optional field, sentinel
+    body[p + 6] = 3;                  // flag
+  }
+
+  mu::BmdBody parsed;
+  const mu::Status st =
+      mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  CHECK(st.ok());
+  CHECK(parsed.complete);
+  CHECK_EQ(1u, parsed.triangles.size());
+  CHECK_EQ(0, parsed.triangles[0].corners[0].vertex);
+  CHECK_EQ(1, parsed.triangles[0].corners[1].vertex);
+  CHECK_EQ(2, parsed.triangles[0].corners[2].vertex);
+  CHECK_EQ(2, parsed.triangles[0].corners[2].normal);
+  CHECK_EQ(0xFFFFu, parsed.triangles[0].corners[0].optional);
+  CHECK_EQ(3u, parsed.triangles[0].corners[1].flag);
+  CHECK_EQ(0u, parsed.out_of_range_vertices);
+  CHECK_EQ(0u, parsed.out_of_range_normals);
+  // Texcoords are still not located, so this must stay false.
+  CHECK(!parsed.has_texcoords);
+  CHECK_EQ(counts_base, 52u + 4u * 16u + 4u * 20u);
+
+  // An out-of-range corner must be counted, not rejected and not silently
+  // accepted: a caller that indexed with it would read out of bounds.
+  PutU16LeAt(body, tri_off, 999);
+  mu::BmdBody bad;
+  CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &bad).ok());
+  CHECK(bad.complete);
+  CHECK_EQ(1u, bad.out_of_range_vertices);
+  CHECK_EQ(0u, bad.out_of_range_normals);
+
+  // A declared triangle array that does not fit must yield no triangles rather
+  // than a partial read presented as complete.
+  PutU16LeAt(body, tri_off, 0);
+  PutU16LeAt(body, 44, 50);
+  mu::BmdBody overflow;
+  CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &overflow).ok());
+  CHECK(overflow.triangles.empty());
+
+  // More than one mesh means this single-block arithmetic does not apply, so
+  // triangles are left empty rather than read from the wrong place.
+  PutU16LeAt(body, 44, 1);
+  PutU16LeAt(body, 32, 2);
+  mu::BmdBody multi;
+  CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &multi).ok());
+  CHECK(multi.triangles.empty());
 }
 
 }  // namespace

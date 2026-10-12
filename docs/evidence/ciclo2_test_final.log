@@ -41,6 +41,8 @@ ClienteRecriado asset library tests
 [  OK  ] extension helpers
 [ RUN  ] bmd v0x0c cipher
 [  OK  ] bmd v0x0c cipher
+[ RUN  ] bmd triangles
+[  OK  ] bmd triangles
 [ RUN  ] bmd body parses verified layout
 [  OK  ] bmd body parses verified layout
 [ RUN  ] bmd body rejects bad input
@@ -54,5 +56,5 @@ ClienteRecriado asset library tests
 [ RUN  ] bmd report accumulates kinds
 [  OK  ] bmd report accumulates kinds
 
-236 checks, 0 failures
+257 checks, 0 failures
 EXIT=0
