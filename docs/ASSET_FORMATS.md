@@ -377,11 +377,45 @@ população multi-mesh, não amostra), total de **12.590 malhas**.
 | Controle fraco: nome fraco dentro de array de vértices | 7.153/9.229 = **77,51%** |
 | Razão hipótese/controle fraco (52,20%/77,51%) | **0,67×** — fraco não discrimina, como já medido para UV |
 
+**O que foi buscado, por que mesma classe, risco controle fraco (item 5 auditoria ciclo 6):**
+
+- **O que foi buscado:** nome de textura de 32 B após cada bloco de triângulos. Hipótese:
+  `tri_end + delta` onde `delta` ∈ {0,-4,+4,-8,+8} contém string ASCII imprimível terminada em NUL,
+  3-31 chars, resto zero (estrito) ou ≥8 printable em 32 B (fraco). Ferramenta
+  `tools/validate_multimesh.cpp` varre full-scan 4.256 arquivos (12.590 malhas) e conta
+  ocorrências por delta. Evidência `evidence/ciclo6_multimesh_validation.log` e
+  `evidence/ciclo6_item4_validate.log`.
+
+- **Por que mesma classe (precisão UV):** na investigação de UV (nona hipótese, ciclo 3),
+  procurou-se `f32` em [0,1] dentro do registro de triângulo. Controle inicial com bytes
+  aleatórios deu 24,82% vs 79,42% hipótese (razão 3,2×) e pareceria descoberta, mas controle
+  correto com **mesma classe** — outro `f32` que não é UV (array de normais) — deu 70,34%
+  vs 79,42% (razão 1,13×), rejeitando hipótese. Lição: controle tem que ser da mesma classe
+  do que se testa, senão taxa base é subestimada e falso-positivo parece forte.
+
+  Para multi-mesh, mesma exigência: procurar nome dentro de região que **também** contém
+  bytes que podem parecer nome por acaso. Controle estrito: buscar nome estrito dentro do
+  array de vértices (região `f32` com 4 B floats, não texto). Resultado: 89/236.677 = **0,0376%**
+  falso-positivo. Hipótese `tri_end-4` dá 14,27% → razão **379×**, discriminativo.
+  Controle fraco: mesmo array de vértices mas critério fraco (≥8 printable). Resultado:
+  7.153/9.229 = **77,51%** falso-positivo, hipótese 52,20% → razão **0,67×**, não discrimina.
+
+- **Risco controle fraco:** critério fraco (≥8 printable) parece dar 100% dos arquivos
+  (4.256/4.256) e 52,20% das malhas, mas controle fraco dá 77,51%, maior que hipótese.
+  Isso significa que bytes de float, quando interpretados como ASCII, frequentemente têm
+  ≥8 printable por acaso (ex.: `0x3F800000` = `?` + NULs). Se usássemos só fraco, aceitaríamos
+  qualquer offset como válido e leríamos nome no lugar errado, desalinhando parser e
+  corrompendo próxima malha em silêncio. Mesmo risco da UV: controle fraco (bytes aleatórios)
+  subestima base e faz 79% parecer descoberta. Por isso parser usa **estrito como primário**
+  (379× discriminativo) e fraco só como fallback quando estrito falha, mas sempre com
+  busca em `tri_end-4` primeiro, que é onde 14,27% dos nomes estritos aparecem vs 0,01% em +0.
+
 Interpretação: nome estrito é discriminativo (379× sobre controle), mas aparece
-em só 14,27% das malhas porque muitas texturas têm nomes curtos ou não-ASCII?
-O fraco dá 100% dos arquivos, mas controle também dá 77,5%, então fraco é
-contaminado — mesma armadilha do controle de UV dentro do array. Por isso o
-parser usa busca com delta e aceita fraco como fallback, mas não depende só dele.
+em só 14,27% das malhas porque muitas texturas têm nomes curtos, com caracteres
+não-ASCII, ou estão em subdiretório que não passa no filtro estrito? O fraco dá
+100% dos arquivos, mas controle também dá 77,5%, então fraco é contaminado —
+mesma armadilha do controle de UV dentro do array. Por isso o parser usa busca
+com delta e aceita fraco como fallback, mas não depende só dele.
 
 O layout de 14 B + arrays + 32 B concatenado é o que permite 100% de parsing dos
 4.256 arquivos multi-mesh; sem ele, nível 4 ficava em 4.149 (49,36% do nível 3).

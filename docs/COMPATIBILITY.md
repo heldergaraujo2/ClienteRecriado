@@ -207,11 +207,30 @@ Distribuição de `meshCount` sobre os 8.406 arquivos de nível 3 (evidência em
 13 em 2, 14 em 13, >15 em 7. Total multi-mesh 4.256 arquivos, todos parseados
 100%.
 
-**Validação estatística multi-mesh (item 3):** full-scan 4.256 arquivos, 12.590
-malhas, parsing 100%. Nome estrito em `tri_end-4` 1.796/12.590=14,27% vs controle
-0,0376% (razão 379×). Nome fraco 100% dos arquivos mas controle fraco 77,51%
-(0,67×, não discrimina). Evidência em `tools/validate_multimesh.cpp` e
-`evidence/ciclo6_multimesh_validation.log`.
+**Validação estatística multi-mesh (item 3 + item 5 controle com precisão UV):**
+full-scan 4.256 arquivos, 12.590 malhas, parsing 100%. Nome estrito em `tri_end-4`
+1.796/12.590=14,27% vs controle estrito dentro de array de vértices (região `f32`)
+89/236.677=0,0376% razão 379× (discriminativo). Nome fraco 52,20% vs controle fraco
+77,51% razão 0,67× não discrimina. Arquivos com ≥1 estrito 38,79%, com ≥1 fraco 100%.
+
+O que foi buscado: nome 32 B após triângulos em `tri_end+delta` delta∈{0,-4,+4,-8,+8},
+estrito = 3-31 printable + NUL + zeros, fraco = ≥8 printable. Ferramenta
+`tools/validate_multimesh.cpp`, evidência `ciclo6_multimesh_validation.log` e
+`ciclo6_item4_validate.log`.
+
+Por que mesma classe: lição da UV (ciclo 3, nona hipótese). Buscar `f32` [0,1] no
+registro triângulo com controle bytes aleatórios deu 24,82% vs 79,42% (3,2×) falso
+positivo de descoberta; controle mesma classe (outro `f32` de normais) deu 70,34%
+vs 79,42% (1,13×) rejeitou hipótese. Para multi-mesh, controle tem que ser busca
+de nome dentro de array de vértices (`f32`), não bytes aleatórios, senão subestima
+base. Controle estrito 0,0376% é base real para nome estrito; controle fraco 77,51%
+mostra que ≥8 printable ocorre por acaso em floats.
+
+Risco controle fraco: se usasse só fraco, 52% hipótese <77% controle, aceitaria
+qualquer offset, desalinharia parser e corromperia próxima malha em silêncio.
+Mesmo risco UV: controle fraco faz 79% parecer descoberta. Por isso parser usa
+estrito primário (379×) em `tri_end-4` e fraco só fallback. Evidência em
+`tools/validate_multimesh.cpp` e `evidence/ciclo6_multimesh_validation.log`.
 
 **Contabilidade nível 4 falhando (item 2):** total 10.090, nível 4 ok 8.405,
 falhando 1.685 = 1.483 OPAQUE (88,01%) + 67 inválidos (3,98%) + 134 geometria não
