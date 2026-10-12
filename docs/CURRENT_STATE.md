@@ -222,6 +222,31 @@ Level 5 loose = 3693 (antes 3800, -107 filtrados por ciclo detection). Strict = 
 
 ---
 
+# Ciclo 10 Fase B — animação parcialmente decodificada (62 arquivos plausíveis), OPAQUE 15,05% investigado
+
+> **Base:** Fase A `0d84b0f` → HEAD atual. Fase B do comando contínuo.
+
+## O que foi feito Fase B
+
+**Animação:**
+- Scan full 3693 arquivos com ossos (loose) com extra após ossos: 764 com extra >0, 231 divisível bc*12, 62 plausíveis (finite <1e6 e <1e10, valores em [-pi,pi]).
+- Exemplos plausíveis: `Object100/Object01.bmd` bc1 remain216 kf18, `Object04.bmd` bc1 remain1176 kf98, `Object06.bmd` etc. Dump `/tmp/dump_anim_detailed.cpp` mostra keyframes com rotação Z de 0.0 → 0.628 (36°) → 1.256 (72°) → 1.884 (108°) → 2.513 (144°) → 3.141 (180°) → -2.513 etc, típico animação rotação.
+- Valores anteriores enormes (-1.7e38, -1e10) em `Rank01.bmd` eram artefato de parsing falho: Rank01 tem bc3 remain464 mas bone1 nome vazio e bone2 weird, não está em 3693, então offset de animação errado lia dados de osso como animação.
+- Para arquivos com ossos válidos, animação é 12 bytes por osso por keyframe = 3 floats (rotação Euler), plausível dentro [-pi,pi]. ActionCount (u16 offset 36) =1 para exemplos, mas kf=18 e 98, então actionCount não é kf, mas número de ações. Seção de animação ainda não tem parser de actionCount → keyframe count, mas formato 12B identificado.
+- Evidência `ciclo10_itemB_anim_scan.log` com 62 plausíveis, `ciclo9_item10_animation.log` anterior com valores enormes agora explicado como parsing inválido.
+
+**OPAQUE 15,05% (1519 arquivos):**
+- Brute force init 0..255 e step 0..255 com mesma key array `kBmdV0CKey` (16 bytes D1 73 52 F6...): para 20 primeiros OPAQUE, 1 encontrado `IceGolem.bmd` com step 0x33 em vez de 0x3D (init 0x5E padrão). Evidência `ciclo10_itemB_opaque_bruteforce.log`: opaque total 1503 (após filtro), tried 20, found 1 (IceGolem step 33).
+- Tentativa brute force 65536 combos (init+step) para 5 primeiros OPAQUE timeout 30s, não encontrou para CustomNpc02 etc, indicando que OPAQUE pode ter key array diferente ou compressão adicional, não apenas init/step alternativo.
+- Conclusão: OPAQUE não reduzido, permanece 1519 (15,05%). 1 arquivo com step alternativo sugere variação de chave, mas não generalizável. Bloqueio mantido, requer investigação futura de key arrays alternativos ou versão 0x0B etc.
+
+**Métricas Fase B:**
+- total geom 8406, loose 3693 (36,60%), strict 1186 (11,75%), OPAQUE 1519 (15,05%)
+- animação: 764 com extra, 231 divisível bc*12, 62 plausíveis com rotação [-pi,pi], 0% decodificada formalmente (sem parser de actionCount → kf, sem confirmação ordem xyz)
+- Testes 389 checks 0 falhas, checker 56 verificações 0 falhas
+
+---
+
 # Ciclo 9 — correções críticas, validação estatística ossos 3.800, UV reinvestigado, DEC-012
 
 > **Base:** ciclo 8 `aa617ab` → HEAD atual. Ciclo 9 executa itens 1-10 do comando único abrangente.

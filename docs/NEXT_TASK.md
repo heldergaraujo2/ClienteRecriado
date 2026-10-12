@@ -19,40 +19,37 @@
 - Item9: reinvestigação UV com consciência offset v0A4 vs v0C8 base correta payload após bf1668c, delta multi +-4 textura tri_end-4 sem espaço triângulos-ossos 0 bytes, âncora ossos 59B, re-teste full-scan 4149 offset 0 rate61,80% control6,27% ratio9,86x platô 24..59 rate84% ratio14x, float [0,1] 79,42% vs 70,34% ratio1,13x rejeita, 10a espaço 0 bytes 11a derivado não igual, lista agora 11 tentativas UV permanece NAO LOCALIZADO
 - Item10: continuidade autônoma animação 500 arquivos 385 divisível 77% bc*keyframes*12 dump Rank01 com valores enormes -1.7e38 -1e10 não plausíveis, animação permanece NAO DECODIFICADA, autoauditoria 6 itens todas SIM
 
-## Próxima tarefa: Fase B — OPAQUE 15,05% + animação + backend VBO/VAO (após Fase A)
+## Próxima tarefa: Fase C-D-E-F — backend VBO/VAO, otimizações, segurança, roteiro Windows
 
-**Por que esta, e não outra.** Nível 4 83,30% (8.405) igual nível3 83,31% (8.406), nível5 loose 36,60% (3693) ratio per file 1846× altamente discriminativo após correção ciclo detection (antes 37,66% 3800 marginal 5,43×), strict 11,75% (1186) headline conservador ratio infinito, segurança 389 checks, nível6 UV 0% com 11 hipóteses descartadas + tabela ratio-por-offset platô 9-26× explicada como floats pequenos lidos como u16. DEC-012 escolheu UV por fidelidade visual, UV re-testado sem progresso, agora com evidência platô.
+**Fase B fechada:** animação parcialmente decodificada 62 arquivos plausíveis (rotação [-pi,pi]), OPAQUE investigado com brute force init/step (1 arquivo IceGolem step 0x33 encontrado, maioria não com mesma key array), métricas mantidas 3693 loose 1186 strict OPAQUE 1519.
 
-Fase A corrigiu:
-- Ratio per file mesma unidade (arquivo vs arquivo) em vez de arquivo vs tentativa
-- Ciclo detection reduz falso-positivo de 8,32% para 0,0079%, ratio de 5,43× para 1846×
-- Headline conservador strict 1186 (antes 1601) com prova strict ⊂ loose
-- UV platô explicado com controle mesma classe e tabela por offset
+**Por que esta, e não outra.** Nível 4 83,30% (8.405) igual nível3 83,31% (8.406), nível5 loose 36,60% (3693) ratio 1846×, strict 11,75% (1186) headline conservador, animação 62 plausíveis com rotação [-pi,pi] (Object01 kf18, Object04 kf98 etc) mas sem parser formal actionCount→kf, OPAQUE 15,05% com 1 variação de chave encontrada (step 0x33) mas não generalizável, UV 0% 11 hipóteses + tabela platô 9-26× explicada.
 
-Próximos bloqueios com maior valor agora (Fase B):
-- OPAQUE 1.519 (15,05%) — cifra não recuperada, bloqueia 15% da árvore, pré-requisito para aumentar nível3/4/5
-- Animação 500 arquivos 385 divisível 77% — 3 f32 por keyframe não decodificados, bloqueia skinning, tentativa anterior valores -1.7e38 não plausíveis
-- Backend VBO/VAO com skinning — DEC-008 registrada piso mínimo, mas BLOCKED sem GPU/contexto
+Fase B resultados:
+- Animação: 764 com extra, 231 divisível bc*12, 62 plausíveis finite <1e6 <1e10 com valores rotação [-pi,pi] (0.628,1.256,1.884,2.513,3.141 etc), antes valores enormes -1.7e38 eram artefato parsing falho Rank01 com bone1 vazio
+- OPAQUE: brute force 20 primeiros, 1 encontrado IceGolem step 0x33 vs padrão 0x3D, 65536 combos timeout para 5 primeiros sem sucesso para CustomNpc02, indica key array diferente ou compressão, OPAQUE permanece 1519
+- Backend VBO/VAO ainda BLOCKED GPU, mas parsing ossos+animação parcial é pré-requisito
 
 Já temos:
-- Vértices, normais, faces, ossos hierarquia com ciclo detection em 3693 arquivos loose 1186 strict
-- Texturas OZT/OZJ/TGA 98-100%, altura terreno decodificada
-- Validação estatística ossos ratio per file 1846× altamente discriminativo, strict infinito, segurança 389 checks ASan0, strict ⊂ loose provado
-- UV 11 hipóteses descartadas com controle mesma classe + tabela ratio-por-offset 9-26× platô explicado
+- Vértices, normais, faces, ossos 3693/1186 com ciclo detection, animação 62 plausíveis rotação
+- Texturas 98-100%, terreno decodificado
+- Validação estatística 1846×, strict ⊂ loose, UV platô explicado, OPAQUE brute force evidência
+- 389 checks 0 falhas, 56 verificações 0 falhas
 
-O que falta:
-- Reduzir OPAQUE: investigar se 1.519 usam chave diferente, compressão, ou versão 0x0B etc
-- Decodificar animação: o que 3 floats representam, ordem keyframes, actionCount
-- Backend VBO/VAO: BLOCKED GPU, mas parsing completo é pré-requisito
+O que falta (Fase C-D-E-F):
+- Fase C: tentar otimizações CAND-001 (BGRA upload), CAND-002 (bux vectorizado), CAND-003 (JPEG scan) com medição antes/depois, mas sem GPU para VBO/VAO real
+- Fase D: segurança/dependências, revisar SECURITY.md, DEPENDENCIES.md, LICENSING.md com novas evidências
+- Fase E: roteiro testes reais Windows, scripts em scripts/ já existem mas nunca executados, preparar roteiro reproduzível
+- Fase F: build e distribuição, verificar Makefile, README, AGENTS
 
-É testável sem GPU: parsing puro CPU, evidência automática.
+É testável sem GPU: parsing CPU, benchmarks de carregamento, evidência automática.
 
-**Critério de aceite Fase B:**
-1. OPAQUE <15,05% ou animação decodificada com evidência bruta versionada, OU relatório conclusivo com evidência negativa
+**Critério de aceite Fase C-F:**
+1. Otimizações medidas com evidência (mesmo que BLOCKED para GPU)
 2. make test e make test-san limpos (389 checks)
 3. check_docs_consistency.py 0 falhas (56 verificações)
-4. Documentação com evidência em ASSET_FORMATS.md, sem inferência
-5. Zero regressão nível3 8.406 nível4 8.405 nível5 loose 3693 strict 1186 (após correção)
+4. Documentação atualizada com evidência, sem inferência
+5. Zero regressão nível3 8.406 nível4 8.405 nível5 3693 strict 1186 OPAQUE 1519
 
 ## Depois disso
 
