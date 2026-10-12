@@ -1,7 +1,7 @@
 # Próxima tarefa
 
 > **Ciclo 8 fechado** com parsing completo de ossos nível 5. Base `c29f473` → HEAD `1e9f74d` (ciclo7) → agora ciclo8 com 3800 arquivos (37,66%).
-> Todos os bloqueios de ossos resolvidos, checker 53→56 verificações 0 falhas, build limpo 384/0 ASan 0.
+> Todos os bloqueios de ossos resolvidos, checker 53→56 verificações 0 falhas, build limpo 389/0 ASan 0.
 
 ## O que mudou neste ciclo (ciclo 8)
 
@@ -26,7 +26,7 @@
 - 45,21% dos arquivos com geometria têm ossos (3800/8406)
 - Custom bc51 remain 2698 vs expected 3008 diff -310 → filtrado, não segue 59B
 
-**Testes:** 384 checks, 0 failures · 56 verificações doc↔código 0 falhas · ASan 0
+**Testes:** 389 checks, 0 failures · 56 verificações doc↔código 0 falhas · ASan 0
 
 ## Próxima tarefa: UV por canto e animação (nível 6 + skinning)
 
@@ -54,7 +54,7 @@ O que falta:
 **Critério de aceite:**
 
 1. `mutool bmdreport` nível 6 >0 ou animação decodificada com evidência bruta versionada, OU relatório conclusivo de que UV está em outro arquivo (ex: `.o3d`, `.bmd` extra) com evidência negativa
-2. `make test` e `make test-san` limpos (384 checks)
+2. `make test` e `make test-san` limpos (389 checks)
 3. `check_docs_consistency.py` 0 falhas (56 verificações após ciclo 8)
 4. Documentação de UV/animação com evidência, não inferência, em `ASSET_FORMATS.md`
 5. Zero regressão em nível 3 (8.406), nível 4 (8.405), nível 5 (3.800)
@@ -75,8 +75,8 @@ O que falta:
 
 ```
 python3 tools/check_docs_consistency.py   # 56 verificações, 0 falhas (era 53)
-make clean && make test                    # 384/0 + logs ciclo8_test.log
-make clean && make test-san                # 384/0 ASan 0 + logs ciclo8_test_san.log
+make clean && make test                    # 389/0 + logs ciclo8_test.log
+make clean && make test-san                # 389/0 ASan 0 + logs ciclo8_test_san.log
 grep -rn "glGenBuffers\|wglCreateContext\|glDrawElements\|GL/gl.h" src/
 ```
 

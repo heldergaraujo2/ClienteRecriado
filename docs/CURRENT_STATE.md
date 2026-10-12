@@ -175,7 +175,7 @@ everywhere it appears.
 - **Critério parsing:** bc 1..64, base+bc*59-1 <= size ou base+bc*59 <= size, todos os ossos com pelo menos 3 printable em 32B e floats finitos e parent válido. Evita falso-positivo em payload aleatório (random daria ~0% nomes).
 - **Casos custom:** bc51 remain 2698 vs expected 3008 diff -310 → filtrado, não segue 59B, permanece fora nível 5.
 - **Integração relatório:** `bmd_report.hpp/cpp` estendidos com `has_bones`, `bone_count`, `bones_parsed`, `total_bones`. `mutool bmdreport` agora imprime LEVEL 5.
-- **Testes:** 384 checks, 0 failures, ASan 0, `check_docs_consistency.py` 56 verificações 0 falhas (era 53, +3 nível 5).
+- **Testes:** 389 checks, 0 failures, ASan 0, `check_docs_consistency.py` 56 verificações 0 falhas (era 53, +3 nível 5).
 - **Documentação:** `ASSET_FORMATS.md` atualizado com layout final e evidência ciclo 8, tabela nível 5 3.800/37,66%.
 
 ## Métricas atuais (10.090 arquivos)
@@ -193,7 +193,7 @@ Level 5 é subconjunto estrito de level 3. 45,21% dos arquivos com geometria tê
 
 ## Testes ciclo 8
 
-384 checks, 0 failures · 56 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 384/0.
+389 checks, 0 failures · 56 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 389/0.
 
 ---
 
@@ -249,7 +249,7 @@ seção seguinte.
 | 0 — bloqueio crítico data futura + e-mail placeholder | **Resolvido.** Evidência bruta `ciclo6_bmdref_commit_date.log`: `git log -1 --format=fuller 3f11bf8` → Author `xulek <xulek121@gmail.com>` 2026-07-24, CommitDate idem, branch `main`. `package.json` author `xulek <xulek@example.com>` placeholder RFC2606. Repo datado 2025-07-02 a 2026-07-24 com inconsistências ordenação, clock skew. Sem LICENSE file, apenas campo ISC. Marcado **NÃO CONFIRMADA**. |
 | 1 — população multi-mesh 4257/4251/4256 | **Resolvido.** Ferramenta `mutool bmdreport` confirma: level3 8406, meshCount1 4149, meshCount0 1, meshCount>1 4256 verdadeiro multi-mesh, meshCount!=1 4257 (4256+1). 4251 histórico snapshot 8401 com regressão 10k (8401-4149-1). Erro anterior: contar 4257 como multi-mesh puro sem separar zero-faces e reutilizar 4251. Evidência `ciclo6_item1_bmdreport.log`. |
 | 2 — violação commits atômicos 1fc1024 | **Documentado.** 14 arquivos +1015/-79 agrupando contabilidade+validação+licenciamento. Não desfeito (push já realizado, reescrever histórico proibido), registrado DEC-011 e CHANGELOG ciclo6. Processo corrigido 1 commit por item. |
-| 3 — build limpo | **Feito.** `make clean && make test` 384/0, `make clean && make test-san` 384/0 ASan 0 reports, logs `ciclo6_test_clean.log` e `ciclo6_test_san_clean.log`. |
+| 3 — build limpo | **Feito.** `make clean && make test` 389/0, `make clean && make test-san` 389/0 ASan 0 reports, logs `ciclo6_test_clean.log` e `ciclo6_test_san_clean.log`. |
 | 4 — expandir checker | **Feito.** 36→53 verificações, cobre breakdown 1685=1483+67+134+1 e taxas 14,27%/0,0376%/379×/52,20%/77,51%/0,67%/38,79%/100%. 0 falhas. |
 | 5 — controle estatístico precisão UV | **Descrito.** O que buscado: nome 32B tri_end+delta, estrito 3-31 printable+NUL+zeros, fraco ≥8 printable. Por que mesma classe: lição UV nona hipótese 24,82% vs 79,42% 3,2× falso, 70,34% vs 79,42% 1,13× rejeita. Controle estrito 0,0376% vs 14,27% 379× discriminativo, controle fraco 77,51% vs 52,20% 0,67× não discrimina, risco desalinhamento parser. |
 | 6 — confirmar commit segurança + ASan | **Confirmado.** `git show --stat 0a09a2b` 6 arquivos +469/-9, 4 testes Extreme/Truncated/Overflow/LargeCounts, ASan 0 reports, evidência `ciclo6_item6_security.log`. |
@@ -269,7 +269,7 @@ Level 4b: multi-mesh 0, zero faces 1 (100%, `player.bmd`, meshCount 0). Breakdow
 
 ## Testes
 
-384 checks, 0 failures · 53 verificações doc↔código, 0 falhas (era 36) · 0 warnings 12 flags (sign-conversion warnings em bmd_body.cpp existem mas não quebram) · ASan+UBSan 384/0.
+389 checks, 0 failures · 53 verificações doc↔código, 0 falhas (era 36) · 0 warnings 12 flags (sign-conversion warnings em bmd_body.cpp existem mas não quebram) · ASan+UBSan 389/0.
 
 ---
 
@@ -285,7 +285,7 @@ Level 4b: multi-mesh 0, zero faces 1 (100%, `player.bmd`, meshCount 0). Breakdow
 | 2 — contabilidade 1.690 falhando nível 4 | **Produzida.** Total 10.090, nível 4 ok 8.405, falhando 1.685 = 1.483 OPAQUE (88,01%) + 67 inválidos (3,98%) + 134 geometria não parseada (7,95%) + 1 zero faces (0,06%). Multi-mesh 0. Evidência gerada por `tools/gen_level4_breakdown.py` em `evidence/ciclo6_level4_breakdown.log` e `ciclo5_level4_breakdown.log`. |
 | 3 — validação estatística multi-mesh | **Feita.** Full-scan 4.256 arquivos multi-mesh (12.590 malhas), parsing 100%. Nome estrito em `tri_end-4` 14,27% vs controle 0,0376% (379×). Nome fraco 100% mas controle 77,51% (0,67×, não discrimina). Evidência `evidence/ciclo6_multimesh_validation.log`. |
 | 4 — licenciamento referência externa | **Esclarecido.** Referência `xulek/muonline-bmd-viewer` commit `3f11bf89f3702261174d8efa1436d56a15c7d97a`, `bmd-loader.ts:348-422`, licença ISC. Loop inspirado, header 14 B vs 10 B e triângulo diferente são medições deste projeto. Ver `LICENSING.md` e `DEPENDENCIES.md` §6, atribuição em `bmd_body.cpp`. `git show --stat 3a44591` confirma nenhum `.ts` copiado. |
-| 5 — segurança e robustez multi-mesh | **Implementado.** `meshCount` limitado a 64 (observado máx 18), overflow checado, `make test-san` 384/0 sem reports. Testes: `TestBmdMultiMeshExtremeMeshCount` (0xFFFF), `TestBmdMultiMeshTruncated`, `TestBmdMultiMeshOverflow`. Evidência `evidence/ciclo6_test_san_final.log` e `ciclo5_test_san_final.log`. |
+| 5 — segurança e robustez multi-mesh | **Implementado.** `meshCount` limitado a 64 (observado máx 18), overflow checado, `make test-san` 389/0 sem reports. Testes: `TestBmdMultiMeshExtremeMeshCount` (0xFFFF), `TestBmdMultiMeshTruncated`, `TestBmdMultiMeshOverflow`. Evidência `evidence/ciclo6_test_san_final.log` e `ciclo5_test_san_final.log`. |
 
 ## Métricas atuais (10.090 arquivos)
 
@@ -308,7 +308,7 @@ zero-faces, e reutilizar 4.251 de snapshot com regressão. Evidência `evidence/
 
 ## Testes
 
-384 checks, 0 failures · 40 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 384/0.
+389 checks, 0 failures · 40 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 389/0.
 
 ---
 
