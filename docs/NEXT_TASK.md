@@ -13,7 +13,7 @@ O array de UV está confirmado e legível (`52+vc*16+nc*20`, `ntc` entradas de 8
 `[f32 u][f32 v]`; zero não-finitos em 250.450 leituras, quando o acaso daria
 ~976). Falta apenas saber **qual entrada pertence a cada canto**.
 
-**Três hipóteses já descartadas — não repetir:**
+**Quatro hipóteses já descartadas — não repetir:**
 
 1. Campo em +4 do registro: é **padding** (64,95% zero, 18,18% 0xCDCD, o
    preenchimento de memória não inicializada do MSVC).
@@ -21,10 +21,19 @@ O array de UV está confirmado e legível (`52+vc*16+nc*20`, `ntc` entradas de 8
    nível de ruído, contra 94–100% em +0/+8/+16).
 3. Relação implícita por posição: **refutada** — `numTexCoords` difere de
    `numVertices` e `numNormals` em 93% dos 802 arquivos medidos.
+4. Bytes 24..59 do registro: **platô sem pico**. Os 39 deslocamentos de 24 a 62
+   dão 40–94% com razão de 7,3× a 17,1× sobre o controle, variando de forma
+   gradual. Um índice verdadeiro daria pico nítido num offset par, como os de
+   vértice deram em +0/+8/+16 (94–100%). Provavelmente são `f32`, não índices.
 
-**Onde procurar:** os bytes 24..59 do registro de triângulo, não zero em 59,1%
-dos registros e ainda sem identificação. É o único espaço do registro não
-examinado.
+**O que ainda não foi tentado, e é onde procurar:**
+
+1. Que o índice de UV esteja **fora** do registro de triângulo — num array
+   paralelo de `ntri` entradas em outra parte do corpo.
+2. Os **4 bytes não identificados do cabeçalho** (offsets de payload 48..51), que
+   ficam entre o cabeçalho e o array de vértices e nunca foram examinados.
+3. Confirmar que os bytes 24..59 são mesmo `f32` — o teste de não-finitos que
+   validou o array de UV serve aqui, e eliminaria ou confirmaria a explicação.
 
 ---
 

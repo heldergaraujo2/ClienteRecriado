@@ -854,9 +854,38 @@ Três hipóteses para essa ligação foram testadas e **todas descartadas**:
    3,87% — medido em 802 arquivos. Em 93% dos casos difere de ambos, então o
    índice de UV não pode ser o de vértice nem o de normal.
 
-**Onde procurar a seguir:** os bytes 24..59 do registro de triângulo, que não são
-zero em 59,1% dos registros e permanecem sem identificação. É o único espaço do
-registro ainda não examinado.
+**Quarta hipótese testada e descartada: os bytes 24..59.** Varridos os 39
+deslocamentos de 24 a 62 medindo a fração de `u16` abaixo de `numTexCoords`, com
+controle limpo (mesma leitura sobre o array `f32` de UV, 5,50%; acaso 0,15%).
+
+O resultado **não é um pico, é um platô**: todos os deslocamentos de 24 a 62
+ficam entre 40% e 94%, com razão de 7,3× a 17,1× sobre o controle, variando de
+forma gradual. Não há nenhum deslocamento que se destaque.
+
+Isso é assinatura de **teste sem poder discriminativo**, não de um campo real. A
+comparação é direta: quando o índice de vértice foi procurado no mesmo registro,
+os deslocamentos +0/+8/+16 deram 94–100% e os vizinhos caíram — um pico nítido.
+Aqui não há pico, então não há campo.
+
+A explicação mais provável para o platô é que esses bytes contenham **dados em
+ponto flutuante**, não índices: interpretar `f32` como `u16` produz valores
+pequenos com frequência, porque o expoente ocupa os bits altos. Isso é coerente
+com o platô gradual e incompatível com um array de índices.
+
+**Estado do índice de UV: NÃO RESOLVIDO.** Quatro caminhos fechados:
+
+| Hipótese | Resultado |
+|---|---|
+| Campo em +4 do registro | padding (64,95% zero, 18,18% 0xCDCD) |
+| Quarto canto em +24 | não existe (nível de ruído) |
+| Relação implícita por posição | refutada (93% dos arquivos diferem) |
+| Bytes 24..59 | platô sem pico; provavelmente `f32`, não índices |
+
+**O que não foi tentado:** que o índice de UV esteja **fora** do registro de
+triângulo — por exemplo, num array paralelo de `ntri` entradas em outra parte do
+corpo, ou nos 4 bytes não identificados do cabeçalho (offsets 48..51). Também não
+foi testado se os bytes 24..59 são de fato `f32`, o que confirmaria ou eliminaria
+a explicação acima.
 
 ### Verificação independente da decifragem v0x0C
 
