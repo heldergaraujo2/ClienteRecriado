@@ -1,0 +1,61 @@
+# Cálculo final determinístico ratio 1846,28× — ciclo13 item3
+# Passo a passo reproduzível, qualquer pessoa pode bater exatamente
+
+## População
+total_bmd 10090
+valid 10023 (99,34% container válido length_consistent)
+plaintext 8520 (payload em claro após BmdV0CDecrypt Printable check 32B)
+opaque 1503
+parsed 8406 (83,31% vértice+normal level3)
+with_tri 8405 (83,30% com triângulos level4)
+with_bones_loose 3693 (36,60% total, 43,9329% geom, 7879 bones)
+with_bones_strict 1186 (11,75% total, 14,1090% geom)
+
+## Controle mesma classe
+# 3 offsets por arquivo 100,200,payload/2, bc=1, com ciclo detection parent 0 self-loop rejeitado como ciclo A->A, overflow, bc>64
+ctrl_files 8405 (arquivos com geometria e triângulos testados = with_tri)
+trials 25215 (8405*3)
+loose_hits 2
+strict_hits 0
+ctrl per trial loose rate = 2/25215 = 0,007932% = 0.00007932
+  Cálculo: 2 / 25215 = 0.00007932 = 0.007932%
+ctrl per trial strict rate = 0/25215 = 0%
+ctrl per file loose files 2 rate = 2/8405 = 0,023795% = 0.00023795
+  Cálculo: 2 / 8405 = 0.00023795 = 0.023795%
+ctrl per file strict files 0 rate = 0%
+
+## Real per geom
+real loose per geom = 3693/8406 = 43,9329%
+  Cálculo: 3693 / 8406 = 0.439329 = 43,9329%
+real loose per total = 3693/10090 = 36,6006%
+real strict per geom = 1186/8406 = 14,1090%
+  Cálculo: 1186 / 8406 = 0.14109 = 14,1090%
+real strict per total = 1186/10090 = 11,7542%
+
+## Fórmulas e ratios
+ratio per file LOOSE (mesma unidade CORRETO):
+  real per geom / ctrl per file = 43,9329% / 0,023795% = 1846,28×
+  Cálculo: 0.439329 / 0.00023795 = 1846.28
+  Fórmula: (3693/8406) / (2/8405) = 1846,28×
+
+ratio per trial LOOSE (unidades diferentes INVÁLIDO):
+  real per geom / ctrl per trial = 43,9329% / 0,007932% = 5538,84×
+  Não usar, unidades diferentes arquivo vs tentativa
+
+ratio STRICT (controle 0 => limite superior 1/N):
+  limite superior per trial = 1/25215 = 0,003966% = 0.00003966
+  ratio limite sup per trial STRICT = 14,1090% / 0,003966% = 3557,58×
+  Cálculo: 0.14109 / 0.00003966 = 3557.58
+  limite superior per file = 1/8405 = 0,011898% = 0.00011898
+  ratio limite sup per file STRICT = 14,1090% / 0,011898% = 1185,86×
+  Cálculo: 0.14109 / 0.00011898 = 1185.86
+
+## Validação cruzada
+# Ferramenta mutool bmdreport deve dar mesmos números 8406/8405/3693/1186
+# Tool /tmp/ciclo12_final_ratio.cpp reproduz
+# Controle com ciclo detection visited[64] self-loop parent==i rejeitado como ciclo A->A
+# Sem ciclo detection, FP seria 8,32% (700/8405) ratio per file 5,43× marginal, com ciclo detection FP 0,023795% ratio 1846× altamente discriminativo
+
+## Conclusão
+Valor único definitivo: 1846× (1846,28× com mais precisão) para loose per file, e >3557× per trial / >1185× per file para strict com limite superior 1/N
+Headline conservador: strict 1186 com limite superior, loose 3693 com ratio 1846× altamente discriminativo

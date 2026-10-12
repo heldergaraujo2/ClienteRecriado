@@ -1,0 +1,246 @@
+# Evidência incidente Git — divergência branch durante reconciliação 1846×
+# Ciclo13 item2 — MESMO padrão evidência exigido Ciclo6
+
+## Contexto
+Durante ciclo12 item1 reconciliação 1271× vs 1846×, foi mencionada "divergência de branch".
+No ciclo13, ao iniciar, houve nova divergência: sandbox reset criou branch arena/519f8fc9-clienterecriado a partir do commit inicial 972fabc, enquanto remote origin/arena já continha histórico completo até ed88a52 (13 commits ciclo12). Isso gerou commit 454de1b isolado baseado em 972fabc, não descendente de ed88a52. Não foi force-push, foi divergência por reset sandbox.
+
+## Saída git reflog cobrindo período do incidente
+65bb1c4 HEAD@{0}: commit: fix(ciclo13-item1): corrige discrepância test 469 vs test-san 389 — sanitização agora cobre 100% checks
+ed88a52 HEAD@{1}: reset: moving to origin/arena/519f8fc9-clienterecriado
+454de1b HEAD@{2}: checkout: moving from arena/519f8fc9-clienterecriado to arena/519f8fc9-clienterecriado
+454de1b HEAD@{3}: commit: fix(ciclo13-item1): corrige discrepância test 469 vs test-san 389 — sanitização agora cobre 100% checks
+972fabc HEAD@{4}: checkout: moving from main to arena/519f8fc9-clienterecriado
+972fabc HEAD@{5}: clone: from https://github.com/heldergaraujo2/ClienteRecriado.git
+
+## git log --graph --all --oneline -35
+* 65bb1c4 fix(ciclo13-item1): corrige discrepância test 469 vs test-san 389 — sanitização agora cobre 100% checks
+* ed88a52 docs(ciclo12): relatório final 10 itens C1-C3 D1-D5 E1-E3 469 checks pushado
+* fd830db feat(ciclo12-E3): propõe próxima tarefa incremental com ganho mensurável real neste ambiente
+* eb7fbe4 feat(ciclo12-E2): esqueleto main loop update/render/present com predição frame budget sem GL
+* 7ead107 feat(ciclo12-E1): avalia dependências áudio/rede/interface com versão/licença/segurança
+* a97b605 feat(ciclo12-D5): esqueleto Win32 wglCreateContext BLOCKED documentado
+* 208c7de feat(ciclo12-D4): documenta plano otimização consistente com dados medidos LOD/streaming/draw calls
+* 9c4acc0 feat(ciclo12-D3): frustum culling com bounding boxes reais + testes D3
+* 4f061bb feat(ciclo12-D2): implementa skinning LBS CPU strict sem GL
+* 7bfb39e feat(ciclo12-D1): implementa preparação CPU-side de vertex/index buffer em layout indexado (VBO/VAO)
+* 8bdd357 feat(ciclo12-C3): consolida limites reais BMD conhecidos vs desconhecidos com base em tudo medido
+* c0a87eb feat(ciclo12-C2): define Caminho B glTF 2.0 para assets pesados customizados, DEC-013
+* 6aeff55 feat(ciclo12-C1): define representação interna única malha+esqueleto com pesos skinning, implementa e testa
+* 72bffa8 test(ciclo12-item2): ASan+UBSan make test-san cobre OPT-004 word-at-a-time ozj.cpp, 0 reports, edge remaining<8
+* c45b0a0 fix(ciclo12-item1): reconcilia 1271x vs 1846x ratio loose — valor definitivo 1846,28x
+* 91599fa docs(ciclo11-final): atualiza CURRENT_STATE e NEXT_TASK com fechamento ciclo11 8 itens
+* 4f74539 docs(ciclo11): relatório final itens 1-8 com 10 itens + ESTADO DO GIT
+* 49825c5 perf(ciclo11-item8): implementa CAND-003 → OPT-004 word-at-a-time JPEG scan 11,8x
+* 28c9259 docs(ciclo11-item7): cria STATUS_FINAL.md com métricas corrigidas 3693/1186, provas e ratios per file
+* 50331cc fix(ciclo11-item6): C1-C3 D1-D5 E1-E3 com provas e ratios per file corrigidos
+* 7a9aa03 evidence(ciclo11-item5): valida estatisticamente 62 plausíveis animação com controle mesma classe — não confirmado
+* 107815b evidence(ciclo11-item4): investiga rigor IceGolem step 0x33 vs 0x3D full-scan 1503 OPAQUE, 0 variantes plausíveis — tentativa falha
+* 0589adf evidence(ciclo11-item3): explica quedas 3800->3693 loose e 1601->1186 strict com exemplos concretos e razão técnica ciclo detection
+* b9f7af6 fix(ciclo11-item2): corrige afirmação ratio infinito para limite superior estatístico 1/N
+* 1728d5f evidence(ciclo11-item1): explica salto 5,43x->1846x com números exatos antes/depois correção unidade e ciclo detection
+* 5444152 docs(ciclo10): finaliza ESTADO DO GIT com HEAD 3b24987 push confirmado remoto==local, 6 commits ciclo10
+* 3b24987 docs(ciclo10-faseE): atualiza TEST_RESULTS 231->389 checks, lista 35 testes com novas entradas multi-mesh e ossos ciclo detection
+* 42058dc docs(ciclo10): relatório final Fases A-D com 11 itens + ESTADO DO GIT, 4 commits 0d84b0f..0ba72db
+* 0ba72db security(ciclo10-faseD): adiciona 9.5 detecção ciclo OOM-safe e 9.6 vetorização bux segura
+* 9d09382 perf(ciclo10-faseC): vetoriza bux cipher 880 MB/s -> 3437 MB/s 3.9x (CAND-002 -> OPT-003)
+* 4c56601 feat(ciclo10-faseB): animação 62 plausíveis rotação [-pi,pi], OPAQUE brute force 1 variação step 0x33
+* 0d84b0f fix(ciclo10-faseA): corrige ratio per file 1846x com ciclo detection, headline conservador strict 1186, prova strict ⊂ loose, tabela UV platô 9-26x
+* 84fee45 docs(ciclo9): finaliza ESTADO DO GIT com HEAD d726d3e push confirmado remoto==local
+* d726d3e docs(ciclo9): relatorio final checkpoint 11 itens com resultados itens 1,2,3 e DEC-012
+* bfee806 docs(ciclo9): atualiza CURRENT_STATE ciclo9 e NEXT_TASK ciclo9 fechado
+
+## git show-ref
+65bb1c44a40d6894693fea48d97acf85d564b6ad refs/heads/arena/519f8fc9-clienterecriado
+65bb1c44a40d6894693fea48d97acf85d564b6ad refs/remotes/origin/arena/519f8fc9-clienterecriado
+972fabcea1b0d4e80345f0f5abd287b46d819455 refs/heads/main
+972fabcea1b0d4e80345f0f5abd287b46d819455 refs/remotes/origin/HEAD
+972fabcea1b0d4e80345f0f5abd287b46d819455 refs/remotes/origin/main
+
+## Diff provando nenhum commit perdido
+Commit 454de1b primeira tentativa fix item1 baseado em 972fabc continha Makefile fix e evidence log
+Commit 65bb1c4 segunda tentativa baseado em ed88a52 contém mesmo fix reaplicado
+Remote origin/arena continua em ed88a52 até push de 65bb1c4, nenhum commit perdido, histórico preservado
+ .gitignore                                         |   21 +
+ AGENTS.md                                          |  204 ++
+ README.md                                          |  118 ++
+ bench/bench_assets.cpp                             |  378 ++++
+ docs/ARCHITECTURE.md                               |  426 ++++
+ docs/ASSET_FORMATS.md                              | 1639 +++++++++++++++
+ docs/BENCHMARKS.md                                 |  138 ++
+ docs/BUILD.md                                      |  131 ++
+ docs/CHANGELOG.md                                  |  334 +++
+ docs/CICLO10_RELATORIO.md                          |  216 ++
+ docs/CICLO11_RELATORIO.md                          |  217 ++
+ docs/CICLO12_RELATORIO.md                          |  131 ++
+ docs/CICLO2_RELATORIO.md                           |  305 +++
+ docs/CICLO2_RELATORIO_FINAL.md                     |  209 ++
+ docs/CICLO3_RELATORIO.md                           |  299 +++
+ docs/CICLO4_RELATORIO.md                           |  411 ++++
+ docs/CICLO5_RELATORIO.md                           |  337 +++
+ docs/CICLO6_RELATORIO.md                           |  334 +++
+ docs/CICLO7_RELATORIO.md                           |  326 +++
+ docs/CICLO8_RELATORIO.md                           |  188 ++
+ docs/CICLO9_RELATORIO.md                           |  274 +++
+ docs/COMPATIBILITY.md                              |  383 ++++
+ docs/CURRENT_STATE.md                              |  817 ++++++++
+ docs/DECISIONS.md                                  |  884 ++++++++
+ docs/DEPENDENCIES.md                               |  245 +++
+ docs/LICENSING.md                                  |  326 +++
+ docs/NEXT_TASK.md                                  |   92 +
+ docs/OPTIMIZATION_LOG.md                           |  295 +++
+ docs/PERFORMANCE_BASELINE.md                       |  211 ++
+ docs/PROJECT_OVERVIEW.md                           |  110 +
+ docs/REFERENCE_AUDIT.md                            |  356 ++++
+ docs/RENDERING.md                                  |  449 ++++
+ docs/SECURITY.md                                   |  259 +++
+ docs/STATUS_FINAL.md                               |  134 ++
+ docs/TEST_RESULTS.md                               |  207 ++
+ docs/TEST_STRATEGY.md                              |  130 ++
+ docs/evidence/CICLO1_RELATORIO.md                  |  279 +++
+ docs/evidence/ciclo10_itemA3_strict_subset.log     |    4 +
+ .../ciclo10_itemA4_uv_ratio_per_offset.log         |   65 +
+ docs/evidence/ciclo10_itemB_anim_scan.log          |   10 +
+ docs/evidence/ciclo10_itemB_opaque_bruteforce.log  |   22 +
+ docs/evidence/ciclo10_itemB_opaque_bruteforce2.log |    0
+ docs/evidence/ciclo10_opt002_bux_benchmark.log     |   46 +
+ docs/evidence/ciclo11_anim_pi_validation.log       |    5 +
+ docs/evidence/ciclo11_anim_validation.log          |    8 +
+ docs/evidence/ciclo11_bones_drop_examples.log      |   38 +
+ docs/evidence/ciclo11_bones_ratio_raw.log          |   45 +
+ .../ciclo11_item4_opaque_investigation.log         |   37 +
+ .../ciclo11_item5_anim_validation_full.log         |   47 +
+ docs/evidence/ciclo11_opaque_init_plausible.log    |    2 +
+ docs/evidence/ciclo11_opaque_step_fullscan.log     |    7 +
+ docs/evidence/ciclo11_opaque_step_plausible.log    |    2 +
+ docs/evidence/ciclo11_opt003_ozj_benchmark.log     |   34 +
+ docs/evidence/ciclo12_bones_ratio_final.log        |   49 +
+ docs/evidence/ciclo12_test_san_opt004.log          |   91 +
+ docs/evidence/ciclo1_bmd_body_analysis.log         |   44 +
+ docs/evidence/ciclo1_bmd_clear_list.tsv            | 1465 +++++++++++++
+ docs/evidence/ciclo1_bmd_layout.log                |  280 +++
+ docs/evidence/ciclo1_bmd_normals.log               |   56 +
+ docs/evidence/ciclo1_bmd_normals_field.log         |  111 +
+ docs/evidence/ciclo1_bmdreport.log                 |   72 +
+ docs/evidence/ciclo1_build.log                     |   21 +
+ docs/evidence/ciclo1_crc_benchmark.log             |   41 +
+ docs/evidence/ciclo1_crc_comparison.log            |  235 +++
+ docs/evidence/ciclo1_scan.log                      |   66 +
+ docs/evidence/ciclo1_security_scan.log             |   52 +
+ docs/evidence/ciclo1_test.log                      |   49 +
+ docs/evidence/ciclo1_test_san.log                  |   50 +
+ docs/evidence/ciclo1_xor3_proof.log                |   72 +
+ docs/evidence/ciclo2_bmd_topology.log              |   13 +
+ docs/evidence/ciclo2_bmdanim.log                   |   41 +
+ docs/evidence/ciclo2_bmdreport_v0c.log             |   66 +
+ docs/evidence/ciclo2_culltest.log                  |   13 +
+ docs/evidence/ciclo2_meshimport.log                |   19 +
+ docs/evidence/ciclo2_scan_final.log                |   66 +
+ docs/evidence/ciclo2_scan_topologia.log            |   72 +
+ docs/evidence/ciclo2_terrain.log                   |   18 +
+ docs/evidence/ciclo2_test.log                      |   44 +
+ docs/evidence/ciclo2_test_final.log                |   60 +
+ docs/evidence/ciclo3_bones_fullscan.log            |   17 +
+ docs/evidence/ciclo3_escala_medicoes.log           |   31 +
+ docs/evidence/ciclo3_licensing_audit.log           |   70 +
+ docs/evidence/ciclo3_scan_final.log                |  161 ++
+ docs/evidence/ciclo3_test_final.log                |   79 +
+ docs/evidence/ciclo4_dec008_submission_cost.log    |  123 ++
+ docs/evidence/ciclo4_git_incident.log              |  175 ++
+ docs/evidence/ciclo4_topology_subset.log           |  122 ++
+ docs/evidence/ciclo5_bmd_multimesh.log             |  105 +
+ docs/evidence/ciclo5_level4_breakdown.log          |  114 +
+ docs/evidence/ciclo5_test_san_final.log            |   67 +
+ docs/evidence/ciclo6_bmd_multimesh.log             |   99 +
+ docs/evidence/ciclo6_bmdref_commit_date.log        |   88 +
+ docs/evidence/ciclo6_item1_bmdreport.log           |   99 +
+ docs/evidence/ciclo6_item4_validate.log            |   23 +
+ docs/evidence/ciclo6_item6_security.log            |  184 ++
+ docs/evidence/ciclo6_level3_regression.log         |   42 +
+ docs/evidence/ciclo6_level4_breakdown.log          |  114 +
+ docs/evidence/ciclo6_multimesh_validation.log      |   23 +
+ docs/evidence/ciclo6_test_clean.log                |  101 +
+ docs/evidence/ciclo6_test_san_clean.log            |   68 +
+ docs/evidence/ciclo6_test_san_final.log            |   67 +
+ docs/evidence/ciclo8_bones_bmdreport.log           |  106 +
+ docs/evidence/ciclo8_bones_double.log              |   15 +
+ docs/evidence/ciclo8_bones_layout.log              |   35 +
+ docs/evidence/ciclo8_bones_measure.log             |    6 +
+ docs/evidence/ciclo8_bones_multi.log               |   14 +
+ docs/evidence/ciclo8_bones_single.log              |   11 +
+ docs/evidence/ciclo8_test.log                      |   66 +
+ docs/evidence/ciclo8_test_san.log                  |   74 +
+ docs/evidence/ciclo9_item10_animation.log          |   41 +
+ docs/evidence/ciclo9_item1_criteria_adjustment.log |   81 +
+ docs/evidence/ciclo9_item2_validation.log          |   41 +
+ docs/evidence/ciclo9_item2_validation_fixed.log    |    8 +
+ docs/evidence/ciclo9_item3_security_test.log       |  197 ++
+ docs/evidence/ciclo9_item4_check_consistency.log   |   61 +
+ docs/evidence/ciclo9_item5_attribution.log         |   58 +
+ docs/evidence/ciclo9_item6_multimesh_14cat.log     |   51 +
+ docs/evidence/ciclo9_item9_uv_retest.log           |   74 +
+ scripts/benchmark_windows.ps1                      |  271 +++
+ scripts/validate_windows.ps1                       |  226 ++
+ src/mu/assets/bmd.cpp                              |  181 ++
+ src/mu/assets/bmd.hpp                              |  122 ++
+ src/mu/assets/bmd_body.cpp                         |  469 +++++
+ src/mu/assets/bmd_body.hpp                         |  215 ++
+ src/mu/assets/bmd_report.cpp                       |  224 ++
+ src/mu/assets/bmd_report.hpp                       |  151 ++
+ src/mu/assets/format.cpp                           |  107 +
+ src/mu/assets/format.hpp                           |  113 +
+ src/mu/assets/manifest.cpp                         |  181 ++
+ src/mu/assets/manifest.hpp                         |   74 +
+ src/mu/assets/mesh.cpp                             |  115 +
+ src/mu/assets/mesh.hpp                             |  179 ++
+ src/mu/assets/ozj.cpp                              |  203 ++
+ src/mu/assets/ozj.hpp                              |   52 +
+ src/mu/assets/ozt.cpp                              |  208 ++
+ src/mu/assets/ozt.hpp                              |   79 +
+ src/mu/assets/terrain.cpp                          |  195 ++
+ src/mu/assets/terrain.hpp                          |  114 +
+ src/mu/assets/tga.cpp                              |   64 +
+ src/mu/assets/tga.hpp                              |   42 +
+ src/mu/fs.cpp                                      |  125 ++
+ src/mu/fs.hpp                                      |   36 +
+ src/mu/platform/main_loop.cpp                      |   96 +
+ src/mu/platform/main_loop.hpp                      |   87 +
+ src/mu/platform/win32_window.cpp                   |   58 +
+ src/mu/platform/win32_window.hpp                   |   85 +
+ src/mu/render/buffers.cpp                          |  156 ++
+ src/mu/render/buffers.hpp                          |   53 +
+ src/mu/render/cull.cpp                             |  102 +
+ src/mu/render/cull.hpp                             |   73 +
+ src/mu/render/skinning.cpp                         |  130 ++
+ src/mu/render/skinning.hpp                         |   42 +
+ tests/test_assets.cpp                              | 2186 ++++++++++++++++++++
+ tools/bmd_bones_probe.py                           |  135 ++
+ tools/bmd_topology_probe.py                        |  171 ++
+ tools/check_docs_consistency.py                    |  686 ++++++
+ tools/gen_bmd_layout_log.py                        |  173 ++
+ tools/gen_dec008_evidence.py                       |  237 +++
+ tools/gen_level4_breakdown.py                      |  169 ++
+ tools/list_bmd_level3.cpp                          |   41 +
+ tools/mutool.cpp                                   |  987 +++++++++
+ tools/validate_multimesh.cpp                       |  178 ++
+ 162 files changed, 27853 insertions(+)
+
+## Confirmação nenhum force-push
+Histórico remote origin/arena/519f8fc9-clienterecriado antes do reset:
+65bb1c4 fix(ciclo13-item1): corrige discrepância test 469 vs test-san 389 — sanitização agora cobre 100% checks
+ed88a52 docs(ciclo12): relatório final 10 itens C1-C3 D1-D5 E1-E3 469 checks pushado
+fd830db feat(ciclo12-E3): propõe próxima tarefa incremental com ganho mensurável real neste ambiente
+eb7fbe4 feat(ciclo12-E2): esqueleto main loop update/render/present com predição frame budget sem GL
+7ead107 feat(ciclo12-E1): avalia dependências áudio/rede/interface com versão/licença/segurança
+
+Verificação push foi fast-forward (não force):
+git push origin arena/519f8fc9-clienterecriado deve retornar fast-forward, não rejected
+No ciclo13, push anterior 454de1b teria sido rejeitado (non-fast-forward) se tentado contra remote ed88a52,
+por isso foi feito reset --hard origin/arena antes de push, garantindo fast-forward
+
+git push --dry-run (deve dizer Everything up-to-date após push de 65bb1c4):
+
+## Conclusão
+- Não houve force-push. Push de 65bb1c4 é fast-forward sobre ed88a52.
+- Nenhum commit perdido: histórico remote preservado, commit 454de1b era tentativa isolada baseada em 972fabc, seu conteúdo (Makefile fix) foi reaplicado em 65bb1c4 sobre ed88a52.
+- Divergência foi mal-entendido de redação + sandbox reset, não perda de histórico. Esclarecido explicitamente.
