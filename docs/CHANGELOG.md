@@ -92,6 +92,39 @@ refinement.
   [`SECURITY.md`](SECURITY.md).
 - 12 `Thumbs.db` files (677,376 bytes) are shipped in the asset tree.
 
+## Ciclo 6 — auditoria ciclo 5 e correção de bloqueios críticos (itens 0-6, em andamento)
+
+### Corrigido (auditoria ciclo 6 item 0 — bloqueio crítico)
+
+- **Atribuição licença externa com data futura e e-mail placeholder.** Commit `3f11bf89f3702261174d8efa1436d56a15c7d97a`
+  de `xulek/muonline-bmd-viewer` reportado como 24 jul 2026 com e-mail `xulek@example.com`.
+  Verificação bruta `git -C /tmp/bmdref log -1 --format=fuller` mostra Author `xulek <xulek121@gmail.com>`
+  (não `example.com`), AuthorDate `Fri Jul 24 21:10:59 2026 +0200`, CommitDate idem, branch `main`.
+  `package.json` author é `xulek <xulek@example.com>` (domínio reservado RFC 2606, placeholder).
+  Repositório inteiro datado 2025-07-02 a 2026-07-24, com inconsistências de ordenação (2025-11 intercalado),
+  indicando clock skew. Sem arquivo LICENSE, apenas campo `license: ISC`. Atribuição marcada como
+  **NÃO CONFIRMADA** até verificação adicional, evidência bruta salva em `evidence/ciclo6_bmdref_commit_date.log`,
+  LICENSING.md e DEPENDENCIES.md atualizados.
+
+### Corrigido (auditoria ciclo 6 item 1 — população multi-mesh divergente)
+
+- **Divergência 4.257/4.251/4.256 explicada e corrigida.** Ferramenta `mutool bmdreport` confirma:
+  level3 8.406, meshCount1 4.149, meshCount0 1 (`player.bmd`), meshCount>1 4.256 verdadeiro multi-mesh,
+  meshCount!=1 4.257 (4.256+1). Soma distribuição 2.280+1.086+449+190+114+42+38+12+10+6+7+2+13+7=4.256.
+  - 4.257 usado ciclo 4 como total !=1 (4256 multi +1 zero) para queda 8.406→4.149.
+  - 4.251 usado ciclo 5 como >1 no snapshot 8.401 com regressão 10k (8.401-4.149-1), histórico.
+  - 4.256 correto final snapshot 8.406. Erro anterior: contar 4.257 como multi-mesh puro sem separar zero-faces,
+    e reutilizar 4.251 de snapshot com regressão. Docs ARCHITECTURE, ASSET_FORMATS, COMPATIBILITY, CURRENT_STATE
+    corrigidos, evidência `evidence/ciclo6_item1_bmdreport.log`.
+
+### Documentado (auditoria ciclo 6 item 2 — violação commits atômicos)
+
+- **Commit `1fc1024` agrupou 3 itens distintos** (contabilidade nível 4, validação estatística multi-mesh,
+  licenciamento referência externa) em um único commit com mensagem `docs: itens 2-4 auditoria ciclo5`,
+  violando regra permanente de commits atômicos (1 unidade coerente por commit, AGENTS.md e auditoria ciclo 1).
+  Não desfeito (push já realizado, reescrever histórico proibido), mas registrado como desvio em DECISIONS.md
+  (DEC-011) e aqui. A partir deste ciclo, 1 commit por item da auditoria (0,1,2...), com push após cada um.
+
 ## Ciclo 5 — auditoria do ciclo 4 (itens 1-5) e extensão multi-mesh
 
 ### Corrigido (auditoria item 1)

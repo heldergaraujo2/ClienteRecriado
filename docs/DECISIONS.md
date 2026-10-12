@@ -725,3 +725,54 @@ testável é o caminho mais curto para afirmar compatibilidade não verificada.
 `grep -rn "glGenBuffers\|wglCreateContext\|glDrawElements\|GL/gl.h\|windows.h.*GL" src/`
 deve retornar vazio enquanto DEC-008 estiver incompleta. Se retornar algo, o
 código foi escrito antes da decisão e deve ser revertido ou a decisão completada.
+
+---
+
+## DEC-011 — Violação de commits atômicos no ciclo 6 (commit 1fc1024) e correção de processo
+
+**Data:** ciclo 6, item 2 da auditoria ciclo 6 · **Status:** desvio documentado, processo corrigido
+
+### O que aconteceu
+
+Commit `1fc10242b190f78d5ffed988b80da0c754df5c14` com mensagem
+`docs: itens 2-4 auditoria ciclo5 - contabilidade, validacao multi-mesh, licenciamento`
+agrupou **três unidades coerentes distintas** em um único commit:
+
+1. **Contabilidade nível 4 falhando 1.685 arquivos** (1.483 OPAQUE 88,01% + 67 inválidos 3,98% + 134 geometria não parseada 7,95% + 1 zero faces 0,06%, multi-mesh 0%). Gerado por `tools/gen_level4_breakdown.py`, evidência `ciclo6_level4_breakdown.log`.
+2. **Validação estatística multi-mesh** full-scan 4.256 arquivos (12.590 malhas), parsing 100%, nome estrito 14,27% vs controle 0,0376% razão 379×, fraco 52,20% vs controle 77,51% 0,67× não discrimina. Evidência `ciclo6_multimesh_validation.log`.
+3. **Licenciamento referência externa multi-mesh** fonte `xulek/muonline-bmd-viewer` commit `3f11bf89`, `bmd-loader.ts:348-422`, ISC, loop inspirado, header 14B vs 10B, triângulo diferente, `git show --stat 3a44591` confirma nenhum `.ts` copiado.
+
+Arquivos tocados: 14 arquivos, +1015/-79 linhas, cobrindo `ASSET_FORMATS.md`, `COMPATIBILITY.md`, `CURRENT_STATE.md`, `DEPENDENCIES.md`, `LICENSING.md`, `NEXT_TASK.md`, 4 evidências, 3 ferramentas.
+
+Isso viola regra permanente registrada em `AGENTS.md` §4 e reforçada na auditoria ciclo 1 item 8:
+**commit imediatamente após cada unidade coerente de trabalho, não acumular tarefas não relacionadas,
+mensagem descritiva do que mudou e por quê, 1 commit por item**.
+
+### Por que não foi desfeito
+
+- Push já realizado para `origin/arena/519f8fc9-clienterecriado` (`1fc1024` está no remoto).
+- Regra `sem reescrever histórico` e `sem force-push sem autorização` proíbe `git reset --hard` ou `rebase -i`.
+- Desfazer exigiria `git revert` de 14 arquivos e re-aplicar em 3 commits, gerando ruído maior que o desvio original.
+- Auditoria exige **documentar desvio**, não reescrever.
+
+### Decisão
+
+- **Documentar desvio** em `CHANGELOG.md` ciclo 6 e nesta DEC-011, com hash, mensagem e lista de itens agrupados.
+- **Corrigir processo a partir do ciclo 6 item 0:** 1 commit por item da auditoria (0,1,2,3,4,5,6), cada um com evidência bruta, push após cada commit, confirmação `git rev-parse HEAD` vs `git ls-remote`.
+- **Trava:** `tools/check_docs_consistency.py` não verifica atomicidade de commits, mas `AGENTS.md` §4 exige revisão manual de `git log --oneline -20` antes de push.
+
+### Como verificar
+
+```
+$ git show --stat 1fc1024
+ 14 files changed, 1015 insertions(+), 79 deletions(-)
+$ git log --oneline --grep="itens 2-4"
+ 1fc1024 docs: itens 2-4 auditoria ciclo5
+```
+
+A partir de `e858c69` (item 0) e `44b5c92` (item 1), cada item tem commit próprio.
+
+### Consequência
+
+Processo corrigido, histórico preservado, desvio registrado. Não afeta funcionalidade (docs apenas), mas afeta auditabilidade.
+
