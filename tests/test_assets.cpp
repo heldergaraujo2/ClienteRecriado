@@ -1392,6 +1392,54 @@ void TestTerrainHeight() {
   CHECK(noisy_smooth > 60.0);
   CHECK(noisy_smooth > smooth * 20.0);
 
+  // A BMP-headed file with the four-byte duplicated prefix. This is the layout
+  // measured on 44 of the 47 real files: "BM" at offset 0, real header at
+  // offset 4 with a declared size matching the remaining bytes.
+  const std::size_t kPix = 1078;
+  std::vector<std::uint8_t> bmp(4 + kPix + kBody, 0);
+  auto put32 = [&bmp](std::size_t o, std::uint32_t v) {
+    bmp[o] = static_cast<std::uint8_t>(v & 0xff);
+    bmp[o + 1] = static_cast<std::uint8_t>((v >> 8) & 0xff);
+    bmp[o + 2] = static_cast<std::uint8_t>((v >> 16) & 0xff);
+    bmp[o + 3] = static_cast<std::uint8_t>((v >> 24) & 0xff);
+  };
+  bmp[0] = 'B'; bmp[1] = 'M';  // duplicated prefix, deliberately not a real size
+  bmp[4] = 'B'; bmp[5] = 'M';
+  put32(6, static_cast<std::uint32_t>(bmp.size() - 4));  // declared size
+  put32(14, kPix);                                        // pixel offset
+  put32(18, 40);                                          // DIB header size
+  put32(22, 256);                                         // width
+  put32(26, 256);                                         // height
+  bmp[32] = 8;                                            // bpp
+  for (std::size_t i = 0; i < kBody; ++i) bmp[4 + kPix + i] = 42;
+  mu::TerrainHeight hbmp;
+  const mu::Status sb =
+      mu::TerrainParseHeight(mu::ByteView(bmp.data(), bmp.size()), &hbmp);
+  CHECK(sb.ok());
+  CHECK(hbmp.complete);
+  // The pixel data must come from the BMP offset, not the end of the file, and
+  // the fallback flag must be clear -- that flag is how a caller tells a decode
+  // from a guess.
+  CHECK(!hbmp.header_ignored);
+  CHECK_EQ(4u + kPix, hbmp.prefix_size);
+  CHECK_EQ(kBody, hbmp.cells.size());
+  CHECK(hbmp.cells[0] == 42);
+  CHECK(hbmp.cells[kBody - 1] == 42);
+
+  // A BMP-headed file whose declared size does not match must fall back rather
+  // than read pixels from a wrong offset. Silently trusting the header is what
+  // the earlier version did.
+  std::vector<std::uint8_t> bad = bmp;
+  // Write into `bad`, not `bmp`: put32 above captures bmp by reference, and
+  // using it here would corrupt the fixture the earlier assertions depend on.
+  bad[6] = static_cast<std::uint8_t>(999999 & 0xff);
+  bad[7] = static_cast<std::uint8_t>((999999 >> 8) & 0xff);
+  bad[8] = static_cast<std::uint8_t>((999999 >> 16) & 0xff);
+  bad[9] = static_cast<std::uint8_t>((999999 >> 24) & 0xff);
+  mu::TerrainHeight hbad;
+  CHECK(mu::TerrainParseHeight(mu::ByteView(bad.data(), bad.size()), &hbad).ok());
+  CHECK(hbad.header_ignored);
+
   // A file shorter than one grid is a failure, not a partial success.
   std::vector<std::uint8_t> tiny(100, 0);
   mu::TerrainHeight ht;
