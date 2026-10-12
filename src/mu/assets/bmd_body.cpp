@@ -71,8 +71,8 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
     v.y = ReadF32LE(p + 4);
     v.z = ReadF32LE(p + 8);
     // The two small integers trail the coordinates, they do not lead them.
-    v.node = static_cast<int16_t>(ReadU16LE(p + 12));
-    v.bind_vertex = static_cast<int16_t>(ReadU16LE(p + 14));
+    v.aux0 = ReadU16LE(p + 12);
+    v.aux1 = ReadU16LE(p + 14);
     if (!IsFiniteFloat(v.x) || !IsFiniteFloat(v.y) || !IsFiniteFloat(v.z)) {
       out->problem = "non-finite vertex coordinate";
       return Status::Make(Status::kCorrupt, out->problem);

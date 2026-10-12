@@ -849,8 +849,8 @@ std::vector<std::uint8_t> MakeBmdBody(const char *name,
     PutF32Le(out, v.x);
     PutF32Le(out, v.y);
     PutF32Le(out, v.z);
-    PutU16Le(out, static_cast<std::uint16_t>(v.node));
-    PutU16Le(out, static_cast<std::uint16_t>(v.bind_vertex));
+    PutU16Le(out, v.aux0);
+    PutU16Le(out, v.aux1);
   }
   for (const mu::BmdNormal &n : norms) {
     // 20 bytes: the vector first, two trailing floats.
@@ -875,8 +875,8 @@ void TestBmdBodyParsesVerifiedLayout() {
     v.x = static_cast<float>(i) * 1.5f;
     v.y = static_cast<float>(i) * -0.25f;
     v.z = 3.0f;
-    v.node = static_cast<std::int16_t>(600 + i);
-    v.bind_vertex = static_cast<std::int16_t>(i);
+    v.aux0 = static_cast<std::uint16_t>(600 + i);
+    v.aux1 = static_cast<std::uint16_t>(i);
     verts.push_back(v);
   }
   std::vector<mu::BmdNormal> norms;
@@ -913,7 +913,7 @@ void TestBmdBodyParsesVerifiedLayout() {
   CHECK(parsed.vertices[3].x == 4.5f);
   CHECK(parsed.vertices[3].y == -0.75f);
   CHECK(parsed.vertices[3].z == 3.0f);
-  CHECK_EQ(603, parsed.vertices[3].node);
+  CHECK_EQ(603u, parsed.vertices[3].aux0);
   CHECK(parsed.normals[6].ny == 1.0f);
   CHECK(parsed.normals[6].aux0 == 0.0f);
 }

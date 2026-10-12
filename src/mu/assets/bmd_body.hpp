@@ -68,10 +68,16 @@ struct BmdVertex {
   float x = 0.0f;
   float y = 0.0f;
   float z = 0.0f;
-  /// Trailing small integers. Measured below 200 in 99.94% and 95.53% of
-  /// records respectively, consistent with a bone index and a vertex binding.
-  int16_t node = 0;
-  int16_t bind_vertex = 0;
+  /// Trailing small integers, unidentified. They were briefly named node and
+  /// bind_vertex on the strength of being small, and that was wrong: aux0 has
+  /// median 1, p99 68 and maximum 88, while boneCount in the same files is
+  /// typically 1 to 8. A bone index does not reach 88. They are not texture
+  /// coordinate indices either — that test passes at 99.89% but does not
+  /// discriminate, because the values are almost always below 200 and so is
+  /// numTexCoords. Kept unnamed so the name does not become a false fact that
+  /// later code assumes.
+  uint16_t aux0 = 0;
+  uint16_t aux1 = 0;
 };
 
 struct BmdNormal {

@@ -678,7 +678,7 @@ com as distribuições medidas, mas não foram verificados um a um.
 
 | Registro | Tamanho | Conteúdo |
 |---|---|---|
-| Vértice | 16 B | `f32 x` + `f32 y` + `f32 z` + `i16 node` + `i16 bindVertex` |
+| Vértice | 16 B | `f32 x` + `f32 y` + `f32 z` + `u16 aux0` + `u16 aux1` |
 | Normal | 20 B | `f32 nx` + `f32 ny` + `f32 nz` + `f32 aux0` + `f32 aux1` |
 | Triângulo | 64 B | 3 referências de 8 B em +0/+8/+16: `u16 vértice` + `u16 normal` + `u16 opcional` + `u8 flag` + `u8 pad` |
 | Osso | não verificado neste projeto | — |
@@ -691,6 +691,21 @@ com as distribuições medidas, mas não foram verificados um a um.
 - No registro de vértice, o `u16` no offset **12** é menor que 200 em **99,94%**
   dos registros e o do offset **14** em **95,53%**. Nos offsets 0 e 2, as cifras
   são 2,63% e 0,82%. Os inteiros pequenos ficam no fim.
+
+**Correção de uma identificação que este projeto fez sem base.** Esses dois
+campos foram nomeados `node` e `bindVertex` — índice de osso e de vértice — por
+serem inteiros pequenos. Medido em 358 arquivos, o `u16@12` tem mediana **1**,
+p99 **68** e **máximo 88**. `boneCount` nesses arquivos é tipicamente 1 a 8.
+**Um índice de osso não chegaria a 88**, então `node` está errado.
+
+Também não é índice de UV: testado contra `numTexCoords`, dá 99,89% de validade,
+mas o teste não discrimina — `numTexCoords` tem mediana 59 e o campo é quase
+sempre menor que 200, então a validade vem da aritmética, não de ser índice.
+
+**Estado dos dois campos: inteiros pequenos, sem identificação.** Voltam a
+`aux0`/`aux1` no código, que é o que a evidência sustenta. Nomear um campo é uma
+afirmação; sem evidência, o nome vira fato falso que outros passos passam a
+assumir.
 
 O projeto `xulek/muonline-bmd-viewer` inicia cada registro com índice de osso e
 padding, colocando as coordenadas no deslocamento 4. **Isso não se aplica a
