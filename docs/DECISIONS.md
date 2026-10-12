@@ -454,3 +454,74 @@ corrigiu.
 Todo relatório que citar renderização deve dizer, na mesma frase, qual é a fonte
 da geometria: asset original decodificado, ou sintética. Se não disser, o
 relatório está incompleto.
+
+---
+
+## DEC-010 — Frustum culling implementado antes da decisão formal de pipeline
+
+**Data:** ciclo 3 · **Status:** aceita, com registro retroativo · **Depende de:** DEC-008
+
+### O que aconteceu, sem suavizar
+
+`src/mu/render/cull.cpp` foi implementado **antes** de a decisão formal de
+pipeline de renderização (DEC-008) ter sido registrada com a comparação de
+custo/risco que este projeto exige. A ordem correta seria decidir o pipeline e
+depois escrever o código que dele depende. Isso não foi feito.
+
+Esta decisão existe para registrar o fato e estabelecer por que o código pode
+permanecer, não para justificá-lo retroativamente como se a ordem estivesse certa.
+
+### Por que o código pode permanecer
+
+Frustum culling é **matemática pura em CPU, sem nenhuma dependência de backend
+gráfico**. Verificável no arquivo:
+
+- Não inclui nenhum header de GL, D3D ou Vulkan.
+- Não chama nenhuma função de driver.
+- Sua entrada é uma matriz 4×4 `float[16]` e uma caixa delimitadora; sua saída é
+  um enum de três valores.
+
+Nenhuma dessas três coisas muda conforme o pipeline escolhido seja VBO/VAO,
+renderizador por software, ou outro. Um frustum é definido pela matriz
+view-projection, e toda API gráfica que existe produz essa matriz. Descartar
+geometria fora dele é anterior à pergunta "como desenho o que sobrou".
+
+**Teste de que a afirmação é verdadeira e não conveniente:** se amanhã o projeto
+decidir não usar OpenGL, `cull.cpp` compila e passa nos testes sem alteração.
+Isso é verificável hoje — o módulo não está em nenhum caminho que toque GL, e
+este ambiente não tem headers de GL, então ele já está sendo compilado e testado
+sem eles.
+
+### O que isto NÃO autoriza
+
+**Nenhum código que inclua headers de OpenGL/D3D deve ser escrito até DEC-008
+estar registrada com a comparação de custo/risco exigida.** Especificamente,
+estão bloqueados até lá:
+
+- `wglCreateContext`, `wglMakeCurrent` e qualquer criação de contexto
+- `glGenBuffers`, `glBindBuffer`, `glBufferData`, `glGenVertexArrays`
+- `glDrawElements`, `glDrawArrays`
+- Shaders, FBOs, ou qualquer chamada que presuma uma versão de API
+
+A distinção que torna culling aceitável e estes inaceitáveis: culling tem uma
+resposta correta independente da API; uma chamada de GL **é** a escolha da API.
+
+### Decisão formal de pipeline: AINDA PENDENTE
+
+DEC-008 registra a **intenção** (VBO/VAO como piso mínimo) mas não a comparação
+de custo/risco exigida por este projeto para decisões de arquitetura. Antes de
+qualquer código de backend, DEC-008 precisa ser completada com:
+
+1. Custo de implementação de cada alternativa considerada
+2. Risco de cada uma, incluindo o risco de não conseguir medir neste ambiente
+3. O que será medido para decidir entre elas, e em que hardware
+4. O que acontece com o requisito de compatibilidade visual em cada caso
+
+**Sem isso, o pipeline permanece não decidido, e nenhum código de backend deve
+ser iniciado.**
+
+### Como verificar o cumprimento
+
+`grep -rn "glGenBuffers\|wglCreateContext\|glDrawElements\|GL/gl.h\|windows.h.*GL" src/`
+deve retornar vazio enquanto DEC-008 estiver incompleta. Se retornar algo, o
+código foi escrito antes da decisão e deve ser revertido ou a decisão completada.
