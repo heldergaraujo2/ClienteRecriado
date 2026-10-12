@@ -204,6 +204,41 @@ seção seguinte.
 
 ---
 
+# Ciclo 7 — estado atual (auditoria ciclo 6, itens 0-6 resolvidos)
+
+> **Base:** `677a2cb` (fim ciclo 6) → HEAD `c29f473` (7 commits atômicos). Auditoria ciclo 6 exigiu 7 itens (0 bloqueio crítico + 1-6).
+
+## O que este ciclo resolveu
+
+| Item da auditoria | Resultado |
+|---|---|
+| 0 — bloqueio crítico data futura + e-mail placeholder | **Resolvido.** Evidência bruta `ciclo6_bmdref_commit_date.log`: `git log -1 --format=fuller 3f11bf8` → Author `xulek <xulek121@gmail.com>` 2026-07-24, CommitDate idem, branch `main`. `package.json` author `xulek <xulek@example.com>` placeholder RFC2606. Repo datado 2025-07-02 a 2026-07-24 com inconsistências ordenação, clock skew. Sem LICENSE file, apenas campo ISC. Marcado **NÃO CONFIRMADA**. |
+| 1 — população multi-mesh 4257/4251/4256 | **Resolvido.** Ferramenta `mutool bmdreport` confirma: level3 8406, meshCount1 4149, meshCount0 1, meshCount>1 4256 verdadeiro multi-mesh, meshCount!=1 4257 (4256+1). 4251 histórico snapshot 8401 com regressão 10k (8401-4149-1). Erro anterior: contar 4257 como multi-mesh puro sem separar zero-faces e reutilizar 4251. Evidência `ciclo6_item1_bmdreport.log`. |
+| 2 — violação commits atômicos 1fc1024 | **Documentado.** 14 arquivos +1015/-79 agrupando contabilidade+validação+licenciamento. Não desfeito (push já realizado, reescrever histórico proibido), registrado DEC-011 e CHANGELOG ciclo6. Processo corrigido 1 commit por item. |
+| 3 — build limpo | **Feito.** `make clean && make test` 384/0, `make clean && make test-san` 384/0 ASan 0 reports, logs `ciclo6_test_clean.log` e `ciclo6_test_san_clean.log`. |
+| 4 — expandir checker | **Feito.** 36→53 verificações, cobre breakdown 1685=1483+67+134+1 e taxas 14,27%/0,0376%/379×/52,20%/77,51%/0,67%/38,79%/100%. 0 falhas. |
+| 5 — controle estatístico precisão UV | **Descrito.** O que buscado: nome 32B tri_end+delta, estrito 3-31 printable+NUL+zeros, fraco ≥8 printable. Por que mesma classe: lição UV nona hipótese 24,82% vs 79,42% 3,2× falso, 70,34% vs 79,42% 1,13× rejeita. Controle estrito 0,0376% vs 14,27% 379× discriminativo, controle fraco 77,51% vs 52,20% 0,67× não discrimina, risco desalinhamento parser. |
+| 6 — confirmar commit segurança + ASan | **Confirmado.** `git show --stat 0a09a2b` 6 arquivos +469/-9, 4 testes Extreme/Truncated/Overflow/LargeCounts, ASan 0 reports, evidência `ciclo6_item6_security.log`. |
+
+## Métricas atuais (10.090 arquivos, inalterado desde ciclo 6, confirmado build limpo)
+
+| Nível | Arquivos | % | Triângulos |
+|---|---|---|---|
+| 1 — estrutura válida | 10.023 | 99,34% | — |
+| 2 — payload em claro | 8.571 | 84,95% | — |
+| 3 — vértice+normal | **8.406** | **83,31%** | — |
+| 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
+| 5 — ossos | 3.505 | 34,74% | — |
+| 6 — UV | 0 | 0,00% | — |
+
+Level 4b: multi-mesh 0, zero faces 1 (100%, `player.bmd`, meshCount 0). Breakdown falhando 1.685 = 1.483 OPAQUE (88,01%) + 67 inválidos (3,98%) + 134 geometria não parseada (7,95%) + 1 zero faces (0,06%). Multi-mesh 0. Distribuição meshCount: 0 em 1 (0,01%), 1 em 4.149 (49,36%), 2 em 2.280 (27,12%), 3 em 1.086 (12,92%), resto conforme `ciclo6_bmd_multimesh.log`. População multi-mesh correta 4.256 (2.280+1.086+449+190+114+42+38+12+10+6+7+2+13+7).
+
+## Testes
+
+384 checks, 0 failures · 53 verificações doc↔código, 0 falhas (era 36) · 0 warnings 12 flags (sign-conversion warnings em bmd_body.cpp existem mas não quebram) · ASan+UBSan 384/0.
+
+---
+
 # Ciclo 6 — estado atual (auditoria ciclo 5, itens 1-5)
 
 > **Base:** `56777bd` (fim ciclo 5) → HEAD atual. Auditoria do ciclo 5 exigiu 5 itens antes de fechar multi-mesh.
