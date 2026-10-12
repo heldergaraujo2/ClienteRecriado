@@ -1118,13 +1118,16 @@ void TestBmdTriangles() {
   CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &overflow).ok());
   CHECK(overflow.triangles.empty());
 
-  // More than one mesh means this single-block arithmetic does not apply, so
-  // triangles are left empty rather than read from the wrong place.
+  // More than one mesh: previously left empty because single-block arithmetic
+  // would read the wrong block. Now multi-mesh is implemented, so even a
+  // fixture with meshCount=2 but only one mesh's data still yields the first
+  // mesh's triangle (second mesh fails to fit, but first is kept).
   PutU16LeAt(body, 44, 1);
   PutU16LeAt(body, 32, 2);
   mu::BmdBody multi;
   CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &multi).ok());
-  CHECK(multi.triangles.empty());
+  CHECK(!multi.triangles.empty());
+  CHECK_EQ(1u, multi.triangles.size());
 }
 
 // The compatibility table reports level 3 (vertices + normals) and level 4
@@ -1173,15 +1176,16 @@ void TestTopologyIsSubsetOfGeometry() {
     mu::BmdAccumulate(r, &sum);
   }
 
-  // Case 2: multi-mesh. Geometry still parses; topology is deliberately not
-  // read because the single-block arithmetic would address the wrong block.
+  // Case 2: multi-mesh. Previously geometry parsed but topology was
+  // deliberately not read. Now multi-mesh is implemented, so it reaches both
+  // levels.
   {
     std::vector<std::uint8_t> m = body;
     PutU16LeAt(m, 32, 3);
     const mu::BmdFileReport r = classify(m, "multimesh");
     CHECK(r.geometry_parsed);
-    CHECK_EQ(0u, r.triangle_count);
-    CHECK(r.topology_skip == mu::BmdTopologySkip::kMultiMesh);
+    CHECK_EQ(1u, r.triangle_count);
+    CHECK(r.topology_skip == mu::BmdTopologySkip::kNone);
     CHECK_EQ(3u, r.declared_mesh_count);
     mu::BmdAccumulate(r, &sum);
   }
@@ -1208,17 +1212,18 @@ void TestTopologyIsSubsetOfGeometry() {
   }
 
   // 1. The subset relation, on the accumulator that produces the published
-  //    table rather than on a hand-made counter.
+  //    table rather than on a hand-made counter. After multi-mesh support,
+  //    both single and multi-mesh reach level 4.
   CHECK(sum.topology_parsed <= sum.geometry_parsed);
   CHECK_EQ(4u, sum.geometry_parsed);
-  CHECK_EQ(1u, sum.topology_parsed);
+  CHECK_EQ(2u, sum.topology_parsed);
 
   // 3. Exhaustiveness: the skip reasons account for every level-3 file without
   //    topology, leaving no unexplained remainder.
   const std::size_t skips = sum.skip_multi_mesh + sum.skip_zero_faces +
                             sum.skip_does_not_fit + sum.skip_no_header;
   CHECK_EQ(sum.geometry_parsed - sum.topology_parsed, skips);
-  CHECK_EQ(1u, sum.skip_multi_mesh);
+  CHECK_EQ(0u, sum.skip_multi_mesh);
   CHECK_EQ(1u, sum.skip_zero_faces);
   CHECK_EQ(1u, sum.skip_does_not_fit);
   CHECK_EQ(0u, sum.skip_no_header);

@@ -458,9 +458,9 @@ int CmdBmdReport(int argc, char** argv) {
                   ? 100.0 * static_cast<double>(sum.bad_corner_refs) /
                         (3.0 * static_cast<double>(sum.triangles_total))
                   : 0.0);
-  std::printf("    Single-mesh files only. Texture coordinates are NOT\n");
-  std::printf("    located and bones are NOT decoded, so a file counted here\n");
-  std::printf("    is still NOT a renderable model.\n\n");
+  std::printf("    Multi-mesh supported since ciclo 5. Texture coordinates\n");
+  std::printf("    are NOT located and bones are NOT decoded, so a file\n");
+  std::printf("    counted here is still NOT a renderable model.\n\n");
 
   const std::size_t geom_no_topo =
       sum.geometry_parsed > sum.topology_parsed
