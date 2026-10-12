@@ -163,6 +163,90 @@ everywhere it appears.
 
 ---
 
+# Ciclo 9 — correções críticas, validação estatística ossos 3.800, UV reinvestigado, DEC-012
+
+> **Base:** ciclo 8 `aa617ab` → HEAD atual. Ciclo 9 executa itens 1-10 do comando único abrangente.
+
+## O que este ciclo resolveu (itens 1-10)
+
+**Item 1 — ajuste critério 3505→3800 explicado honestamente:**
+- Old: mc==1, bc 1..8, remain==bc*59-1 exato, loose >=3 printable → python probe 3505, C++ old 2708
+- New: bc 1..64, mc 1..64 multi com extra ac, remain>=bc*59-1 (permite animação), loose+floats finitos+parent válido → 3800, only_new 1092, only_old 0
+- Exemplos bc>8: sword48 bc10, Statue_Blue bc15, newdoor break_01 bc24, 380_quiver bc9, Arrows01 bc9 (mesmo layout 59B, rejeitados por filtro arbitrário 8)
+- Exemplos multi: PrickleGlove mc4 bc1, Sword37 mc3 bc2, Sword42 mc3 bc6, Sword43 mc3 bc5, Sword45 mc5 bc2 (rejeitados por mc!=1, aceitos com base offset+4)
+- Exemplos anim extra: Rank01 bc3 remain464 exp176 extra288=3*8*12 (8 keyframes), Rank04-07 idem (rejeitados por remain!=exp)
+- Conclusão: ajuste não arbitrário, correção de 3 restrições excessivas, mantém 3800 com ressalva marginal
+
+**Item 2 — validação estatística 59B com controle mesma classe:**
+- Full-scan 8406 geom, real loose 3800 45,21% real strict 1601 19,05%
+- Control trials 25218 dentro vertex/tri area bc=1: loose hits 2099 rate 8,3234% strict hits 1 rate 0,0040%
+- Ratio loose 5,43× MARGINAL (>=5x mas <10x), strict 4803× ALTAMENTE DISCRIMINATIVO
+- Segue padrão UV (3,2× falso, 1,13× rejeita) e multi-mesh (379× discriminativo, 0,67× não)
+- Decisão: manter 3800 como PARCIAL/MARGINAL e 1601 como CONFIRMADO 4803×, não reverter para 1601 porque perderia multi+bc>8+anim válidos
+
+**Item 3 — segurança parser ossos:**
+- TryParseBonesAt: overflow check bc*59 SIZE_MAX/59 + detecção ciclo parent A->B->A com visited[64] até bc passos
+- Testes: TestBmdBonesCircularParent (0->1->0 ciclo deve falhar), ExtremeCount bc=0xFFFF OOM-safe, Truncated no meio lista, Overflow bc=0xFFFF
+- 389 checks 0 failures, ASan/UBSan 0 reports, evidência ciclo9_item3_security_test.log
+
+**Item 4 — check_docs_consistency após último commit conteúdo:**
+- 56 verificações 0 falhas, evidência ciclo9_item4_check_consistency.log
+- Atualiza 384→389 checks em CURRENT_STATE e NEXT_TASK
+
+**Item 5 — atribuição xulek corrigida para NAO CONFIRMADA:**
+- bmd.hpp antes ISC confirmada compatível MIT, corrigido para: inspiração estrutural commit 3f11bf89, ISC apenas campo package.json, placeholder xulek@example.com RFC2606, sem LICENSE file, data 2026-07-24 clock skew, NAO CONFIRMADA, estrutura comprovadamente diferente header 14B vs 10B triangulo 64B vs viewer
+- bmd_body.cpp 0 ocorrências xulek, bmd_body.hpp já dizia does NOT match layout viewer
+- Evidência ciclo9_item5_attribution.log com texto antes/depois
+
+**Item 6 — 14 categorias multi-mesh soma 4256 vem de saída bruta:**
+- Arquivo ciclo6_item1_bmdreport.log existe com saída bruta mutool bmdreport
+- meshCount 0:1,1:4149,2:2280,3:1086,4:449,5:190,6:114,7:42,8:38,9:12,10:10,11:6,12:7,13:2,14:13,>15:7 soma mc>1 4256 = 2280+1086+449+190+114+42+38+12+10+6+7+2+13+7
+- 4149+1+4256=8406 nivel3, regenerado com build atual mesmo resultado, comando ./build/mutool bmdreport /home/user/Cliente_ref/Data
+- Evidência ciclo9_item6_multimesh_14cat.log
+
+**Item 7 — relógio sistema:**
+- SECURITY.md adiciona 9.4: ambiente reportou outubro/2026 durante verificação commit externo 3f11bf89 AuthorDate 2026-07-24, histórico desordem 2025-11-09 fora ordem clock skew origem, risco relógio não confiável para validar datas, mitigação validar por meio independente (git log --format=fuller vs API vs package.json), evidência ciclo6_bmdref_commit_date.log
+
+**Item 8 — DEC-012 prioridade formal UV vs ossos/animação:**
+- UV nivel6 0% 9 hipóteses descartadas, sem UV nenhum dos 8405 com topologia pode ser texturizado, não comparável visualmente
+- Ossos nivel5 após validação: loose 3800 45,21% geom 37,66% marginal 5,43x, strict 1601 19,05% 4803x confirmado, segurança ciclo detection 389 checks
+- Comparação valor: UV pré-requisito QUALQUER renderização fiel reconhecível, ossos pré-requisito animação mas modelo sem UV não comparável mesmo estático
+- Decisão: prioridade restante ciclo retomar UV, justificativa fidelidade visual prioridade 7, ossos em nível aceitável pausa, UV tem offsets novos para reinvestigar (v0A 4 vs v0C 8, delta +-4, âncora ossos 59B)
+- Se UV não progredir com rigor, documentar bloqueio 10+ tentativas e voltar para animação/OPAQUE
+
+**Item 9 — reinvestigação UV com consciência offset:**
+- Revisa 9 hipóteses, verifica base payload v0A4 vs v0C8 (parser usa payload, base correta após bf1668c), delta multi +-4 (textura tri_end-4, sem espaço entre triângulos e ossos), âncora ossos 59B (0 bytes sobra)
+- Re-teste full-scan 4149 single-mesh com topo+tex, cada offset 0..62 como u16 < ntc, controle mesma classe = mesmo offset no array normais
+  Offset 0 rate61,80% control6,27% ratio9,86x (vertex index), offset24 rate84,27% control5,98% ratio14x platô sem pico (floats pequenos lidos como u16)
+  tri_end-4 awareness offset60 rate83,26% control6,27% ratio13,28x mesmo platô
+- Float [0,1] bytes 24..59: 79,42% vs controle normais 70,34% ratio1,13x rejeita, referência UV 98,13%
+- 10a hipótese espaço triângulos-ossos 0 bytes, 11a UV derivado vertex/normal não igual
+- Conclusão: nenhuma hipótese com offset awareness produz discriminação suficiente, lista agora 11 tentativas, UV permanece NAO LOCALIZADO
+
+**Item 10 — continuidade autônoma animação:**
+- Tentativa animação 500 arquivos 385 divisível 77% bc*keyframes*12, dump Rank01 bc3 remain464 exp176 extra288 kf8: bone0 Box01 parent FFFF, bone1 empty, bone2 weird -> não está em 3800, anim hex 000000...ffff... com f32 0,0,-1.7e38,-1e10 etc enormes não plausíveis
+- Conclusão 12 bytes não são 3 floats posição simples, animação permanece NAO DECODIFICADA
+- Autoauditoria 6 itens: a) 389 checks ASan0 b) 56 verificações 0 falhas c) sem contradição d) NAO CONFIRMADA correto e) sem credencial f) entrada inválida ASan0 — todas SIM
+
+## Métricas atuais (10.090 arquivos)
+
+| Nível | Arquivos | % | Triângulos/Bones |
+|---|---|---|---|
+| 1 — estrutura válida | 10.023 | 99,34% | — |
+| 2 — payload em claro | 8.571 | 84,95% | — |
+| 3 — vértice+normal | **8.406** | **83,31%** | — |
+| 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
+| 5 — ossos | **3.800** | **37,66%** | **8.001** (loose) / **1.601** strict 19,05% 4803× |
+| 6 — UV | 0 | 0,00% | — |
+
+Level 5 loose marginal 5,43x, strict confirmado 4803x, subconjunto estrito level3, 45,21% geom tem ossos.
+
+## Testes ciclo 9
+
+389 checks, 0 failures · 56 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 389/0.
+
+---
+
 # Ciclo 8 — ossos nível 5, layout final confirmado, 3.800 arquivos (37,66%)
 
 > **Base:** ciclo 7 `c29f473` → HEAD atual. Ciclo 8 implementa parsing completo de ossos nível 5.
