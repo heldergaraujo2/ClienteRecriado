@@ -163,6 +163,56 @@ everywhere it appears.
 
 ---
 
+
+# Ciclo 11 — final (itens 1-8): salto ratio, quedas ossos, OPAQUE full-scan, animação validação, C1-E3, STATUS_FINAL, CAND-003→OPT-004
+
+> **Base:** ciclo10 `3b24987` → HEAD atual `49825c5` + relatório `4f74539`. Branch `arena/519f8fc9-clienterecriado`. Referência `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto início/fim ciclo.
+
+## Correções ciclo 11
+
+- **Item1 salto 5,43x→1846x:** antes ciclo9 real loose 3800 45,21% vs controle per trial 2099/25218 8,32% ratio 5,43× marginal unidades diferentes, depois correção unidade apenas per file 1,55× < per trial 4,43x prova unidade sozinha DIMINUI ratio, depois ciclo detection controle NEW 2/25218 0,0079% per file 0,0238% ratio 1846,5× fator redução 8,32%→0,0079% ~1052×, salto = -3,5x unidade +1052x ciclo (parent 0 self-loop rejeitado como ciclo A->A), evidência `ciclo11_bones_ratio_raw.log` 45 linhas.
+- **Item2 ratio infinito→limite superior 1/N:** strict 0/25218 → taxa ≤0,003965% ~0,004% ratio >3558× per trial per file 0,0119% ratio >1185×, 6 arquivos corrigidos commit `b9f7af6`.
+- **Item3 quedas 3800→3693 loose e 1601→1186 strict:** mudança critério ciclo9 sem ciclo detection → ciclo10 com visited[64] self-loop parent==i rejeitado overflow bc>SIZE_MAX/59 bc>64, por que filtra 107 loose 415 strict bc=1 apenas parent -1 válido parent 0 self-loop A->A ciclo rejeitado antes válido gerava FP 8,32%→0,0079% bc>1 ciclos A->B->A loop infinito while(parent!=-1), exemplos dropped loose 228 vs 107 real MoveTargetPosEffect Bow19 Mace21 7mastery_mixiteam DarkHorseHorn Shield27 Staff02 ThunderBolt S14_quiver ProofOfConqueror etc evidência `ciclo11_bones_drop_examples.log`.
+- **Item4 OPAQUE IceGolem step 0x33 vs 0x3D full-scan 1503 OPAQUE:** metodologia 1503 OPAQUE BMD_V0C length_consistent payload>=32 mas BmdV0CDecrypt padrão falha Printable32 cada step 0..255 com init 0x5E key array 16B decifra 32B verifica Printable32 e PlausiblePath NUL-padded >=3 apenas alnum / _ . - \, resultados step variation found_printable 15 found_plausible 0 (IceGolem step 0x33 name "DDfPsxkvfWyx}~o|fMyvvy}<f'H<:Y*I" contém } ~ | < etc não permitido path boss_invitationticket step 0x34 similar) init variation 0/0 padrão IceGolem steps 0x33..0x3A todos printable nenhum plausível sem padrão único, conclusão falso-positivo check fraco Printable32 não variante confirmada full-scan 1503 com PlausiblePath 0 variantes plausíveis OPAQUE permanece 1519 15,05% tentativa falha evidências `ciclo11_opaque_step_fullscan.log` `ciclo11_opaque_step_plausible.log` `ciclo11_opaque_init_plausible.log` `ciclo11_item4_opaque_investigation.log` commit `107815b`.
+- **Item5 animação 62 plausíveis validação estatística controle mesma classe:** população total com ossos 3693 com extra 764 divisível bc*12 231 plausível finite<1e6 62 1,68% de 3693 plausível estrito [-pi,pi] 53 1,43%, critério fraco finite<1e6 real 62/3693=1,6789% per file controle vertex array 12B chunks finite<1e6 trials 55985 hits 55911 rate 99,86% per file 100% ratio 0,02× controle MAIOR que real NÃO discriminativo, critério estrito [-pi,pi] real 53/3693=1,4351% controle trials 55985 hits 2079 rate 3,71% per file 78/231 33,76% ratio per trial 0,39x per file 0,04x controle ainda maior NÃO discriminativo vertex coords pequenos 0..500 caem em [-pi,pi] por acaso, padrão Object01 kf18 primeiros 9 zeros depois 0,628 1,256 1,884 2,513 3,141 -2,513 etc múltiplos pi/5 Object04 kf98 primeiros 48 zeros depois 0,125 0,251 etc múltiplos pi/25 sugere critério mais discriminativo zeros iniciais + múltiplos ângulo base + monotonicidade, comparação ossos 0,0079% vs 43,93% ratio 1846x discriminativo multi-mesh 14,27% vs 0,0376% ratio 379x discriminativo UV 79,42% vs 70,34% ratio 1,13x rejeita animação finite<1e6 1,68% vs 100% ratio 0,02x NÃO discriminativo animação [-pi,pi] 1,43% vs 33,76% ratio 0,04x NÃO discriminativo, conclusão 62 plausíveis NÃO pode ser citado como achado confirmado animação permanece NÃO DECODIFICADA formalmente evidências `ciclo11_anim_validation.log` `ciclo11_anim_pi_validation.log` `ciclo11_item5_anim_validation_full.log` commit `7a9aa03`.
+- **Item6 C1-C3 D1-D5 E1-E3 com provas e ratios per file corrigidos:** C1 loose 3693 ratio per file 1846,5× C2 strict 1186 taxa 0/25218 limite sup ~0,004% ratio >3558× C3 prova strict ⊂ loose tool validate_A3_subset 6570 janelas strict 0 strict_not_loose 3693 loose files 1186 strict files 0 strict_not_loose PASS evidência `ciclo10_itemA3_strict_subset.log`, D1-D5 multi-mesh strict_m4 1796 14,27% vs controle 0,0376% ratio 379× weak_m4 6572 52,20% vs controle 77,51% ratio 0,67× strict_files 1651 38,79% etc breakdown 1.685=1483 OPAQUE+67 invalid+134 geom+1 zero, E1-E3 UV float [0,1] 79,42% vs 70,34% ratio 1,13× rejeita offset 0 rate 61,80% ctrl 4,80% ratio 12,89× platô 9-26× offset 24 rate 84,23% ctrl 4,46% ratio 18,87× explicado como artefato floats pequenos lidos como u16, correções docs/COMPATIBILITY.md e ASSET_FORMATS.md tabela nível5 3.800→3.693 + 1.186 strict com taxa e ratio tools/check_docs_consistency.py nivel5 3800→3693 checker 56 verificações 0 falhas commit `50331cc`.
+- **Item7 STATUS_FINAL.md:** criado com métricas corrigidas 3693/1186 provas ratios otimizações testes segurança bloqueios próxima tarefa ESTADO DO GIT até item6 6 commits push sim remote==local 88edfc73 intacto commit `28c9259`.
+- **Item8 CAND-003→OPT-004:** problema OzjProbe SOS entropy-coded data scan byte-by-byte 179,2us median 272,7us p99, hipótese dados entropy ~0,39% FF 1/256 8B chunks sem FF 99,6% tempo skip 8B reduz iterações ~8x, mudança src/mu/assets/ozj.cpp SOS handling loop word-at-a-time remaining>=8 memcpy 8B chunk x=chunk ^ 0xFFFFFFFFFFFFFFFF has_zero = (x - 0x0101010101010101) & ~x & 0x8080808080808080 has_zero==0 => sem FF i+=8 continue senão encontra primeiro FF em 8B window via loop k=0..7 i+=k depois byte-by-byte trata escape FF 00 e FF D0..D7, unaligned safe via memcpy sem strict-aliasing sem leitura além file.size, preserva regras escape exatamente, teste make test 389 checks 0 failures real OZJ 13928 files 13832 ok 96 fail mesmo que antes prova correção preservada /tmp/test_ozj_real.cpp bench_assets synthetic JPEG 512x512+200KB scan 200 reps median 15,2us p95 22,5us p99 32,2us mean 16,7us MB/s 12525,2 vs antes 179,2us median 272,7us p99 speedup median 11,79x p99 8,47x throughput ~1060->12525 MB/s, evidência `ciclo11_opt003_ozj_benchmark.log`, decisão manter 11,8x melhoria caminho crítico textura loading baixo risco preserva correção CAND-003→OPT-004 commit `49825c5`.
+
+## Métricas atuais corrigidas (10.090 arquivos, após detecção ciclo + OPT-004)
+
+| Nível | Arquivos | % total | % geom | Detalhe |
+|---|---|---|---|---|
+| 1 estrutura válida | 10023 | 99,34% | — | — |
+| 2 claro | 8571 | 84,95% | — | — |
+| 2 OPAQUE | 1519 | 15,05% | — | — |
+| 3 vértice+normal | 8406 | 83,31% | 100% | — |
+| 4 topo | 8405 | 83,30% | 99,99% | 3681664 tris |
+| 5 ossos loose | **3693** | **36,60%** | **43,93%** | 7879 bones ratio per file 1846× |
+| 5b ossos strict (headline conservador) | **1186** | **11,75%** | **14,11%** | NUL-padded taxa FP 0/25218 limite sup ~0,004% ratio >3558× |
+| 6 UV | 0 | 0% | 0% | 11 hipóteses descartadas platô 9-26× |
+| Anim extra | 764 | 7,57% | 9,09% | com extra após ossos |
+| Anim divisível bc*12 | 231 | 2,29% | 2,75% | |
+| Anim plausível finite<1e6 | 62 | 0,61% | 0,74% | ratio 0,02× NÃO discriminativo |
+| Anim plausível [-pi,pi] | 53 | 0,53% | 0,63% | ratio 0,04× NÃO discriminativo |
+| OZJ | 13928 | — | — | 13832 ok 96 fail |
+| BuxCrypt | — | — | — | 880→3437 MB/s 3,9x |
+| OzjProbe | — | — | — | 179,2us→15,2us 11,8x |
+
+Level 5 loose = 3693 (antes 3800 -107 filtrados por ciclo detection). Strict = 1186 (antes 1601 -415 filtrados). Strict ⊂ loose provado.
+
+## Testes ciclo 11
+
+- `make test`: 389 checks 0 failures
+- `make test-san`: 389 checks 0 failures ASan 0 reports
+- `check_docs_consistency.py`: 56 verificações 0 falhas (após correção 3693)
+- `mutool bmdreport`: total 10090 valid 10023 99,34% plaintext 8571 84,95% OPAQUE 1519 15,05% parsed 8406 83,31% with triangles 8405 83,30% 3681664 tris with bones loose 3693 36,60% strict 1186 11,75% headline conservador
+- `bench_assets`: BuxCrypt 1 MiB med 290,9us 3437,8 MB/s 3,9x OzjProbe 512x512+200KB scan med 15,2us p95 22,5us p99 32,2us 11,8x vs antes 179,2us p99 272,7us
+- Real OZJ: 13928 files 13832 ok 96 fail mesmo que antes após OPT-004
+- Tools ciclo11: /tmp/ciclo11_item1_ratio_raw.cpp, /tmp/ciclo11_item3_drop.cpp, /tmp/ciclo11_item4_opaque_fullscan.cpp, /tmp/ciclo11_item4_opaque_plausible.cpp, /tmp/ciclo11_item4_opaque_init.cpp, /tmp/check_plausible.cpp, /tmp/validate_icegolem.cpp, /tmp/ciclo11_item5_anim_validation.cpp, /tmp/ciclo11_item5_anim_pi.cpp, /tmp/test_ozj_real.cpp
+- Evidências: 11 novos logs ciclo11 + STATUS_FINAL.md + logs anteriores ciclo10
+
+
 # Ciclo 10 — Fase A: correção ratio per file, headline conservador, strict ⊂ loose, UV ratio-por-offset
 
 > **Base:** ciclo 9 `84fee45` → HEAD atual. Fase A do comando contínuo A-F, itens A1-A5.
