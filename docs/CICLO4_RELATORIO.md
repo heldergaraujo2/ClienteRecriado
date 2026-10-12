@@ -1,6 +1,14 @@
 # Ciclo 4 — relatório de fim de ciclo
 
-> **Base:** `8c83376` (fim do ciclo 3) → **`66c49c8`**
+> **Base:** `8c83376` (fim do ciclo 3). A ponta do ciclo é o commit que
+> acrescenta este arquivo, cujo hash **não pode aparecer dentro dele** — é o
+> erro que ocorreu quatro vezes antes em seções de Git deste projeto. A lista
+> autoritativa é o comando:
+>
+> ```
+> $ git log --oneline 8c83376..HEAD      # 9 commits: 8 de trabalho + este
+> ```
+>
 > **Referência:** `Cliente_ref` em `88edfc73`, inalterado no início e no fim
 > **Escopo:** as cinco pendências deixadas pela auditoria do ciclo 3, mais
 > `DEC-008`
