@@ -219,7 +219,7 @@ Importador dos formatos do cliente para a representação interna.
 | Hierarquia de ossos | **CONCLUÍDO** — registro intercalado de 59 B; 98,68% dos 3.552 cujo tamanho fecha |
 | Tamanho do registro de animação | **PARCIAL — 77,00%** — `boneCount × keyframes × 12 B`, 385 de 500 |
 | Altura de terreno | **CONCLUÍDO** — `TerrainHeight.OZB`, BMP de 8 bits com prefixo duplicado |
-| **Índice de UV por canto** | **BLOQUEADO** — oito hipóteses descartadas |
+| **Índice de UV por canto** | **BLOQUEADO** — **nove** hipóteses descartadas |
 | **Ordem dos 6 floats de transformação** | **NÃO CONFIRMADO** — posição antes de rotação é inferência |
 | **Conteúdo dos 3 floats de keyframe** | **NÃO DETERMINADO** |
 | **Escala vertical da altura** | **NÃO DETERMINADO** — três caminhos fechados |
@@ -228,6 +228,30 @@ Importador dos formatos do cliente para a representação interna.
 **Implementado em código:** `MeshFromBmd` produz posições, normais, índices e
 caixa delimitadora, com testes. **Não produz UV nem ossos**, e `has_texcoords`
 fica `false` de propósito.
+
+**Contra a tabela corrigida de seis níveis** (`COMPATIBILITY.md`, evidência em
+`evidence/ciclo3_scan_final.log` e `evidence/ciclo3_topology_subset.log`):
+
+| Nível | Arquivos | % de 10.090 |
+|---|---|---|
+| 1 — estrutura válida | 10.023 | 99,34% |
+| 2 — decifrado | 8.571 | 84,95% |
+| 3 — vértice + normal | 8.406 | 83,31% |
+| 4 — topologia | 4.149 | 41,12% |
+| 5 — ossos | 3.505 | 34,74% |
+| 6 — UV | **0** | **0,00%** |
+
+Os níveis **não** são cumulativos na mesma população. A única relação de
+subconjunto é nível 4 ⊂ nível 3, verificada em código e por
+`TestTopologyIsSubsetOfGeometry`.
+
+**A queda do nível 3 para o 4 tem causa medida, e é deste importador, não do
+formato:** `meshCount != 1` em **100,00%** dos 4.257 arquivos afetados. Nenhum
+falha por tamanho, versão ou campo ausente. O parser lê um bloco de triângulos;
+com várias malhas a sequência se repete e ler um bloco leria o errado em
+silêncio. Estender para multi-mesh recupera os 4.257 e é implementação
+conhecida, não pesquisa — mas não destrava renderização, porque o nível 6
+continua zero. Ver `ARCHITECTURE.md` §10 para os tetos que isso impõe.
 
 O caminho A **não está pronto** e não há data que este projeto possa prometer
 para ele. O que mudou é a natureza do bloqueio: **não é mais geometria** — malha

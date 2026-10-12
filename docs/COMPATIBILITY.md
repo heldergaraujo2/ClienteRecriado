@@ -60,7 +60,7 @@ Com vértices, normais e índices de face, a malha **é** montada pelo parser C+
 **O que falta para renderizar um modelo completo e texturizado, em ordem:**
 
 1. **Índice de UV por canto — BLOQUEADO.** É o único bloqueio entre a malha
-   montada e a malha texturizada. Oito hipóteses descartadas e documentadas.
+   montada e a malha texturizada. **Nove** hipóteses descartadas e documentadas.
    Sem isso o modelo desenha **sem textura** (cor sólida), não desenha errado —
    `has_texcoords` fica `false` de propósito para impedir texturização com
    coordenadas de outro canto.
