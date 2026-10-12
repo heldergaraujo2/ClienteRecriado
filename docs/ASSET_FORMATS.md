@@ -665,7 +665,8 @@ revisão inteira de resultados falsos neste ciclo, registrada mais adiante.
 42  u16 numTexCoords
 44  u16 numTriangles
 46  u16 textureIndex
-48   4  NÃO IDENTIFICADO — os vértices começam em 52, não em 48
+48   2  u16, provável contagem — 0 em 57,4%, depois 1, 2, 4, 3 (2.500 arquivos)
+50   2  u16, parcialmente padding — 0 em 60,0%; 0xCDCD em 62 arquivos
 52  vc*16  array de vértices
 ```
 
@@ -891,12 +892,20 @@ Isso fecha a questão: **não há índice de UV nos bytes 24..59 porque ali não
 índices.** O que são esses floats — vetor de luz, coordenada de lightmap,
 atributo por face — não foi determinado.
 
-**O que resta tentar**, e está em `NEXT_TASK.md`:
+**O segundo caminho também foi examinado.** Os 4 bytes do cabeçalho em payload
+48..51, medidos em 2.500 arquivos:
 
-1. Que o índice de UV esteja **fora** do registro de triângulo, num array
-   paralelo de `ntri` entradas em outra parte do corpo.
-2. Os **4 bytes não identificados do cabeçalho** (offsets de payload 48..51),
-   entre o cabeçalho e o array de vértices, nunca examinados.
+| Campo | Distribuição |
+|---|---|
+| `u16@48` | zero em 57,4%; depois 1 (177×), 2 (96×), 4 (82×), 3 (63×); máximo 57.856 |
+| `u16@50` | zero em 60,0%; 0xCDCD em 62 arquivos; máximo 52.685 |
+
+`u16@48` é dominado por inteiros pequenos — assinatura de **contagem**, não de
+índice. `u16@50` contém 0xCDCD, o preenchimento de memória não inicializada do
+MSVC, então é ao menos parcialmente padding. **Nenhum dos dois é índice de UV.**
+
+Com isso **os dois caminhos restantes estão fechados** e o índice de UV por canto
+permanece **NÃO RESOLVIDO**, com seis hipóteses descartadas e documentadas.
 
 ### Verificação independente da decifragem v0x0C
 

@@ -26,14 +26,23 @@ O array de UV está confirmado e legível (`52+vc*16+nc*20`, `ntc` entradas de 8
    gradual. Um índice verdadeiro daria pico nítido num offset par, como os de
    vértice deram em +0/+8/+16 (94–100%). Provavelmente são `f32`, não índices.
 
-**O que ainda não foi tentado, e é onde procurar:**
+**Seis hipóteses descartadas — não repetir:**
 
-1. Que o índice de UV esteja **fora** do registro de triângulo — num array
-   paralelo de `ntri` entradas em outra parte do corpo.
-2. Os **4 bytes não identificados do cabeçalho** (offsets de payload 48..51), que
-   ficam entre o cabeçalho e o array de vértices e nunca foram examinados.
-3. Confirmar que os bytes 24..59 são mesmo `f32` — o teste de não-finitos que
-   validou o array de UV serve aqui, e eliminaria ou confirmaria a explicação.
+4. Bytes 24..59 do registro: **platô sem pico**, e confirmado serem `f32`
+   (0,055% de não-finitos contra 0,39% esperado por acaso). Não há índices ali.
+5. `u16@48` do cabeçalho: dominado por inteiros pequenos (0 em 57,4%, depois
+   1, 2, 4, 3) — assinatura de **contagem**, não de índice.
+6. `u16@50` do cabeçalho: zero em 60,0% e 0xCDCD em 62 arquivos — ao menos
+   parcialmente padding.
+
+**O que resta, e é a única via não examinada:** que o índice de UV esteja num
+**array paralelo de `ntri` entradas** em outra parte do corpo, fora do registro
+de triângulo. Procurar por um bloco de `ntri` valores `u16` todos menores que
+`numTexCoords`, varrendo o corpo a partir do fim do array de triângulos.
+
+Se isso também falhar, o índice de UV deve ser registrado como
+**NÃO RESOLVIDO** com as seis tentativas documentadas, e o projeto deve seguir
+para ossos/animação ou para o pipeline de renderização — não insistir.
 
 ---
 
