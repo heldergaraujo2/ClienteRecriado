@@ -232,3 +232,67 @@ sob 12 flags `-W`. Evidência em `docs/evidence/ciclo2_test.log` e
 - push: **sim**, `git push origin arena/519f8fc9-clienterecriado` → sucesso
 - commits deste segmento: 1 código + 1 documentação
 - referência `Cliente_ref` intacta: `88edfc73` (inalterado)
+
+---
+
+# Estado final do ciclo 2 (pós-correções)
+
+Substitui todas as seções anteriores deste arquivo para o ciclo 2.
+
+## Números finais — execução do zero, código consolidado
+
+| Nível | Ciclo 1 | **Ciclo 2** |
+|---|---|---|
+| 1 — estrutura válida | 10.023 (99,34%) | 10.023 (99,34%) |
+| 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** |
+| 3 — geometria parseável | 1.191 (11,80%) | **8.406 (83,31%)** |
+| OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** |
+| Checks de teste | 231 | **236** |
+
+Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),
+`evidence/ciclo2_scan_final.log` (relatório com binário recém-compilado).
+
+## O que está resolvido e o que não está
+
+**Resolvido e validado:** decifragem v0x0C (7.226 arquivos), posições de vértice,
+normais. Localização do array de triângulos (98,05% contra controle de 2,35%).
+
+**Bloqueado:** conteúdo interno do registro de triângulo (58 dos 64 bytes),
+coordenadas UV, ossos, animação, 1.519 arquivos v0x0C.
+
+**Sem índices de face, nenhum modelo BMD pode ser renderizado como malha neste
+momento — apenas dados de vértice/normal foram extraídos.**
+
+## Correções feitas neste ciclo
+
+1. A afirmação de que a rota open-source estava "bloqueada por falta de acesso"
+   era **falsa**; o acesso existia.
+2. A troca de layout de registro baseada em medição com base errada (arquivo vs
+   payload, defasagem de 4 bytes) foi **revertida** em `bf1668c`.
+3. O "defeito conhecido" de que v0x0C usaria `f16` era **infundado**; descartado
+   por medição (400/400 em `f32`).
+4. A atribuição ISC foi registrada com a ressalva de que o repositório de origem
+   **não tem arquivo `LICENSE`**.
+
+## Nova exigência arquitetural incorporada
+
+DEC-008 (VBO/VAO como piso mínimo), DEC-009 (teste sintético não é suporte a
+asset), limites do BMD conhecidos vs desconhecidos, importação dual com glTF 2.0
+no caminho B, requisitos de escalabilidade. **Nada disso está implementado** — são
+decisões e requisitos registrados.
+
+## ESTADO DO GIT NESTE CICLO
+
+- Commits (7): `6821d94` cifra v0x0C · `e4dd633` atribuição ISC e correções ·
+  `bf1668c` reversão do layout · `4456202` anexo corrigido e validação
+  independente · `92efef2` evidência final e licenciamento · `d3dcfcd` topologia
+  localizada · `77662f5` arquitetura (itens 6–10)
+- Push: **realizado após cada commit**, nenhuma falha
+- Hash local `77662f519781cab76229f81e062f18803f17fb7c` **==** hash remoto
+  (confirmado por `git rev-parse HEAD` e `git ls-remote origin`)
+- `git status --short`: vazio — **working tree limpa**
+- Referência `Cliente_ref`: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`, idêntica
+  ao início do ciclo, **não modificada**
+- Nada ficou sem commitar ou sem publicar
+
+Relatório completo em `CICLO2_RELATORIO.md`.
