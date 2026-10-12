@@ -1270,8 +1270,8 @@ falso-positivo em payload aleatório (controle: random daria ~0% nomes).
 - total .bmd 10.090, geom parsed 8.406 (83,31%)
 - with bones loose **3.693 (43,93% de geom, 36,60% de total)** — era 3.800 ciclo 8, -107 filtrados por detecção de ciclo A->B->A e self-loop parent==0
 - total bones loose 7.879, parent válido 100%, ciclo detection rejeita A->A e A->B->A
-- with bones strict **1.186 (14,11% de geom, 11,75% de total)** NUL-padded ASCII >=3 + zeros após NUL, headline conservador, ratio per file infinito (controle 0/25218), strict ⊂ loose provado 0 falhas (evidência `ciclo10_itemA3_strict_subset.log`)
-- ratio per file corrigido mesma unidade: loose 43,93% / 0,0238% = **1846,5× altamente discriminativo** (antes 5,43× marginal com unidades diferentes e sem ciclo detection que dava 8,32% falso-positivo), strict infinito
+- with bones strict **1.186 (14,11% de geom, 11,75% de total)** NUL-padded ASCII >=3 + zeros após NUL, headline conservador, taxa falso-positivo 0/25218, limite superior ~0,004% (1/25218), ratio >3558× per file (controle 0/25218), strict ⊂ loose provado 0 falhas (evidência `ciclo10_itemA3_strict_subset.log`)
+- ratio per file corrigido mesma unidade: loose 43,93% / 0,0238% = **1846,5× altamente discriminativo** (antes 5,43× marginal com unidades diferentes e sem ciclo detection que dava 8,32% falso-positivo), strict taxa 0/25218 limite superior ~0,004% ratio >3558×
 - multi-mesh e bc>8 mantidos: PrickleGlove mc4 bc1 strict, Sword48 bc10, Statue_Blue bc15, etc, todos com ciclo detection válido
 - Custom bc51 permanece filtrado
 
@@ -1286,7 +1286,7 @@ falso-positivo em payload aleatório (controle: random daria ~0% nomes).
 arquivos com geometria. Skinning ainda BLOQUEADO — falta animação e confirmação de ordem dos floats,
 mas parser já expõe `BmdBone {name, parent, raw[6], has_name, floats_finite}` em `bmd_body.hpp`.
 
-**Estado ciclo 10 Fase A (após detecção de ciclo e correção ratio per file):** hierarquia decodificada em 36,60% da árvore (3693 loose, 7879 bones) com ratio per file 1846× altamente discriminativo (antes 5,43× marginal), strict 11,75% (1186) headline conservador ratio infinito, strict ⊂ loose provado, parser com detecção de ciclo A->B->A e self-loop, 389 checks 0 falhas, ASan 0. Skinning ainda BLOQUEADO — falta animação e confirmação ordem floats, mas base para Fase B OPAQUE/animação.
+**Estado ciclo 10 Fase A (após detecção de ciclo e correção ratio per file):** hierarquia decodificada em 36,60% da árvore (3693 loose, 7879 bones) com ratio per file 1846× altamente discriminativo (antes 5,43× marginal), strict 11,75% (1186) headline conservador taxa falso-positivo 0/25218, limite superior ~0,004% (1/25218), ratio >3558×, strict ⊂ loose provado, parser com detecção de ciclo A->B->A e self-loop, 389 checks 0 falhas, ASan 0. Skinning ainda BLOQUEADO — falta animação e confirmação ordem floats, mas base para Fase B OPAQUE/animação.
 
   | Sobra | Arquivos |
   |---|---|

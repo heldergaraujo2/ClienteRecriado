@@ -1,6 +1,6 @@
 # Próxima tarefa
 
-> **Ciclo 10 Fase A fechada** com correção ratio per file 1846×, headline conservador strict 1186, strict ⊂ loose provado, UV ratio-por-offset platô 9-26×. Base `84fee45` → HEAD atual. Fase A itens A1-A5, checker 56 verificações 0 falhas, build limpo 389/0 ASan 0. Métricas corrigidas: total geom 8406, loose 3693 (43,93% geom, 36,60% total, 7879 bones) ratio per file 1846× altamente discriminativo (antes 5,43× marginal devido falta ciclo detection + unidades diferentes), strict 1186 (14,11% geom, 11,75% total) ratio infinito headline conservador, strict ⊂ loose provado 0 falhas.
+> **Ciclo 10 Fase A fechada** com correção ratio per file 1846×, headline conservador strict 1186, strict ⊂ loose provado, UV ratio-por-offset platô 9-26×. Base `84fee45` → HEAD atual. Fase A itens A1-A5, checker 56 verificações 0 falhas, build limpo 389/0 ASan 0. Métricas corrigidas: total geom 8406, loose 3693 (43,93% geom, 36,60% total, 7879 bones) ratio per file 1846× altamente discriminativo (antes 5,43× marginal devido falta ciclo detection + unidades diferentes), strict 1186 (14,11% geom, 11,75% total) taxa falso-positivo 0/25218, limite superior ~0,004% (1/25218), ratio >3558× headline conservador, strict ⊂ loose provado 0 falhas.
 
 > **Ciclo 9 fechado** anteriormente com correções críticas, validação estatística ossos 3.800 (agora corrigido para 3693 após ciclo detection), UV reinvestigado, DEC-012.
 

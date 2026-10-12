@@ -172,7 +172,7 @@ everywhere it appears.
 **A1 — ratio per file corrigido (mesma unidade):**
 - Antes: real per file 3800/8406=45,21% vs controle per trial 2099/25218=8,32% ratio 5,43× MARGINAL — unidades diferentes (arquivo vs tentativa), inválido metodologicamente.
 - Depois (com detecção de ciclo): total geom 8406, real loose 3693 (43,93% geom, 36,60% total), real strict 1186 (14,11% geom, 11,75% total). Controle 3 offsets por arquivo (100,200,payload/2) bc=1 com detecção de ciclo (parent 0 rejeitado como ciclo A->A): trials 25218, loose hits 2 rate 0,0079%, per file 2 arquivos 0,0238%, strict hits 0 rate 0%.
-- Ratio corrigido **per file mesma unidade**: loose 43,93% / 0,0238% = **1846,5× ALTAMENTE DISCRIMINATIVO** (antes 5,43× marginal). Strict ratio infinito (controle 0), altamente discriminativo.
+- Ratio corrigido **per file mesma unidade**: loose 43,93% / 0,0238% = **1846,5× ALTAMENTE DISCRIMINATIVO** (antes 5,43× marginal). Strict taxa falso-positivo 0/25218, limite superior ~0,004% (1/25218), ratio >3558× (controle 0), altamente discriminativo.
 - Causa da mudança: ciclo detection filtra parent==0 como ciclo, reduz falso-positivo de 8,32% para 0,0079%. Sem ciclo, parent 0 era aceito como válido para bc=1, gerando 2099 hits. Com ciclo, apenas parent 0xFFFF válido, reduz para 2 hits (0,0079%). Evidência `ciclo9_item2_validation_fixed.log` (tool `/tmp/validate_A1_fixed.cpp`).
 - Conclusão: loose agora altamente discriminativo, não marginal. Métrica anterior 5,43× era artefato de falta de detecção de ciclo + comparação unidades diferentes.
 
@@ -211,7 +211,7 @@ everywhere it appears.
 | 3 — vértice+normal | **8.406** | **83,31%** | 100% | — |
 | 4 — topologia | **8.405** | **83,30%** | 99,99% | 3.681.664 triângulos |
 | 5 — ossos loose | **3.693** | **36,60%** | **43,93%** | 7.879 ossos, ratio per file 1846× |
-| 5b — ossos strict (conservador) | **1.186** | **11,75%** | **14,11%** | NUL-padded, ratio infinito, headline conservador |
+| 5b — ossos strict (conservador) | **1.186** | **11,75%** | **14,11%** | NUL-padded, taxa falso-positivo 0/25218, limite superior ~0,004% (1/25218), ratio >3558×, headline conservador |
 | 6 — UV | 0 | 0,00% | 0% | 11 hipóteses descartadas |
 
 Level 5 loose = 3693 (antes 3800, -107 filtrados por ciclo detection). Strict = 1186 (antes 1601, -415 filtrados). Strict ⊂ loose provado.
