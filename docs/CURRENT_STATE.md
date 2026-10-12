@@ -263,6 +263,17 @@ Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),
 - Hierarquia de ossos — `u16` pai (65535 = raiz em 75,9%) + 6 floats 100% finitos,
   em registro intercalado de 59 B confirmado em 98,0%
 
+**Implementado neste ciclo, em código testado:**
+
+- `src/mu/assets/mesh.hpp/.cpp` — representação interna de malha e importador BMD
+  (caminho A). Contagens de 32 bits, índices separados, caixa delimitadora na
+  importação. Não produz coordenadas de textura nem ossos, e diz por quê
+- `src/mu/render/cull.cpp` — frustum culling por caixa delimitadora, o primeiro
+  módulo de renderização do projeto
+- `mutool meshimport <dir>` — pipeline BMD completo sobre a árvore real:
+  8.408 malhas internas, 1.792.108 vértices, 978.853 triângulos
+- Testes: **315 checks, 0 failures**; ASan+UBSan 315/0; zero warnings sob 12 flags `-W`
+
 **Bloqueado:**
 
 - **Índice de UV por canto** — investigação ENCERRADA, sete hipóteses descartadas.
