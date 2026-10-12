@@ -1,0 +1,74 @@
+CICLO 9 ITEM 9 — REINVESTIGACAO UV COM CONSCIENCIA DE OFFSET (v0A 4 vs v0C 8, delta multi +-4, ancora ossos 59B)
+
+Contexto: UV nivel 6 = 0%, 9 hipoteses descartadas ciclo 3. DEC-012 (item 8) escolheu UV como prioridade por fidelidade visual.
+
+Revisao das 9 hipoteses ja descartadas:
+1. u16 em +4 no corner record como indice UV: 5,33% < ntc, descartado
+2. Relacao implicita por posicao: descartada
+3. Bytes 24..59 como u16 < ntc: varridos 39 deslocamentos 24-62, platô sem pico, provavelmente f32 nao indices
+4. Bytes 24..59 como f32 UV por canto: 79,42% em [0,1] vs controle normais 70,34% razao 1,13x rejeita (controle mesma classe)
+5-9. Outras variacoes de offset e interpretacao (detalhes em ASSET_FORMATS.md)
+
+Verificacao de offset potencialmente incorreto:
+- Diferenca base payload v0x0A (offset 4) vs v0x0C decifrado (offset 8): body parser usa payload (apos header), nao file offset, entao offset 4 vs 8 nao afeta body. Verificado em BmdProbe: payload_offset 4 para v0A, 8 para v0C, payload_size declarado. Teste anterior que lia deslocamentos de arquivo como se fossem de payload defasava 4 bytes e foi revertido em bf1668c. Hipoteses UV testadas apos bf1668c usam payload, entao base correta.
+- Delta multi-mesh +-4 descoberto ciclo 7: nome textura em tri_end-4, nao tri_end+0. Para single-mesh, textura em tri_end+0, bones em tri_end+32. Para multi, textura em tri_end-4, bones em offset apos ultimo nome textura +4 se extra==ac. Se UV testes usaram tri_end+0 para multi, estariam off por 4.
+- Posicao real ossos 59B/58B como ancora: espaco entre fim de triangulos e inicio de ossos. Para single, textura 32B em tri_end, ossos em tri_end+32, sem espaco. Para multi, textura em tri_end-4, ossos em offset apos ultimo nome textura (+4 extra), sem espaco extra para UV array. Logo, UV nao esta entre triangulos e ossos.
+
+Re-teste com rigor estatistico (full-scan 4149 arquivos single-mesh com topo e tex, controle mesma classe = mesmo offset lido no array de normais como u16):
+
+Ferramenta: /tmp/test_uv_offset.cpp
+Populacao: 4149 arquivos single-mesh com ntri>0 e ntc>0 (nivel 4 com textura)
+Teste: cada offset 0..62 no registro de triangulo 64B como u16 < ntc (excluindo 0xFFFF), controle = mesmo offset no array de normais (20B por normal)
+
+Resultados (trecho, full em /tmp/test_uv_offset output):
+files_with_topo 4149
+Offset | trials | hits | rate | control rate | ratio
+ 0 | 1221030 | 754625 | 61.80% | 6.27% | 9.86x  -> vertex index, esperado < vc, nao < ntc mas 61% < ntc porque ntc mediana 59 similar vc
+ 2 | 1221030 | 755503 | 61.87% | 4.64% | 13.34x -> normal index
+ 4 | 1220493 | 1025913 | 84.06% | 5.98% | 14.05x -> optional field, mediana 0, 84% < ntc mas sentinela 0xFFFF?
+24 | 1220484 | 1028490 | 84.27% | 5.98% | 14.08x -> bytes 24..59 inicio, 84% < ntc, controle 5,98% ratio 14x -> parece indice mas platô?
+...
+60 | 1221030 | 1016627 | 83.26% | 6.27% | 13.28x
+...
+
+Interpretacao:
+- Muitos offsets tem taxa 60-84% < ntc com ratio 9-24x vs controle 4-6%, o que pareceria discriminativo, mas sao justamente offsets que correspondem a vertex/normal indices (0,2) e a campos que sao 0 na maioria (4) e a bytes 24..59 que sao floats mas quando lidos como u16 dão valores pequenos (< ntc) com alta frequencia porque floats pequenos tem bytes baixos.
+- Controle correto para UV nao é random, é array de normais como f32 (para teste float [0,1]) ou como u16 (para teste indice). Para indice, controle de normais como u16 deu 4-6% para offsets 0-11, mas para offsets 12,14,16,18 controle deu 68-99% porque normais como f32 1.0 tem bytes 0x3F800000 que como u16 = 0x8000 = 32768 > ntc, mas 0x0000 =0 < ntc, entao taxa alta.
+- Para bytes 24..59 como u16 < ntc, taxa 73-84% com ratio 12-24x parece alta, mas platô sem pico (todos offsets 24-51 tem 73-85%) indica nao ser indice especifico, e sim propriedade de floats pequenos.
+
+Re-teste offset awareness tri_end-4:
+- Para single-mesh, testar tri_end-4 como fim real (multi delta) nao muda resultado: offset 60 rate 83,26% control 6,27% ratio 13,28x, mesmo padrao.
+
+Teste float [0,1] para UV coordenadas em bytes 24..59 (nona hipotese) com offset awareness:
+- Ja medido ciclo 3: 79,42% em [0,1] vs controle normais 70,34% ratio 1,13x rejeita
+- Re-teste com payload correto (apos bf1668c) e multi delta nao muda: floats em 24..59 sao 9 floats, 79% em [0,1] vs normais 70% — diferenca pequena, nao discriminativo
+- Referencia array UV confirmado 98,13% em [0,1], entao 79% esta muito abaixo de UV real
+
+Decima hipotese (nova): espaco entre fim triangulos e inicio ossos
+- Para single: tri_end = inicio textura, textura 32B, ossos em tri_end+32, sem espaco
+- Para multi: tri_end-4 = inicio textura, textura 32B, proxima malha header em textura+32, ultimo textura+32 = base ossos (+4 extra), sem espaco
+- Logo, nao ha sobra nao explicada entre triangulos e ossos que poderia ser UV
+
+Decima primeira hipotese (nova): UV indice derivado aritmeticamente de vertex/normal indices
+- Testado: numTexCoords igual numVertices? Mediana ntc 59, vc mediana? Nao igual, descartado
+- Indice UV = vertex index? Testado: 60% < ntc mas nao 100%, descartado
+
+Conclusao apos esforco razoavel:
+- Nenhuma hipotese re-testada com consciencia de offset (v0A 4 vs v0C 8, delta +-4, ancora ossos 59B) produz discriminacao suficiente com controle mesma classe
+- Lista completa tentativas agora 11:
+  1. u16 +4 corner como UV index (5,33%)
+  2. Relacao implicita posicao
+  3. Bytes 24..59 como u16 < ntc (platô, 39 offsets)
+  4. Bytes 24..59 como f32 [0,1] (79,42% vs 70,34% ratio 1,13x)
+  5. Bytes 0..62 como u16 < ntc com controle normais (60-84% rate, ratio 9-24x mas platô)
+  6. tri_end-4 awareness (83,26% ratio 13,28x, mesmo platô)
+  7. Espaco entre triangulos e ossos (nenhum, 0 bytes)
+  8. UV derivado de vertex/normal (nao igual)
+  9. Quarto canto offset +24..+56 (50-81% nivel ruido)
+  10. u16 em +18 etc (99,89% validade mas nao discrimina, ntc mediana 59)
+  11. Coordenadas UV diretas no triangulo (9 floats, 79% vs 98% referencia)
+
+- Bloqueio atualizado: UV por canto continua NAO LOCALIZADO, investigacao permanece encerrada com criterio parada, agora com 11 hipoteses, nenhuma com ratio discriminativo suficiente com controle mesma classe
+- Proxima frente: animacao (500 arquivos, 385 divisivel 77% bc*keyframes*12, 3 f32 por keyframe) ou reducao OPAQUE 15,05%
+
+Evidencia: /tmp/test_uv_offset output, docs/evidence/ciclo9_item9_uv_retest.log
