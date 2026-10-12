@@ -266,32 +266,40 @@ int main() {
 
   // ------------------------------------ DEC-008: submission path cost (CPU)
   //
-  // This is the only part of the fixed-function versus VBO/VAO comparison that
-  // can be measured HERE, and the boundary has to be stated rather than blurred.
+  // This section was WRONG in its first version, and the correction matters more
+  // than the numbers. It measured one gather and compared it against the budget
+  // of a single 60 FPS frame, calling it a per-frame cost. It is not.
   //
-  // What is measured: the CPU-side cost of marshalling vertex data into the
-  // layout each submission model needs, per frame, using the vertex and
-  // triangle counts this project actually measured on the asset tree
-  // (mutool meshimport: 1,792,108 vertices, 978,853 triangles across 4,071
-  // meshes). Fixed-function in the original client has no glDrawElements in
-  // the binary, so every mesh is submitted EXPANDED: each triangle carries its
-  // three vertices, and a vertex shared by N triangles is sent N times.
+  // The two costs have to be separated, because they belong to different
+  // budgets:
   //
-  // What is NOT measured, and must not be inferred from these numbers:
+  //   (1) EXPANSION, index -> flat array. This is a LOAD-TIME cost. In the
+  //       client's glDrawArrays path a flat client-side array exists, and the
+  //       natural implementation builds it once when the model is loaded, not
+  //       every frame. Comparing it to a frame budget was the error: the right
+  //       comparison is against the loading budget.
+  //
+  //   (2) PER-FRAME SUBMISSION VOLUME. This is what actually recurs. With no
+  //       glGenBuffers in the binary (docs/RENDERING.md section 3) the vertex
+  //       data lives in client memory and the driver re-marshals it on every
+  //       draw. With no glDrawElements, shared vertices are resubmitted rather
+  //       than referenced, so the volume per frame is the EXPANDED size.
+  //       This is a quantity that can be stated exactly. Its COST cannot be
+  //       measured here, because the cost is driver marshalling, bus transfer
+  //       and per-vertex call overhead, and there is no GL context in this
+  //       environment. It is reported as a volume with the cost marked BLOCKED.
+  //
+  // What is NOT measured, and must not be inferred from anything below:
   //   - driver call overhead (no GL context exists here)
   //   - GPU-side vertex processing, transform or rasterisation cost
   //   - bus transfer cost to the device
   //   - frame rate, frame time, or VRAM
-  // Those require a real context on real hardware and are recorded as BLOCKED
-  // in DEC-008. These rows bound only the CPU marshalling term, which is the
-  // part a reconstruction controls directly and the part that scales with
-  // vertex count.
   {
     // Interleaved position + normal, the layout both paths converge on.
     struct V { float p[3]; float n[3]; };
     constexpr std::size_t kVerts = 1792108;   // measured, not chosen
     constexpr std::size_t kTris = 978853;     // measured, not chosen
-    const std::size_t expanded = kTris * 3;   // what expansion must send
+    const std::size_t expanded = kTris * 3;   // corner count, no sharing
 
     std::vector<V> pool(kVerts);
     for (std::size_t i = 0; i < kVerts; ++i) {
@@ -309,57 +317,59 @@ int main() {
 
     std::vector<V> out(expanded);
 
-    // Path A: expand through the index every frame. This is the per-frame
-    // marshalling cost the indexless submission model pays.
+    // ---- (1) LOAD-TIME: expansion of the indexed mesh into a flat array.
+    // This is what the glDrawArrays path does once, when the model is loaded.
     Samples sa = TimeIt(20, [&] {
       for (std::size_t i = 0; i < expanded; ++i) out[i] = pool[idx[i]];
     });
-    PrintRow("Expand indexed -> flat (per frame)", expanded * sizeof(V), sa);
+    PrintRow("LOAD-TIME expand indexed -> flat", expanded * sizeof(V), sa);
     std::printf("    reps=20  mean=%.1f us  stddev=%.1f us (%.2f%% of mean)"
                 "  min=%.1f  max=%.1f\n",
                 sa.mean, sa.stddev, sa.mean > 0 ? 100.0 * sa.stddev / sa.mean : 0.0,
                 sa.min, sa.max);
 
-    // Path B: the vertex buffer already holds the unique vertices, so the
-    // per-frame marshalling is nothing but the index walk. Upload happens
-    // once, not per frame.
-    std::vector<uint32_t> idx_copy(expanded);
-    Samples sb = TimeIt(200, [&] {
-      std::memcpy(idx_copy.data(), idx.data(), expanded * sizeof(uint32_t));
-    });
-    PrintRow("Indexed submission (per frame)", expanded * sizeof(uint32_t), sb);
-    std::printf("    reps=200  mean=%.1f us  stddev=%.1f us (%.2f%% of mean)"
-                "  min=%.1f  max=%.1f\n",
-                sb.mean, sb.stddev, sb.mean > 0 ? 100.0 * sb.stddev / sb.mean : 0.0,
-                sb.min, sb.max);
-
-    // Path B, the one-time upload cost that Path A never pays because it has
-    // no resident buffer.
+    // The one-time vertex buffer upload that the VBO path pays instead.
     std::vector<V> upload(kVerts);
     Samples sc = TimeIt(50, [&] {
       std::memcpy(upload.data(), pool.data(), kVerts * sizeof(V));
     });
-    PrintRow("One-time vertex buffer upload", kVerts * sizeof(V), sc);
-    std::printf("    reps=50  mean=%.1f us  stddev=%.1f us (%.2f%% of mean)\n",
-                sc.mean, sc.stddev, sc.mean > 0 ? 100.0 * sc.stddev / sc.mean : 0.0);
+    PrintRow("LOAD-TIME vertex buffer upload", kVerts * sizeof(V), sc);
+    std::printf("    reps=50  mean=%.1f us  stddev=%.1f us (%.2f%% of mean)"
+                "  min=%.1f  max=%.1f\n",
+                sc.mean, sc.stddev, sc.mean > 0 ? 100.0 * sc.stddev / sc.mean : 0.0,
+                sc.min, sc.max);
 
+    // ---- (2) PER-FRAME: the volume that must cross to the driver each draw.
+    // Stated as bytes, because the COST is driver and bus work that cannot be
+    // measured without a context. The comparison is exact and does not need a
+    // GPU: it follows from glDrawElements being absent from the binary.
     const double mb_expanded =
         static_cast<double>(expanded) * sizeof(V) / 1048576.0;
-    const double mb_indexed =
+    const double mb_resident =
         (static_cast<double>(kVerts) * sizeof(V) +
          static_cast<double>(expanded) * sizeof(uint32_t)) / 1048576.0;
-    std::printf("\n    bytes per frame, expanded : %10.2f MiB (%zu vertex sends)\n",
-                mb_expanded, expanded);
-    std::printf("    bytes resident, indexed   : %10.2f MiB (%zu unique + indices)\n",
-                mb_indexed, kVerts);
-    std::printf("    ratio expanded/indexed    : %10.2fx\n",
-                mb_indexed > 0 ? mb_expanded / mb_indexed : 0.0);
-    std::printf("    vertex sends saved per frame: %zu (%.2f%%)\n",
-                expanded - kVerts,
-                100.0 * static_cast<double>(expanded - kVerts) /
-                    static_cast<double>(expanded));
-    std::printf("    NOTE: CPU marshalling only. Driver, GPU and bus cost are\n");
-    std::printf("          BLOCKED in this environment; see DEC-008.\n");
+
+    std::printf("\n    LOAD-TIME, measured on CPU:\n");
+    std::printf("      expansion, index -> flat          %10.1f us  (%6.2f MiB)\n",
+                sa.median, mb_expanded);
+    std::printf("      VBO upload, unique vertices only  %10.1f us  (%6.2f MiB)\n",
+                sc.median, static_cast<double>(kVerts) * sizeof(V) / 1048576.0);
+    std::printf("      ratio expansion/upload            %10.2fx\n",
+                sc.median > 0 ? sa.median / sc.median : 0.0);
+    std::printf("\n    PER-FRAME, volume only - cost is BLOCKED, no GL context:\n");
+    std::printf("      no glDrawElements, expanded       %10.2f MiB per draw\n",
+                mb_expanded);
+    std::printf("      VBO + index buffer, resident once %10.2f MiB total\n",
+                mb_resident);
+    std::printf("      per-frame volume ratio            %10.2fx\n",
+                mb_resident > 0 ? mb_expanded / mb_resident : 0.0);
+    std::printf("      corner sends, expanded            %10zu per draw\n",
+                expanded);
+    std::printf("      unique vertices, indexed          %10zu uploaded once\n",
+                kVerts);
+    std::printf("\n    The per-frame advantage of VBO/VAO is real and follows\n");
+    std::printf("    from the absent imports, but its COST is driver, bus and\n");
+    std::printf("    per-vertex call overhead: BLOCKED here. See DEC-008.\n");
   }
 
   std::printf("\nRun twice and compare the medians; a shift of more than a few\n"

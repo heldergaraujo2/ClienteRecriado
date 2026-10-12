@@ -32,9 +32,8 @@ import sys
 # As três linhas que interessam, identificadas pelo rótulo que o benchmark
 # imprime. Rótulo, não posição, para que reordenar o benchmark não quebre isto.
 WANTED = {
-    'Expand indexed -> flat (per frame)': 'expansao',
-    'Indexed submission (per frame)': 'indexado',
-    'One-time vertex buffer upload': 'upload',
+    'LOAD-TIME expand indexed -> flat': 'expansao',
+    'LOAD-TIME vertex buffer upload': 'upload',
 }
 
 # Colunas da tabela do benchmark: mediana, p95, p99, media, MB, MB/s
@@ -106,6 +105,31 @@ def main():
     budget144 = 1000000.0 / 144.0
 
     print('---------------------------------------------------------------------------')
+    print('POR QUE ESTA EVIDENCIA MUDOU DE FORMA (correcao do ciclo 5)')
+    print('---------------------------------------------------------------------------')
+    print()
+    print('A versao anterior media UM gather e o comparava com o orcamento de UM')
+    print('QUADRO a 60 FPS, chamando-o de custo por quadro. NAO E. A auditoria do')
+    print('ciclo 4 apontou isso e estava certa.')
+    print()
+    print('Os dois custos pertencem a orcamentos diferentes:')
+    print()
+    print('  (1) EXPANSAO, indice -> array flat. Custo de CARREGAMENTO. No caminho')
+    print('      glDrawArrays do cliente existe um array flat client-side, e a')
+    print('      implementacao natural o constroi UMA VEZ ao carregar o modelo,')
+    print('      nao a cada quadro. Comparar com orcamento de quadro era o erro.')
+    print()
+    print('  (2) VOLUME DE SUBMISSAO POR QUADRO. E o que realmente se repete. Sem')
+    print('      glGenBuffers no binario (docs/RENDERING.md secao 3) o vertice mora')
+    print('      em memoria de cliente e o driver o re-marshals a cada draw. Sem')
+    print('      glDrawElements, vertice compartilhado e REENVIADO em vez de')
+    print('      referenciado, entao o volume por quadro e o tamanho EXPANDIDO.')
+    print('      Isso e uma quantidade exata. O CUSTO dela nao pode ser medido')
+    print('      aqui, porque e marshalling de driver, barramento e overhead de')
+    print('      chamada por vertice - e nao ha contexto GL neste ambiente.')
+    print()
+
+    print('---------------------------------------------------------------------------')
     print('MEDICOES, COM DISPERSAO ENTRE EXECUCOES')
     print('---------------------------------------------------------------------------')
     print()
@@ -115,12 +139,11 @@ def main():
     print()
 
     labels = {
-        'expansao': 'Expansao indexado -> flat, por quadro',
-        'indexado': 'Submissao indexada, por quadro',
-        'upload': 'Upload unico do vertex buffer',
+        'expansao': 'CARREGAMENTO: expansao indice -> flat',
+        'upload': 'CARREGAMENTO: upload do vertex buffer (unicos)',
     }
     med = {}
-    for key in ('expansao', 'indexado', 'upload'):
+    for key in ('expansao', 'upload'):
         vals = [r[key]['median'] for r in runs]
         med[key] = statistics.median(vals)
         spread = max(vals) - min(vals)
@@ -136,35 +159,42 @@ def main():
               % (statistics.median(internal), min(internal), max(internal)))
         print()
 
-    ratio = med['expansao'] / med['indexado']
-    ratios = [r['expansao']['median'] / r['indexado']['median'] for r in runs]
+    ratio = med['expansao'] / med['upload']
+    ratios = [r['expansao']['median'] / r['upload']['median'] for r in runs]
 
     print('---------------------------------------------------------------------------')
     print('CONTAS DE FECHAMENTO - derivadas das medianas acima, nao digitadas')
     print('---------------------------------------------------------------------------')
     print()
-    print('orcamento de 1 quadro a  60 FPS : %9.1f us' % budget60)
-    print('orcamento de 1 quadro a 144 FPS : %9.1f us' % budget144)
-    print()
-    print('expansao por quadro             : %9.1f us = %6.1f%% do orcamento de 60 FPS'
-          % (med['expansao'], 100.0 * med['expansao'] / budget60))
-    print('                                  %9.1f us = %6.1f%% do orcamento de 144 FPS'
-          % (med['expansao'], 100.0 * med['expansao'] / budget144))
-    print()
-    print('razao expansao/indexado         : %9.2fx  (entre execucoes: %.2fx a %.2fx)'
+    print('ORCAMENTO DE CARREGAMENTO (o correto para a expansao):')
+    print('  expansao de TODA a arvore           : %9.1f us = %6.2f s'
+          % (med['expansao'], med['expansao'] / 1e6))
+    print('  upload VBO de TODA a arvore         : %9.1f us = %6.2f s'
+          % (med['upload'], med['upload'] / 1e6))
+    print('  razao expansao/upload               : %9.2fx  (entre execucoes: %.2fx a %.2fx)'
           % (ratio, min(ratios), max(ratios)))
     print()
+    print('  Referencia: carregar TODOS os 10.090 modelos de uma vez nao e o que')
+    print('  um jogo faz. Uma cena carrega um subconjunto. O numero acima e o')
+    print('  teto para a arvore inteira, e a razao e o que se preserva em')
+    print('  qualquer subconjunto, porque ambos os custos sao lineares na')
+    print('  contagem de vertice.')
+    print()
+    print('ORCAMENTO DE QUADRO (nao se aplica a expansao, e por isso nao ha')
+    print('comparacao aqui - a versao anterior fazia essa comparacao e estava')
+    print('errada):')
+    print('  orcamento de 1 quadro a  60 FPS     : %9.1f us' % budget60)
+    print('  orcamento de 1 quadro a 144 FPS     : %9.1f us' % budget144)
+    print()
     if saved:
-        print('envios de vertice poupados/quadro: %s (%s%%)'
-              % (saved.group(1), saved.group(2)))
-    print('quadros para o upload se pagar  : %9.2f'
-          % (med['upload'] / (med['expansao'] - med['indexado'])))
-    print()
-    print('A expansao sozinha excede o orcamento INTEIRO de um quadro a 60 FPS em')
-    print('TODAS as %d execucoes. Isso e CPU apenas: nao inclui driver, GPU nem' % reps)
-    print('barramento, entao o numero real de um quadro e pior, nao melhor.')
-    print()
+        print('VOLUME POR QUADRO (quantidade exata; CUSTO bloqueado, sem contexto):')
+        print('  sem glDrawElements, expandido       : %s envios de canto por draw'
+              % saved.group(1))
+        print('  VBO + index buffer                  : vertice unico, residente')
+        print()
 
+    print('---------------------------------------------------------------------------')
+    print('SAIDA BRUTA DO BENCHMARK')
     print('---------------------------------------------------------------------------')
     print('SAIDA BRUTA DO BENCHMARK, EXECUCAO 1 DE %d' % reps)
     print('---------------------------------------------------------------------------')

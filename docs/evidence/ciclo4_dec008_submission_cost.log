@@ -1,6 +1,6 @@
 === EVIDENCIA DE DEC-008: custo do caminho de submissao (CPU) ===
-data: 2026-10-12T15:40:51Z
-HEAD ClienteRecriado: c0d262afc28a62d9aa5b4c41c0a3068c7d83e4c0
+data: 2026-10-12T15:57:22Z
+HEAD ClienteRecriado: 7d10a18daa06ece71a735e1eb8ecf781f1319db7
 HEAD Cliente_ref    : 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
 hardware: 2 nucleos, Intel(R) Xeon(R) Processor @ 2.60GHz
 memoria : 3.8 GiB
@@ -11,29 +11,20 @@ comando: python3 tools/gen_dec008_evidence.py 5
 ---------------------------------------------------------------------------
 O QUE ESTA E O QUE NAO ESTA SENDO MEDIDO
 ---------------------------------------------------------------------------
-MEDIDO: custo de marshalling de vertices no lado da CPU, por quadro, para os
-dois modelos de submissao. Usa as contagens REAIS medidas na arvore de assets
-(mutool meshimport: 1.792.108 vertices, 978.853 triangulos em 4.071 malhas),
-nao numeros escolhidos para favorecer uma conclusao.
-
-O cliente original nao tem glDrawElements no binario (verificado no ciclo 1 em
-docs/RENDERING.md), entao toda malha e submetida EXPANDIDA: cada triangulo
-carrega seus tres vertices, e um vertice compartilhado por N triangulos e
-enviado N vezes.
+MEDIDO: custo de CPU de preparar dados de vertice no layout que cada modelo de
+submissao exige. Usa as contagens REAIS medidas na arvore de assets
+(mutool meshimport: 1.792.108 vertices, 978.853 triangulos em 4.071 malhas).
 
 NAO MEDIDO, e que NAO pode ser inferido destes numeros:
   - overhead de chamada do driver (nao existe contexto GL aqui)
   - processamento de vertice, transformacao ou rasterizacao na GPU
   - custo de transferencia pelo barramento ate o dispositivo
   - FPS, frametime ou VRAM
-Esses exigem contexto real em hardware real e estao registrados como BLOCKED
-em DEC-008. Estas linhas limitam apenas o termo de marshalling de CPU, que e a
-parte que uma reconstrucao controla diretamente e a que escala com a contagem
-de vertices.
 
 Estado de cache: os buffers sao alocados uma vez e reutilizados entre
-repeticoes, entao estao RESIDENTES. Isso e o caso favoravel ao caminho
-expandido; ler de memoria nao residente pioraria a diferenca.
+repeticoes, entao estao RESIDENTES.
+
+AMOSTRA: N=5 execucoes completas do binario. Indicativa, nao definitiva.
 
 
 Gerado por tools/gen_dec008_evidence.py. Nenhum numero deste arquivo
@@ -45,6 +36,30 @@ outra execucao, e as duas secoes discordavam entre si.
 execucoes completas do binario : 5
 
 ---------------------------------------------------------------------------
+POR QUE ESTA EVIDENCIA MUDOU DE FORMA (correcao do ciclo 5)
+---------------------------------------------------------------------------
+
+A versao anterior media UM gather e o comparava com o orcamento de UM
+QUADRO a 60 FPS, chamando-o de custo por quadro. NAO E. A auditoria do
+ciclo 4 apontou isso e estava certa.
+
+Os dois custos pertencem a orcamentos diferentes:
+
+  (1) EXPANSAO, indice -> array flat. Custo de CARREGAMENTO. No caminho
+      glDrawArrays do cliente existe um array flat client-side, e a
+      implementacao natural o constroi UMA VEZ ao carregar o modelo,
+      nao a cada quadro. Comparar com orcamento de quadro era o erro.
+
+  (2) VOLUME DE SUBMISSAO POR QUADRO. E o que realmente se repete. Sem
+      glGenBuffers no binario (docs/RENDERING.md secao 3) o vertice mora
+      em memoria de cliente e o driver o re-marshals a cada draw. Sem
+      glDrawElements, vertice compartilhado e REENVIADO em vez de
+      referenciado, entao o volume por quadro e o tamanho EXPANDIDO.
+      Isso e uma quantidade exata. O CUSTO dela nao pode ser medido
+      aqui, porque e marshalling de driver, barramento e overhead de
+      chamada por vertice - e nao ha contexto GL neste ambiente.
+
+---------------------------------------------------------------------------
 MEDICOES, COM DISPERSAO ENTRE EXECUCOES
 ---------------------------------------------------------------------------
 
@@ -52,63 +67,54 @@ O benchmark ja reporta desvio padrao INTERNO (entre as repeticoes de
 uma execucao). Isso nao e o mesmo que a dispersao ENTRE execucoes,
 que e a que importa para citar um numero. As duas sao reportadas.
 
-Expansao indexado -> flat, por quadro
-  medianas por execucao : 20563.6, 20502.7, 20644.1, 19332.2, 20351.2 us
-  mediana das medianas  : 20502.7 us
-  min / max             : 19332.2 / 20644.1 us
-  amplitude             : 1311.9 us (6.40% da mediana)
-  media reportada       : 20712.1 us (entre execucoes: 19652.0 a 20880.7)
+CARREGAMENTO: expansao indice -> flat
+  medianas por execucao : 19833.4, 18327.6, 22452.6, 18760.4, 17569.2 us
+  mediana das medianas  : 18760.4 us
+  min / max             : 17569.2 / 22452.6 us
+  amplitude             : 4883.4 us (26.03% da mediana)
+  media reportada       : 20218.7 us (entre execucoes: 17951.2 a 22615.2)
 
-Submissao indexada, por quadro
-  medianas por execucao : 942.6, 935.7, 944.2, 848.5, 922.2 us
-  mediana das medianas  : 935.7 us
-  min / max             : 848.5 / 944.2 us
-  amplitude             : 95.7 us (10.23% da mediana)
-  media reportada       : 945.1 us (entre execucoes: 877.2 a 959.1)
-
-Upload unico do vertex buffer
-  medianas por execucao : 3647.9, 3661.8, 3648.0, 3457.8, 3640.2 us
-  mediana das medianas  : 3647.9 us
-  min / max             : 3457.8 / 3661.8 us
-  amplitude             : 204.0 us (5.59% da mediana)
-  media reportada       : 3659.1 us (entre execucoes: 3466.4 a 3670.5)
+CARREGAMENTO: upload do vertex buffer (unicos)
+  medianas por execucao : 3638.7, 3486.9, 3632.5, 3789.0, 3427.0 us
+  mediana das medianas  : 3632.5 us
+  min / max             : 3427.0 / 3789.0 us
+  amplitude             : 362.0 us (9.97% da mediana)
+  media reportada       : 3670.1 us (entre execucoes: 3435.4 a 3689.1)
 
 ---------------------------------------------------------------------------
 CONTAS DE FECHAMENTO - derivadas das medianas acima, nao digitadas
 ---------------------------------------------------------------------------
 
-orcamento de 1 quadro a  60 FPS :   16666.7 us
-orcamento de 1 quadro a 144 FPS :    6944.4 us
+ORCAMENTO DE CARREGAMENTO (o correto para a expansao):
+  expansao de TODA a arvore           :   18760.4 us =   0.02 s
+  upload VBO de TODA a arvore         :    3632.5 us =   0.00 s
+  razao expansao/upload               :      5.16x  (entre execucoes: 4.95x a 6.18x)
 
-expansao por quadro             :   20502.7 us =  123.0% do orcamento de 60 FPS
-                                    20502.7 us =  295.2% do orcamento de 144 FPS
+  Referencia: carregar TODOS os 10.090 modelos de uma vez nao e o que
+  um jogo faz. Uma cena carrega um subconjunto. O numero acima e o
+  teto para a arvore inteira, e a razao e o que se preserva em
+  qualquer subconjunto, porque ambos os custos sao lineares na
+  contagem de vertice.
 
-razao expansao/indexado         :     21.91x  (entre execucoes: 21.82x a 22.78x)
+ORCAMENTO DE QUADRO (nao se aplica a expansao, e por isso nao ha
+comparacao aqui - a versao anterior fazia essa comparacao e estava
+errada):
+  orcamento de 1 quadro a  60 FPS     :   16666.7 us
+  orcamento de 1 quadro a 144 FPS     :    6944.4 us
 
-envios de vertice poupados/quadro: 1144451 (38.97%)
-quadros para o upload se pagar  :      0.19
-
-A expansao sozinha excede o orcamento INTEIRO de um quadro a 60 FPS em
-TODAS as 5 execucoes. Isso e CPU apenas: nao inclui driver, GPU nem
-barramento, entao o numero real de um quadro e pior, nao melhor.
-
+---------------------------------------------------------------------------
+SAIDA BRUTA DO BENCHMARK
 ---------------------------------------------------------------------------
 SAIDA BRUTA DO BENCHMARK, EXECUCAO 1 DE 5
 ---------------------------------------------------------------------------
 
-    reps=300  mean=27.8 us  stddev=3.0 us (10.86% of mean)  min=26.9  max=50.7
-    reps=300  mean=439.8 us  stddev=24.1 us (5.48% of mean)  min=400.7  max=534.6
-    reps=20  mean=7341.3 us  stddev=181.1 us (2.47% of mean)  min=7160.3  max=8018.3
-Expand indexed -> flat (per frame)  20563.6  22283.7  22283.7  20880.7      67.21    3268.5
-    reps=20  mean=20880.7 us  stddev=901.7 us (4.32% of mean)  min=19870.0  max=23679.6
-Indexed submission (per frame)        942.6    997.7   1038.0    953.4      11.20   11884.7
-    reps=200  mean=953.4 us  stddev=31.2 us (3.28% of mean)  min=873.5  max=1124.1
-One-time vertex buffer upload        3647.9   3712.6   3724.7   3656.2      41.02   11244.2
-    reps=50  mean=3656.2 us  stddev=75.4 us (2.06% of mean)
-    bytes per frame, expanded :      67.21 MiB (2936559 vertex sends)
-    bytes resident, indexed   :      52.22 MiB (1792108 unique + indices)
-    ratio expanded/indexed    :       1.29x
-    vertex sends saved per frame: 1144451 (38.97%)
+    reps=300  mean=27.9 us  stddev=2.8 us (10.18% of mean)  min=27.0  max=47.3
+    reps=300  mean=457.2 us  stddev=13.5 us (2.94% of mean)  min=433.3  max=528.2
+    reps=20  mean=7988.5 us  stddev=189.4 us (2.37% of mean)  min=7729.2  max=8652.5
+LOAD-TIME expand indexed -> flat    19833.4  24883.6  24883.6  20462.3      67.21    3388.8
+    reps=20  mean=20462.3 us  stddev=2159.7 us (10.55% of mean)  min=17733.5  max=25127.6
+LOAD-TIME vertex buffer upload       3638.7   3943.4   4156.6   3684.4      41.02   11272.9
+    reps=50  mean=3684.4 us  stddev=163.5 us (4.44% of mean)  min=3526.4  max=4474.1
 
 ---------------------------------------------------------------------------
 LIMITE DA CONCLUSAO
