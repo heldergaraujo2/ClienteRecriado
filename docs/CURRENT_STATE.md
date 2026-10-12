@@ -255,10 +255,14 @@ Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),
 ## O que está resolvido e o que não está
 
 **Resolvido e validado:** decifragem v0x0C (7.226 arquivos), posições de vértice,
-normais. Localização do array de triângulos (98,05% contra controle de 2,35%).
+normais, **array de UV** (zero não-finitos em 250.450 leituras; acaso daria
+~976), **topologia** (1.221.030 triângulos em 4.149 arquivos, lidos pelo parser
+C++).
 
-**Bloqueado:** conteúdo interno do registro de triângulo (58 dos 64 bytes),
-coordenadas UV, ossos, animação, 1.519 arquivos v0x0C.
+**Bloqueado:** índice de UV por canto (três hipóteses descartadas: campo +4 é
+padding, não há quarto canto, relação implícita refutada em 93% dos casos),
+bytes 24..59 do registro de triângulo, ossos, animação, 1.519 arquivos v0x0C,
+malhas múltiplas.
 
 **Sem índices de face, nenhum modelo BMD pode ser renderizado como malha neste
 momento — apenas dados de vértice/normal foram extraídos.**
@@ -283,15 +287,13 @@ decisões e requisitos registrados.
 
 ## ESTADO DO GIT NESTE CICLO
 
-- Commits (**8**): `6821d94` cifra v0x0C · `e4dd633` atribuição ISC e correções ·
-  `bf1668c` reversão do layout · `4456202` anexo corrigido e validação
-  independente · `92efef2` evidência final e licenciamento · `d3dcfcd` topologia
-  localizada · `77662f5` arquitetura (itens 6–10) · `a98c10e` relatório final
-- Push: **realizado após cada commit**, nenhuma falha
-- Hash local **==** hash remoto, ambos `a98c10e2cc19b314c0276cb8d9448a509f26972a`
-  (confirmado por `git rev-parse HEAD` e `git ls-remote origin`). Um commit não
-  contém o próprio hash: se esta seção for editada de novo, o hash listado aqui
-  fica defasado por definição e deve ser relido com `git rev-parse HEAD`
+- Commits: **15**, listados em `CICLO2_RELATORIO.md`. Um por unidade coerente
+- Push: **realizado após cada commit**, nenhuma falha em todo o ciclo
+- Hash local **==** hash remoto. O valor **não se copia deste documento**: um
+  commit não contém o próprio hash, então lê-se com `git rev-parse HEAD` e
+  `git ls-remote origin arena/519f8fc9-clienterecriado` no momento da consulta.
+  Esta regra existe porque três versões anteriores desta seção ficaram defasadas
+  pelo commit seguinte
 - `git status --short`: vazio — **working tree limpa**
 - Referência `Cliente_ref`: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`, idêntica
   ao início do ciclo, **não modificada**

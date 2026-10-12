@@ -1,6 +1,34 @@
 # Próxima tarefa
 
-## Decodificar os 58 bytes restantes do registro de triângulo de 64 bytes
+> **Atualizado no fim do ciclo 2.** A tarefa abaixo foi executada e o registro de
+> triângulo foi decodificado em sua parte essencial. O que resta dela está na
+> seção seguinte. Os números citados no texto original continuam válidos como
+> registro do método.
+
+## Localizar o índice de UV por canto do triângulo
+
+Este é agora **o único bloqueio entre a malha montada e a malha texturizada**.
+
+O array de UV está confirmado e legível (`52+vc*16+nc*20`, `ntc` entradas de 8 B
+`[f32 u][f32 v]`; zero não-finitos em 250.450 leituras, quando o acaso daria
+~976). Falta apenas saber **qual entrada pertence a cada canto**.
+
+**Três hipóteses já descartadas — não repetir:**
+
+1. Campo em +4 do registro: é **padding** (64,95% zero, 18,18% 0xCDCD, o
+   preenchimento de memória não inicializada do MSVC).
+2. Quarto canto em +24: **não existe** (offsets +24..+56 dão 50–81% de validade,
+   nível de ruído, contra 94–100% em +0/+8/+16).
+3. Relação implícita por posição: **refutada** — `numTexCoords` difere de
+   `numVertices` e `numNormals` em 93% dos 802 arquivos medidos.
+
+**Onde procurar:** os bytes 24..59 do registro de triângulo, não zero em 59,1%
+dos registros e ainda sem identificação. É o único espaço do registro não
+examinado.
+
+---
+
+## (Executada) Decodificar os 58 bytes restantes do registro de triângulo
 
 ### Por que esta tarefa
 

@@ -112,6 +112,7 @@ Evidência bruta, completa e não resumida:
 | 1 — estrutura de contêiner válida | 10.023 | 99,34% |
 | 2 — payload obtível em claro | 8.571 | 84,95% |
 | 3 — geometria parseável (vértice + normal) | 8.406 | 83,31% |
+| 4 — topologia parseável (índices de face) | 4.149 | 41,12% |
 
 Nível 2 detalhado: 1.245 plaintext + 100 bux + **7.226 v0x0C** = 8.571;
 1.519 OPAQUE (15,05%).
@@ -238,8 +239,8 @@ Dados finais, pós todas as correções.
 
 ### Commits locais deste ciclo
 
-Oito commits, um por unidade coerente de trabalho, na ordem em que o trabalho foi
-feito. Nenhum acumula tarefas não relacionadas.
+Quinze commits, um por unidade coerente de trabalho, na ordem em que o trabalho
+foi feito:
 
 ```
 6821d94 feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,31%
@@ -250,32 +251,39 @@ bf1668c revert(assets): desfaz a troca de layout de registro — a medicao que a
 d3dcfcd feat(assets): array de triangulos BMD localizado com controle estatistico (item 5)
 77662f5 docs(arquitetura): itens 6 a 10 - pipeline VBO/VAO, limites do BMD, importacao dual, escalabilidade
 a98c10e docs: relatorio final do ciclo 2 com 11 itens e secao final de Git
+7c71c0a docs: corrige secao de Git defasada pelo proprio commit do relatorio
+03052f0 feat(assets): registro de triangulo BMD decodificado - indices de face legiveis
+bee2a5e feat(assets): parser C++ le topologia BMD - 1.221.030 triangulos em 4.149 arquivos
+6b8dd0d docs(assets): array de coordenadas de textura BMD confirmado como pares f32
+86a8f26 docs(assets): campo +4 do triangulo e padding, nao indice - e nao ha quarto canto
+4045af8 fix(mutool): elimina 2 warnings -Wconversion no calculo de referencias fora de faixa
+fecbc39 docs(assets): terceira hipotese para o indice de UV descartada - relacao implicita
 ```
 
-**Nota sobre o hash deste relatório.** Este arquivo é commitado no último commit
-da lista. Um commit não pode conter o próprio hash, então a lista acima está
-completa e fechada: `a98c10e` é o commit que contém este relatório, e nenhum
-commit posterior a ele pertence ao ciclo 2. Se um hash de ponta for necessário,
-ele é obtido por `git rev-parse HEAD` no momento da leitura — não copiado daqui.
-Uma versão anterior desta seção citava `77662f5` como ponta e listava sete
-commits; ficou defasada pelo próprio commit que a criou, que é exatamente o erro
-que esta nota existe para impedir.
+**Este relatório foi escrito antes dos últimos sete commits e revisado depois.**
+Uma versão anterior afirmava que "nenhum commit posterior a `a98c10e` pertence ao
+ciclo 2". Isso foi falso assim que o trabalho continuou: a topologia foi
+decodificada, portada para C++, o array de UV foi confirmado e três hipóteses de
+índice de UV foram descartadas — tudo dentro do mesmo ciclo. A afirmação foi
+removida em vez de remendada, porque uma lista de commits não pode ser declarada
+fechada enquanto o ciclo está aberto.
+
+Um commit não pode conter o próprio hash, então o hash de ponta **não se copia
+deste documento**: lê-se com `git rev-parse HEAD` no momento da consulta.
 
 ### Push
 
 **Realizado, sim.** `git push origin arena/519f8fc9-clienterecriado` após cada
-commit, incluindo o deste relatório. Nenhuma falha de push ocorreu neste ciclo.
+commit. Nenhuma falha de push ocorreu neste ciclo.
 
 ### Confirmação hash remoto == local
 
-Verificada após o push final deste relatório:
-
 ```
 $ git rev-parse HEAD
-a98c10e2cc19b314c0276cb8d9448a509f26972a
+fecbc3980310ded8db289d4c6ec5ad70498402e1
 
 $ git ls-remote origin arena/519f8fc9-clienterecriado
-a98c10e2cc19b314c0276cb8d9448a509f26972a	refs/heads/arena/519f8fc9-clienterecriado
+fecbc3980310ded8db289d4c6ec5ad70498402e1	refs/heads/arena/519f8fc9-clienterecriado
 ```
 
 **Idênticos.**
