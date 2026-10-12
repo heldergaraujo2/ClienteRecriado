@@ -6,7 +6,7 @@
 
 - **Antes ciclo9:** real loose 3800 45,21% geom vs controle per trial 2099/25218 8,32% ratio 5,43× marginal (unidades diferentes arquivo vs tentativa) + strict 1/25218 0,004% ratio 4803×. Tool `/tmp/ciclo11_item1_ratio_raw.cpp` com total_geom 8406, real_old 3194/1186 vs real_new 2966/1186, ctrl OLD 21627 trials 1853 hits 8,568% 1765 files 24,48% ratio file 1,55x, ctrl NEW 2 hits 0,0092% 2 files 0,0277% ratio 1271x, + histórico ciclo9 3800 45,21% vs 2099/25218 8,32% ratio 5,43x.
 - **Depois correção unidade apenas (sem ciclo):** controle per file 1765/7209 24,48% vs per trial 1853/21627 8,56% → ratio per file OLD 1,55x < per trial OLD 4,43x, prova que unidade sozinha DIMINUI ratio 4,43x→1,55x fator -3,5x.
-- **Depois ciclo detection:** controle NEW 2/25218 0,0079% per file 2/8406 0,0238% ratio 1846,5× (tool simplificada 1271×), fator redução controle 8,32%→0,0079% ~1052x ou 24,48%→0,0277% 882x. Salto 5,43x→1846x = -3,5x unidade + ~1052x ciclo detection (parent 0 self-loop rejeitado como ciclo A->A).
+- **Depois ciclo detection:** controle NEW 2/25218 0,0079% per file 2/8406 0,0238% ratio 1846,28× definitivo (tool simplificada 1271× estava errada: parser single-mesh subcontou real 2966 vs 3693 correto, denominador 7209 vs 8405), fator redução controle 8,32%→0,0079% ~1052x ou 24,48%→0,0277% 882x. Salto 5,43x→1846x = -3,5x unidade + ~1052x ciclo detection (parent 0 self-loop rejeitado como ciclo A->A).
 - **Evidência:** `ciclo11_bones_ratio_raw.log` com 45 linhas números exatos antes/depois, commit `1728d5f` evidence(ciclo11-item1).
 
 ## Resultado Item2 — corrige "ratio infinito" → limite superior 1/N

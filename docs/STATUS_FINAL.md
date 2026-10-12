@@ -24,7 +24,7 @@
 ### Item1 — explica salto 5,43x→1846x com números exatos antes/depois unidade e ciclo
 - Antes ciclo9: real loose 3800 45,21% geom vs controle per trial 2099/25218 8,32% ratio 5,43× marginal (unidades diferentes arquivo vs tentativa) + strict 1/25218 0,004% ratio 4803×
 - Depois correção unidade apenas (sem ciclo): controle per file 1765/7209 24,48% vs per trial 1853/21627 8,56% ratio per file OLD 1,55× < per trial OLD 4,43×, prova que unidade sozinha DIMINUI ratio
-- Depois ciclo detection: controle NEW 2/25218 0,0079% per file 2/8406 0,0238% ratio 1846,5× (tool simplificada 1271×), fator redução controle 8,32%→0,0079% ~1052× ou 24,48%→0,0277% 882×
+- Depois ciclo detection: controle NEW 2/25218 0,0079% per file 2/8406 0,0238% ratio 1846,28× definitivo (tool simplificada 1271× estava errada: parser single-mesh subcontou real 2966 vs 3693 correto, denominador 7209 vs 8405), fator redução controle 8,32%→0,0079% ~1052× ou 24,48%→0,0277% 882×
 - Salto 5,43x→1846x = -3,5x unidade + ~1052x ciclo detection (parent 0 self-loop rejeitado como ciclo A->A)
 - Evidência `ciclo11_bones_ratio_raw.log` com 45 linhas números exatos
 

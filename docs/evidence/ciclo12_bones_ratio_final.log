@@ -1,0 +1,49 @@
+CICLO 12 ITEM 1 — RECONCILIAÇÃO FINAL 1271× vs 1846× (RATIO LOOSE)
+
+Execução determinística única, do zero, com script /tmp/ciclo12_final_ratio.cpp
+
+População total:
+- total_bmd 10090 (todos .bmd)
+- valid 10023 (99,34% container válido length_consistent)
+- plaintext 8520 (payload em claro após BmdV0CDecrypt Printable) vs 8571 do bmdreport (diferença 51 devido Printable check simplificado vs Probe completo, mas parsed 8406 coincide)
+- opaque 1503 (payload não decifrado)
+- parsed 8406 (83,31% vértice+normal, level3)
+- with_tri 8405 (83,30% com triângulos, level4, 3681664 tris)
+- with_bones_loose 3693 (36,60% total, 43,9329% geom, 7879 bones)
+- with_bones_strict 1186 (11,75% total, 14,1090% geom)
+
+Controle mesma classe (3 offsets por arquivo 100,200,payload/2, bc=1, com ciclo detection parent 0 self-loop rejeitado como ciclo A->A, overflow, bc>64):
+- ctrl_files 8405 (arquivos com geometria e triângulos testados, = with_tri)
+- trials 25215 (8405*3, 3 offsets por arquivo)
+- loose_hits 2, strict_hits 0
+- ctrl per trial loose rate 0,007932% (2/25215)
+- ctrl per trial strict rate 0% (0/25215)
+- ctrl per file loose files 2 rate 0,023795% (2/8405)
+- ctrl per file strict files 0 rate 0%
+
+Real per geom:
+- real loose per geom 3693/8406 = 43,9329%
+- real loose per total 3693/10090 = 36,6006%
+- real strict per geom 1186/8406 = 14,1090%
+- real strict per total 1186/10090 = 11,7542%
+
+Fórmulas e ratios:
+- ratio per file LOOSE (mesma unidade, CORRETO): real per geom / ctrl per file = 43,9329% / 0,023795% = 1846,28×
+  Fórmula: 43,9329% / 0,023795% = 1846,28×
+- ratio per trial LOOSE (unidades diferentes, INVÁLIDO): real per geom / ctrl per trial = 43,9329% / 0,007932% = 5538,84× (não usar, unidades diferentes arquivo vs tentativa)
+- ratio per file STRICT (controle 0 => limite superior): real per geom / ctrl per file = 0/0 => usar limite superior 1/N
+- limite superior strict per trial 1/25215 = 0,003966%, ratio limite sup per trial STRICT = 14,1090% / 0,003966% = 3557,58×
+- limite superior strict per file 1/8405 = 0,011898%, ratio limite sup per file STRICT = 14,1090% / 0,011898% = 1185,86×
+
+Divergência 1271× vs 1846×:
+- 1271× veio de tool simplificada /tmp/ciclo11_item1_ratio_raw.cpp que usava parsing simplificado base 52+vc*16+... apenas single-mesh, sem multi-mesh base+delta +-4, e contava real_new 2966 (não 3693) e ctrl per file 0,0277% (2/7209) vs 0,023795% (2/8405)
+- Causa: parser simplificado subcontou real em 727 arquivos (3693-2966=727) que são multi-mesh com ossos (ex: PrickleGlove mc4 bc1, sword48 bc10, Statue_Blue bc15, newdoor bc24 etc) e usou denominador diferente para controle (7209 vs 8405)
+- 1846,28× é valor CORRETO e DEFINITIVO usando mutool bmdreport completo (BmdParseBodyV0A com multi-mesh) e controle com ciclo detection, mesma unidade per file
+- 1271× estava errado por bug de cálculo (versão diferente de código rodando, denominador diferente, parser incompleto)
+- Valor único definitivo: 1846× (1846,28× com mais precisão) para loose, e >3557× per trial / >1185× per file para strict com limite superior 1/N
+
+Correções necessárias:
+- TODOS os documentos (COMPATIBILITY.md, ASSET_FORMATS.md, STATUS_FINAL.md, CURRENT_STATE.md, CICLO11_RELATORIO.md) devem usar apenas 1846× (ou 1846,28×) para loose, não 1271×
+- Enquanto este item não estiver resolvido, conjunto loose 3693 não pode aparecer como achado numericamente sustentado, apenas strict 1186 pode ser citado como confirmado — após reconciliação, loose 3693 volta a ser citável com ratio 1846× altamente discriminativo
+
+Ferramenta: /tmp/ciclo12_final_ratio.cpp, evidência este log, mutool bmdreport 8406/8405/3693/1186
