@@ -953,6 +953,43 @@ descartadas em sequência:
 | 5 | `u16@48` do cabeçalho | contagem, não índice |
 | 6 | `u16@50` do cabeçalho | parcialmente padding (0xCDCD) |
 | 7 | Array paralelo no corpo | 11,8% com distâncias dispersas — coincidência |
+| 8 | `u16@12`/`@14` do vértice | teste não discrimina — ambos preveem inteiros pequenos |
+| 9 | Bytes 24..59 como UV por canto | 79,42% contra controle de 70,34% — razão 1,13× |
+
+### Nona hipótese descartada — bytes 24..59 como coordenadas UV por canto
+
+Testada no ciclo 3, e é genuinamente diferente das oito anteriores: não procura um
+**índice** para o array de UV, procura as **próprias coordenadas** dentro do
+registro de triângulo. Os bytes 24..59 são 36 bytes = 9 floats, e nunca haviam sido
+testados para isso.
+
+**O teste é o mesmo que validou o array de UV:** fração de valores em [0,1].
+
+| Medição | % em [0,1] |
+|---|---|
+| Bytes 24..59 do registro de triângulo | **79,42%** (217.160 de 273.429) |
+| **Controle: array de normais** (f32 reais, sabidamente não UV) | **70,34%** |
+| Controle: bytes aleatórios como `f32` | 24,82% |
+| **Referência: array de UV confirmado** | **98,13%** |
+
+**A razão sobre o controle válido é 1,13×.** Dados `f32` ordinários já caem em
+[0,1] em 70% dos casos, porque valores normalizados são comuns em geometria. Os
+79,42% estão pouco acima disso e muito abaixo dos 98,13% que UV real produz.
+
+A distribuição por posição também não ajuda: os nove floats vão de 72,07% a
+85,78%, sem o pareamento `(u, v)` que coordenadas de textura produziriam.
+
+**Veredicto: rejeitada.** É a nona hipótese. O que estes floats são continua não
+determinado — a única coisa estabelecida é que são `f32` (0,046% de não-finitos
+contra 0,39% do acaso) e que não são UV.
+
+**Nota sobre o controle.** O primeiro controle tentado foi bytes aleatórios, que
+deu 24,82% e faria os 79,42% parecerem fortes (razão 3,2×). **Esse controle é
+inválido aqui**, porque a pergunta não é "estes bytes são dados ou ruído" — já se
+sabia que são `f32`. A pergunta é "estes `f32` são UV", e o controle correto é
+outro `f32` que não seja UV. Usar o controle errado teria produzido um
+falso-positivo, que é exatamente o erro que este projeto cometeu com os 95,5% em
+[0,1] no ciclo 2.
 
 Sete falhas seguidas são evidência de que **a pergunta pode estar mal formulada**,
 não de que falta tentar mais uma vez. As possibilidades que este projeto não
