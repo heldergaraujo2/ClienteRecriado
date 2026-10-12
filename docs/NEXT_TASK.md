@@ -19,9 +19,17 @@ estavam sendo lidos por adivinhação.
 Sem ela os valores de altura são relativos, não métricos, e o terreno não fica
 renderizável — independentemente de o campo estar legível.
 
-**O que procurar:** um fator de escala no prefixo dos arquivos de altura (os 1.082
-bytes antes do corpo nos arquivos de grade crua, ou os 1.078 do cabeçalho BMP), ou
-um valor constante em outro arquivo do mundo.
+**O prefixo já foi examinado e está fechado:** os 1.082 bytes são **inteiramente
+zero** em `World1/TerrainHeight.OZB`. Não há escala aí. Não repetir.
+
+**O que resta procurar:** um valor constante em outro arquivo do mundo, ou aceitar
+que a altura é relativa e deixar a escala como parâmetro de renderização.
+
+**Descoberta lateral que muda a tarefa:** 1.082 = 1.078 + 4, onde 1.078 é
+exatamente cabeçalho BMP (14) + DIB (40) + paleta (1.024). Os 29 arquivos tratados
+como "grade crua" têm o tamanho de um BMP de 8 bits com prefixo duplicado e
+**cabeçalho zerado** — provavelmente o mesmo formato dos 47 BMP. **Hipótese, não
+resultado.** Se confirmada, o parser tem um só caminho, não dois.
 
 **Alternativa de maior impacto, se houver acesso a GPU:** iniciar o pipeline
 VBO/VAO (DEC-008). É pré-requisito de todo o requisito de desempenho e não está

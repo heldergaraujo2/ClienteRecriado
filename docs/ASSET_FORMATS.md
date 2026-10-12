@@ -1192,11 +1192,27 @@ verdade ou podem ter layout diferente. Permanecem como limite conhecido.
 chave XOR-3 transforma esses zeros em `FC CF AB` — o que seria altura espúria.
 A extensão `.OZB` induz ao erro: nem todo `.OZB` deste cliente usa bux.
 
-**O que não foi determinado:**
+**O prefixo não contém fator de escala — ele é inteiramente zero.** Medido em
+`World1/TerrainHeight.OZB`: 1.082 bytes, **nenhum diferente de zero**. Procurar
+escala vertical aí é caminho fechado.
 
-- O que é o prefixo, cujo tamanho **não é constante**: média de 6.217 bytes nos 76
-  arquivos, 1.082 no primeiro examinado. A afirmação anterior de "1.082 bytes de
-  prefixo" era específica de um arquivo.
+**Isso revela que provavelmente existe UM formato, não dois.** A aritmética fecha:
+
+```
+1.078 = 14 (cabeçalho de arquivo BMP) + 40 (cabeçalho DIB) + 1.024 (paleta 256×4)
+1.082 = 1.078 + 4   ← os 4 bytes do prefixo duplicado
+```
+
+Os 29 arquivos que este projeto vinha tratando como "grade crua com prefixo" têm
+exatamente o tamanho de um BMP de 8 bits com prefixo duplicado, **com o cabeçalho
+zerado**. Ou seja: são o mesmo formato dos 47 BMP, apenas sem cabeçalho legível.
+
+**Isso é hipótese, não resultado.** O que a sustenta é a coincidência exata de
+tamanho e o prefixo nulo; o que faltaria para confirmar é achar um desses arquivos
+com cabeçalho não zerado, ou o código que os escreve.
+
+**Escala vertical: NÃO DETERMINADA, e não está no prefixo.** Procurar em outro
+arquivo do mundo, ou aceitar que a altura é relativa.
 - A escala vertical: se cada unidade vale 1, 0,5 ou outro fator. Sem isso a
   altura é relativa, não métrica.
 - Se os outros mundos seguem o mesmo prefixo.
