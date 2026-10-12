@@ -1,0 +1,8 @@
+total with bones 3693 with_extra 764 divisible bc*12 231 plausible finite<1e6 62
+control (vertex array 12B chunks as 3 floats finite<1e6): trials 55985 hits 55911 rate 99.8678%
+control per file: files 231 files_hit 231 rate 100.0000%
+real plausible rate per file 1.6789% (plausible/total_bones)
+ratio per trial 0.02x (real per file / ctrl per trial) — unidades diferentes
+ratio per file 0.02x (real per file / ctrl per file) — mesma unidade
+
+Para animação, critério estrito [-pi,pi] todos floats:
