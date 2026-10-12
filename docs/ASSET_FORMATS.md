@@ -1125,9 +1125,38 @@ Três observações, todas registradas como observação e não como resultado:
 3. O mesmo arquivo da série `Rank0N` produz bytes idênticos nesta região, o que é
    esperado se compartilham o esqueleto.
 
-**Nada disso foi confirmado.** Não foi determinado quantos keyframes há por osso,
-qual é o tamanho do registro, nem o que os três floats representam. `actionCount`
-em payload 36 vale 1 nestes arquivos, mas seu significado não foi verificado.
+**O tamanho do registro foi medido.** Em 88 arquivos com conteúdo após os ossos, o
+número de bytes extras é divisível por `12 × boneCount` em **76 = 86,4%**:
+
+```
+animação = boneCount × keyframes × 12 bytes
+12 bytes = 3 × f32
+```
+
+Keyframes por osso, nos 76 que fecham:
+
+| Keyframes | Arquivos |
+|---|---|
+| 8 | 24 |
+| 14 | 10 |
+| 18 | 10 |
+| 20 | 8 |
+| 12, 28 | 4 cada |
+| 78 | 3 |
+| 38, 98 | 2 cada |
+| 4, 16, 26, 30, 43, 46, 48, 52, 158 | 1 cada |
+
+A concentração em 8, 14, 18 e 20 é coerente com comprimentos de animação; os
+valores isolados altos (78, 98, 158) provavelmente são arquivos com mais de uma
+ação, onde o modelo de uma ação só não se aplica.
+
+**Os 12 bytes que não fecham em 12 de 88 arquivos** não foram investigados.
+
+**O que continua não determinado:** o que os três floats de cada keyframe
+representam. O dump mostra dois constantes e um que varia, o que sugere posição ou
+rotação num eixo com os outros fixos — mas isso é leitura de um exemplo, não
+resultado. `actionCount` em payload 36 vale 1 na maioria destes arquivos, e seu
+significado não foi verificado.
 
 **Estado: animação BLOQUEADA.** É o último bloco do formato BMD não decodificado.
 
