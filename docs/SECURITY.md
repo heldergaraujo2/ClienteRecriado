@@ -157,3 +157,60 @@ aware that this is on unless the user turns it off.
 Not weakened, not bypassed, not worked around, and no benchmark in this project
 depends on doing so. There is no authorised test server available, so network
 compatibility is recorded as `NOT EXECUTED` rather than approximated.
+
+## 9. Riscos operacionais — o ambiente de execução não é estável
+
+Este item existe porque o risco se materializou, não por precaução teórica.
+
+### 9.1 Restauração de snapshot antigo
+
+O ambiente onde este projeto roda **pode ser restaurado de um snapshot antigo
+entre um turno e outro**. Durante o ciclo 3 isso aconteceu e produziu dois
+efeitos simultâneos:
+
+- o branch de trabalho local voltou ao ponto do clone, perdendo os commits
+  locais que **já estavam publicados** no remoto;
+- o clone de referência `Cliente_ref` desapareceu do sistema de arquivos.
+
+O risco não é teórico nem raro: é uma propriedade do ambiente. A consequência
+prática é que **trabalho não commitado pode desaparecer sem aviso**, e trabalho
+commitado mas não publicado pode ficar apontando para uma base errada.
+
+**Mitigação, e ela é a regra permanente de commit:**
+
+| Prática | Por quê |
+|---|---|
+| Commit **imediatamente** após cada unidade coerente | Minimiza a janela de perda potencial. Trabalho só em memória de edição é o que se perde |
+| Tentar push **após cada commit** | Commit local sobrevive ao snapshot só se o repositório sobreviver; o remoto é a cópia que o ambiente não restaura |
+| Se o push falhar, **registrar o erro explicitamente** | Nunca afirmar que publicou sem confirmar o estado remoto |
+| Verificar `git rev-parse HEAD` contra `git ls-remote` **antes de qualquer scan** | Detecta divergência antes de gerar evidência sobre a base errada |
+| Verificar a existência e o hash de `Cliente_ref` antes de medir | Uma medição sobre referência ausente ou trocada é inválida e não se distingue de uma válida |
+| `git format-patch` **antes** de qualquer `reset --hard` | O reset é o único comando destrutivo da recuperação; sem o patch salvo ele descarta o trabalho |
+
+**O que fazer quando divergir:** salvar patch → `git fetch` → `git reset --hard
+origin/<branch>` → `git apply` → commit → verificar → push. **Nunca**
+force-push, nunca reescrever histórico. O remoto não é o problema; o branch
+local é que está desalinhado.
+
+Evidência completa do incidente, com reflog e diffs de verificação:
+[`evidence/ciclo3_git_incident.log`](evidence/ciclo3_git_incident.log).
+
+### 9.2 O que o incidente custou, e o que não custou
+
+Nenhum commit foi perdido e nenhum force-push foi feito. O custo real foi de
+tempo: diagnóstico, patch, realinhamento, reaplicação e re-verificação. A
+verificação por diff mostrou que as duas árvores — a do commit sobre base
+errada e a do reaplicado sobre base correta — diferem em **dois arquivos, ambos
+logs de evidência regenerados**, com diferença apenas de cabeçalho.
+
+Isso é o resultado esperado da mitigação funcionar, não sorte: o trabalho
+estava commitado e o patch foi salvo antes do reset.
+
+### 9.3 Efeito colateral sobre a evidência
+
+Uma medição executada sobre a base errada produz números que parecem válidos e
+não são comparáveis com os anteriores. Por isso os logs de evidência deste
+projeto registram **o hash HEAD de ambos os repositórios no cabeçalho**. Sem
+isso, o incidente teria passado despercebido: os números do ciclo 3 teriam sido
+gerados sobre `972fabc` e comparados com os do ciclo 2 gerados sobre `c03264b`,
+e a diferença teria parecido regressão de código.
