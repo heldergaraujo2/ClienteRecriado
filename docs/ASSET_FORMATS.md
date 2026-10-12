@@ -940,6 +940,47 @@ por outro mecanismo; ou `numTexCoords` não significar o que se assumiu.
 4.149 com topologia **não podem ser texturizados**. Malha sem textura pode servir
 para colisão, caixa delimitadora e análise, não para renderização fiel.
 
+### Ossos — localização PARCIAL, 73,7% dos arquivos
+
+Primeiro avanço sobre ossos, que estavam inteiramente não examinados. Após o array
+de triângulos vem o nome da textura (32 B) e depois os nomes de osso, também em
+blocos de 32 bytes:
+
+```
+fim_dos_triângulos + 0    32 B   nome da textura
+fim_dos_triângulos + 32   32 B   nome do osso 0
+fim_dos_triângulos + 64   32 B   nome do osso 1
+...                              (boneCount entradas)
+```
+
+`boneCount` é o `u16` no offset de payload **34**, que este projeto havia
+registrado como "não decodificado".
+
+**Evidência** (468 arquivos de malha única): **345 = 73,7%** têm `boneCount`
+nomes ASCII válidos a partir de +32. Os nomes recuperados são nomes reais de nó
+do 3ds Max, o que é forte indício de que a interpretação está certa:
+
+```
+Box01 (70×) · Bip01 (42×) · Object03 (26×) · Sphere01 (20×) · Footsteps (20×)
+```
+
+**O que impede chamar isso de resolvido.** Em **26,3%** dos arquivos a leitura não
+bate: ou há menos nomes válidos que `boneCount`, ou os blocos contêm bytes não
+imprimíveis. Causa não determinada — a restrição a malha única já estava aplicada,
+então não é isso.
+
+**O que não foi determinado:**
+
+- O registro de transformação de cada osso. Nos dumps aparecem floats logo após
+  os nomes, mas sem estrutura identificada.
+- A hierarquia pai/filho.
+- A seção de animação, que vem depois dos ossos.
+- Por que 26,3% falham.
+
+**Estado: PARCIAL.** Nomes de osso localizados na maioria dos arquivos;
+transformações, hierarquia e animação não determinados. Skinning continua
+**BLOQUEADO** — exige transformações, não nomes.
+
 ### Verificação independente da decifragem v0x0C
 
 A decifragem foi confirmada por uma via que não depende do campo de nome: sobre
