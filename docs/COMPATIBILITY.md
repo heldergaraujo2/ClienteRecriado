@@ -42,7 +42,7 @@ zero (`make clean && make test`). Saída completa em
 | Array de coordenadas UV | **CONCLUÍDO E VALIDADO** | `52+vc*16+nc*20`, `ntc` entradas de 8 B `[f32 u][f32 v]`. Zero não-finitos em 250.450 leituras (acaso daria ~976); 98,13% em [0,1] |
 | **Índice de UV por canto do triângulo** | **BLOQUEADO — sem localização** | O candidato em +4 foi descartado (68,35–68,56% contra os três limites, indistinguível). Sem ele não há como ligar cada canto a uma coordenada |
 | **Contagem de malhas** | **BLOQUEADO** | `u16@32` tem mediana 1 e máximo 18, coerente com contagem de malhas, mas não foi verificado um a um |
-| Nomes de osso | **PARCIAL — 73,7%** | `boneCount` em payload 34; nomes em blocos de 32 B após a textura. 345 de 468 arquivos, com nomes reais de 3ds Max (`Box01`, `Bip01`, `Object03`) |
+| Nomes de osso e tamanho do registro | **CONCLUÍDO — 98,0%** | Registro intercalado de 59 B (32 B nome + 27 B transformação); `boneCount` em payload 34. 901 de 919 arquivos cujo tamanho bate com `bc×59−1` |
 | **Transformações e hierarquia de ossos** | **BLOQUEADO** | Floats aparecem após os nomes, mas sem estrutura identificada. Sem isso não há skinning |
 | **Animação** | **BLOQUEADO** | Depende de ossos, que estão bloqueados |
 | 1.519 arquivos v0x0C | **BLOQUEADO** | A verificação de plausibilidade rejeitou a decifragem; causa não determinada |

@@ -969,10 +969,36 @@ bate: ou há menos nomes válidos que `boneCount`, ou os blocos contêm bytes n�
 imprimíveis. Causa não determinada — a restrição a malha única já estava aplicada,
 então não é isso.
 
+### Registro de osso — intercalado, 59 bytes, confirmado em 98,0%
+
+**Correção de uma suposição deste projeto.** A leitura inicial assumiu que todos
+os nomes de osso vinham primeiro, em blocos de 32 bytes, e as transformações
+depois. Um dump mostrou o contrário: logo após o primeiro nome aparece outro nome
+(`t04`), não dados numéricos. **Os registros são intercalados.**
+
+```
+fim_dos_triângulos + 32          início dos ossos
+cada osso: 32 B nome ASCII NUL-pad + 27 B de transformação
+total: boneCount × 59 − 1 bytes
+```
+
+**Evidência:** 919 arquivos têm tamanho exatamente `boneCount × 59 − 1`, e
+**901 = 98,0%** deles apresentam nomes ASCII válidos na posição intercalada
+prevista. É uma confirmação dupla — o tamanho fecha e o conteúdo confere.
+
+O `− 1` do modelo permanece sem explicação.
+
+**Estado: nomes e tamanho do registro confirmados; o conteúdo dos 27 bytes de
+transformação NÃO foi decodificado.** Uma amostra mostra `u16 = 65535` seguido de
+floats quase todos zero, o que é compatível com "sem osso pai" e transformação
+identidade, mas uma amostra não é evidência. Skinning continua **BLOQUEADO**.
+
 **O que não foi determinado:**
 
-- O registro de transformação de cada osso. Medido em 759 arquivos com nomes
-  válidos, o que resta após os blocos de nome é:
+- O conteúdo dos 27 bytes de transformação, campo a campo.
+- Por que o modelo tem `− 1` byte.
+- A seção de animação, que vem depois dos ossos nos arquivos com sobra maior que
+  a prevista.
 
   | Sobra | Arquivos |
   |---|---|
