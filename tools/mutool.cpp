@@ -9,11 +9,13 @@
 //   dedupe <dir>                     report byte-identical duplicate files
 //   bmdreport <dir>                  three-level BMD usability report
 //   meshimport <dir>                 run the full BMD -> internal mesh pipeline
+//   culltest <dir>                   measure frustum culling on imported meshes
 //
 // Exit status is 0 on success, 1 on a usage error, 2 when a check found
 // problems. That distinction is what lets CI treat "verify found a corrupt
 // file" differently from "you invoked me wrong".
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <map>
@@ -24,6 +26,7 @@
 #include "mu/assets/bmd_body.hpp"
 #include "mu/assets/bmd_report.hpp"
 #include "mu/assets/mesh.hpp"
+#include "mu/render/cull.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
 #include "mu/assets/ozj.hpp"
@@ -605,6 +608,128 @@ int CmdMeshImport(int argc, char** argv) {
   return mesh_ok == 0 ? 2 : 0;
 }
 
+
+// Measures what frustum culling actually removes, on meshes imported from real
+// files. This reports draw calls avoided, NOT frame rate: fewer draw calls is a
+// mechanism, and whether it moves frametime has to be measured on real hardware,
+// which this environment cannot do. See docs/PERFORMANCE_BASELINE.md.
+//
+// Objects are laid out on a grid rather than using their real in-game positions,
+// because the BMD format carries no world transform and no scene file has been
+// decoded. The layout is stated so nobody reads these numbers as gameplay.
+int CmdCullTest(int argc, char** argv) {
+  if (argc < 3) {
+    std::fprintf(stderr, "usage: mutool culltest <dir>\n");
+    return 1;
+  }
+  std::vector<mu::FileEntry> files;
+  if (!mu::WalkFiles(argv[2], &files)) {
+    std::fprintf(stderr, "error: cannot open directory '%s'\n", argv[2]);
+    return 1;
+  }
+  std::sort(files.begin(), files.end(),
+            [](const mu::FileEntry& a, const mu::FileEntry& b) {
+              return a.path < b.path;
+            });
+
+  // Import every mesh and keep its bounds. Positions come from the file; the
+  // placement in the world is synthetic, as noted above.
+  std::vector<mu::Bounds> boxes;
+  for (const mu::FileEntry& f : files) {
+    if (mu::ExtensionOf(f.path) != ".bmd") continue;
+    std::vector<uint8_t> raw;
+    if (!mu::ReadFile(f.path, &raw)) continue;
+    const mu::ByteView view(raw.data(), raw.size());
+    mu::BmdInfo info;
+    if (!mu::BmdProbe(view, &info) || !info.length_consistent) continue;
+    mu::ByteView payload = view.sub(info.payload_offset, info.payload_size);
+    std::vector<uint8_t> plain;
+    if (info.kind == mu::BmdKind::kPlainV0C) {
+      plain.assign(payload.data, payload.data + payload.size);
+      mu::BmdV0CDecrypt(plain.data(), plain.size());
+      bool printable = plain.size() >= 32;
+      for (std::size_t i = 0; printable && i < 32; ++i) {
+        const uint8_t c = plain[i];
+        if (c != 0 && (c < 32 || c > 126)) printable = false;
+      }
+      if (!printable) continue;
+      payload = mu::ByteView(plain.data(), plain.size());
+    }
+    mu::BmdBody body;
+    const mu::Status bs = mu::BmdParseBodyV0A(payload, &body);
+    if (!bs || !body.complete) continue;
+    const mu::MeshImportResult r = mu::MeshFromBmd(body, f.path);
+    if (!r.ok || !r.mesh.bounds.valid) continue;
+
+    // Lay out on a grid, one object per cell, spacing far larger than any model
+    // so boxes do not overlap. Overlapping boxes would make the cull counts
+    // depend on layout accidents rather than on the frustum.
+    const std::size_t i = boxes.size();
+    const float gx = static_cast<float>(i % 64) * 200.0f;
+    const float gz = static_cast<float>(i / 64) * 200.0f;
+    mu::Bounds b = r.mesh.bounds;
+    const float dx = gx - b.min.x;
+    const float dz = gz - b.min.z;
+    b.min.x += dx; b.max.x += dx;
+    b.min.z += dz; b.max.z += dz;
+    boxes.push_back(b);
+  }
+
+  if (boxes.empty()) {
+    std::printf("no meshes with valid bounds imported from %s\n", argv[2]);
+    return 2;
+  }
+
+  // Camera at the origin looking down +z, 60 degree vertical FOV, aspect 16:9.
+  // Built by hand rather than from a projection library this project does not
+  // have, so the numbers are reproducible from this file alone.
+  const float aspect = 16.0f / 9.0f;
+  const float ny = 0.5f;            // tan(30 deg)
+  const float nx = ny * aspect;
+  const float zn = 1.0f;
+  const float zf = 4000.0f;
+
+  mu::Frustum fr{};
+  auto setp = [&fr](int i, float a, float b, float c, float d) {
+    fr.planes[i].normal = {a, b, c};
+    fr.planes[i].d = d;
+  };
+  // Left/right: x within +-nx*z. Bottom/top: y within +-ny*z. Both point inward.
+  const float invx = 1.0f / std::sqrt(nx * nx + 1.0f);
+  const float invy = 1.0f / std::sqrt(ny * ny + 1.0f);
+  setp(0, invx, 0.0f, nx * invx, 0.0f);
+  setp(1, -invx, 0.0f, nx * invx, 0.0f);
+  setp(2, 0.0f, invy, ny * invy, 0.0f);
+  setp(3, 0.0f, -invy, ny * invy, 0.0f);
+  setp(4, 0.0f, 0.0f, 1.0f, -zn);
+  setp(5, 0.0f, 0.0f, -1.0f, zf);
+
+  std::size_t visible = 0;
+  std::size_t outside = 0;
+  for (const mu::Bounds& b : boxes) {
+    if (mu::IsVisible(fr, b)) ++visible;
+    else ++outside;
+  }
+
+  std::printf("Frustum culling over meshes imported from %s\n\n", argv[2]);
+  std::printf("  meshes with valid bounds           %8zu\n", boxes.size());
+  std::printf("  visible (must be drawn)            %8zu  (%6.2f%%)\n", visible,
+              100.0 * static_cast<double>(visible) /
+                    static_cast<double>(boxes.size()));
+  std::printf("  culled (draw calls avoided)        %8zu  (%6.2f%%)\n", outside,
+              100.0 * static_cast<double>(outside) /
+                    static_cast<double>(boxes.size()));
+  std::printf("\n");
+  std::printf("  Camera: origin, +z, 60 deg vertical FOV, aspect 16:9,\n");
+  std::printf("  near %.0f, far %.0f. Objects laid out on a 64-wide grid at\n",
+              static_cast<double>(zn), static_cast<double>(zf));
+  std::printf("  200-unit spacing, because BMD carries no world transform.\n");
+  std::printf("\n");
+  std::printf("  This counts DRAW CALLS AVOIDED, not frame rate. Whether it\n");
+  std::printf("  moves frametime must be measured on real hardware.\n");
+  return 0;
+}
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     Usage();
@@ -617,6 +742,7 @@ int main(int argc, char** argv) {
   if (cmd == "dedupe") return CmdDedupe(argc, argv);
   if (cmd == "bmdreport") return CmdBmdReport(argc, argv);
   if (cmd == "meshimport") return CmdMeshImport(argc, argv);
+  if (cmd == "culltest") return CmdCullTest(argc, argv);
   if (cmd == "-h" || cmd == "--help" || cmd == "help") {
     Usage();
     return 0;
