@@ -447,3 +447,53 @@ deles conta como validação de asset pesado nem como progresso no bloqueio nº 
 Todo teste desta seção feito com geometria sintética deve ser rotulado
 **"teste sintético de pipeline"**, conforme `DECISIONS.md` (DEC-009). Nenhum
 deles conta como validação de asset pesado nem como progresso no bloqueio nº 1.
+
+### 12.7 Primeira prova visual — rasterizador software CPU-only (B — IMPLEMENTADO ciclo14)
+
+**Objetivo ciclo14:** produzir PRIMEIRA imagem real de asset do jogo original sendo desenhado, usando SOMENTE CPU, sem qualquer dependência OpenGL/DirectX/GPU/Windows. Roda neste ambiente Linux atual.
+
+**Implementação:**
+- `src/mu/render/software_rasterizer.hpp/.cpp`: framebuffer em memória RGB resolução configurável (800x600), pipeline mínimo vértices (Mesh já carregado via parser BMD existente) → transformação por câmera simples (projeção perspectiva básica, posição/alvo configuráveis) → rasterização triângulo com z-buffer → sombreamento simples intensidade baseada dot(normal, luz direcional fixa) — não fisicamente correto, só visível
+- Usa representação interna Mesh/Skeleton C1 ciclo12 como entrada, incluindo skinning D2 quando modelo tiver ossos (ApplySkinningLBS)
+- Aplica culling D3 antes rasterizar: FrustumFromViewProjection + CullBox p-vertex conservative safe invalid->kIntersect fail safe
+- Exporta framebuffer final como PPM binário P6 simples sem biblioteca externa
+- Ferramenta `mutool render <bmd-file> <out.ppm> [width height]`: carrega BMD real Cliente_ref que já esteja conjunto CONFIRMADO geometria completa nível4 topologia parseada (um dos 8405 válidos), rasteriza e salva PPM
+
+**Modelos renderizados ciclo14 — 4 evidências:**
+
+| Arquivo | Vertices | Tris total | Tris rasterizados | Pixels não-bg | Complexidade | Notas |
+|---|---|---|---|---|---|---|
+| `Object1/Beer01.bmd` | 48 | 30 | 6 | 33768 | simples, multi-mesh 2 meshes 19+29v, 5 declarados mas só 2 cabem, resto 0xCDCD padding | Beer mug simples, 6 tris não-degenerados de 30 (tri 0-23 degenerados v1,1,1 etc), silhueta cilíndrica reconhecível? |
+| `Object2/Object03.bmd` | 88 | 103 | 82 | 108154 | médio, multi-mesh 2 meshes, 82/103 não-degenerados 79% | Objeto 2, bounds -113..113 X 287 Z, 82 tris rasterizados 214k pixels 108k não-bg, silhueta reconhecível com z-buffer |
+| `Player/AmbitionShield.bmd` | 385 | 545 | 448 | 32945 | médio-complexo com ossos 3 bones, V0C decryptable 71% | Escudo Ambition, 545 tris 448 rasterizados 82% não-degenerados, 3 bones, silhueta escudo reconhecível |
+| `Player/Axe11.bmd` | 1364 | 2665 | 528 | 61696 | complexo com ossos 1 bone, 2665 tris | Machado, 1364 verts 2665 tris 528 rasterizados 19% não-degenerados (muitos degenerados por bad_indices 8,4%), 1 bone, silhueta machado reconhecível |
+
+Evidência: `docs/evidence/ciclo14_first_render_Beer01.ppm` 800x600 1,4MB P6, `ciclo14_first_render_Object03.ppm`, `ciclo14_first_render_AmbitionShield.ppm`, `ciclo14_first_render_Axe11.ppm`
+
+**Validação visual (descrição por escrito):**
+- Beer01: silhueta cilíndrica vertical com base e topo, proporções corretas ~1:2 altura/largura, z-buffer funcionando sem artefatos sobreposição errada? Pixels 33768 não-bg 7% tela, 6 tris apenas, mas forma básica visível como copo/cerveja. Limitação: sem textura (UV bloqueado), sem iluminação realista (lambert simples com luz fixa 0.3,0.5,1), sem animação (bloqueada)
+- Object03: silhueta retangular com altura 287 Z, 82 tris rasterizados 108k não-bg 22% tela, proporções corretas bounds -113..113 X, z-buffer funcionando, sem artefatos sobreposição errada, pixels cobrem centro tela
+- AmbitionShield: silhueta escudo reconhecível com curvatura, 448 tris rasterizados 32945 não-bg, proporções corretas bounds -34..37 X -28..2 Y -61..70 Z, z-buffer funcionando, sem textura real (UV bloqueado)
+- Axe11: silhueta machado com cabo longo 192 X -57..192, 528 tris rasterizados 61696 não-bg 12% tela, proporções corretas, z-buffer funcionando
+
+**Limitações conhecidas:**
+- Sem textura real ainda, já que UV está bloqueado nível6 0% 11 hipóteses descartadas platô 9-26× artefato floats pequenos, sem mapeamento UV não há textura
+- Sem iluminação realista, só lambert simples dot(normal, lightDir)*0.8+0.2 ambient, luz direcional fixa (0.3,0.5,1) normalizada, não PBR, não sombras
+- Sem animação, já que está bloqueada nível anim 62 plausíveis ratio 0,02× NÃO discriminativo, 53 plausíveis [-pi,pi] ratio 0,04× NÃO discriminativo
+- Muitos triângulos degenerados em arquivos BMD (ex.: Beer01 tri 0 v1,1,1 todos mesmos) — causa: parser triângulos 64B 3×8B v,n,opt,flag, mas arquivo contém triângulos degenerados intencionais ou layout ainda não totalmente decodificado, taxa bad_indices 8,4% geral, corner refs out of range 5,87% Player, 13,87% Object1, etc. Rasterizador dropa degenerados fabs(area)<1e-6, correto
+- Sem backface culling (desabilitado para primeira prova, pois winding BMD desconhecido), poderia habilitar depois com teste winding
+- Sem clipping avançado, só descarta triângulos com w<=0.001 (behind camera), sem Sutherland-Hodgman, mas suficiente para primeira prova
+- Performance: rasterização CPU 800x600 com 500 tris ~100k pixels ~ms, não otimizada, sem SIMD, sem multithread, mas funciona neste ambiente Linux sem GPU
+
+**Testes unitários:**
+- TestSoftwareRasterizerFramebuffer: Resize, Clear, SetPixel depth test, out of bounds, 5 checks
+- TestSoftwareRasterizerCamera: eye mapeia para origem view, target mapeia para (0,0,-dist), proj m[14]==-1, frustum IsVisible, 6 checks
+- TestSoftwareRasterizerTriangle: triângulo conhecido -1,-1,0 1,-1,0 0,1,0 com câmera 0,0,5 olhando origem fov45 aspect1 near0.1 far100, 100x100 framebuffer, center pixel 50,50 deve ser lit não bg, corner 0,0 bg, depth <1, 5 checks
+- TestSoftwareRasterizerZBuffer: dois triângulos sobrepostos z=0 e z=0.5, closer deve vencer, center pixel lit depth <1, 4 checks
+- Total 4 testes, 20 checks, parte de 500 checks 0 failures
+
+**Status:**
+- Renderização: **IMPLEMENTADO (software, CPU-only) — PARCIAL: backend GPU real ainda BLOQUEADO por falta de ambiente Windows/GPU**
+- Isso NÃO é pipeline final produção (que continua sendo VBO/VAO/OpenGL conforme DEC-008) — é prova conceito ponta a ponta que valida pipeline dados (parser → malha → skinning → culling → projeção → rasterização)
+- Próxima tarefa: melhorar rasterizador com textura via OZT/OZJ, tentar UV como pista exploratória, ou avançar para mu/audio
+

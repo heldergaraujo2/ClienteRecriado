@@ -1,141 +1,133 @@
-# STATUS FINAL — Ciclo 13
+# STATUS FINAL — Ciclo 14
 
-> **Base:** ciclo12 `ed88a52` → HEAD atual `2a44d10` + itens ciclo13 1-8. Branch `arena/519f8fc9-clienterecriado`. Referência `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto. 474 checks 0 failures, test-san 469→474 checks 0 failures 0 ASan/UBSan.
+> **Base:** ciclo13 `9784e22` → HEAD atual ciclo14. Branch `arena/519f8fc9-clienterecriado`. Referência `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto. 500 checks 0 failures, test-san 500 checks 0 failures 0 ASan/UBSan. Primeira prova visual CPU-only.
 
 ## Métricas medidas (10.090 arquivos .bmd)
 
-| Nível | Arquivos | % total | % geom | Detalhe | Classificação revisada ciclo13 |
+| Nível | Arquivos | % total | % geom | Detalhe | Classificação ciclo14 |
 |---|---|---|---|---|---|
 | 1 estrutura válida | 10023 | 99,34% | — | magic + versão, length_consistent | CONFIRMADO |
 | 2 payload em claro | 8571 | 84,95% | — | 1245 plaintext +100 bux +7226 v0x0C | CONFIRMADO |
-| 2 OPAQUE | 1519 | 15,05% | — | cifra não recuperada, full-scan 1503 com PlausiblePath 0 variantes plausíveis tentativa falha item4 ciclo11 | BLOQUEADO — cifra v0x0C |
-| 3 vértice+normal | 8406 | 83,31% | 100% | posições e normais lidas | CONFIRMADO |
-| 4 topologia | 8405 | 83,30% | 99,99% | 3.681.664 tris, com triângulos | CONFIRMADO |
-| 5 ossos loose | **3693** | **36,60%** | **43,93%** | 7879 bones, ratio per file 1846,28× altamente discriminativo vs ctrl 0,023795% | CONCLUÍDO E VALIDADO — ratio determinístico 1846,28× evidência `ciclo13_bones_ratio_final_calc.log` |
-| 5b ossos strict (headline conservador) | **1186** | **11,75%** | **14,11%** | NUL-padded, taxa FP 0/25218 limite sup ~0,004% ratio >3557× per trial >1185× per file, strict ⊂ loose provado | CONCLUÍDO E VALIDADO — headline conservador |
-| 6 UV | 0 | 0,00% | 0% | 11 hipóteses descartadas, platô 9-26× explicado como artefato floats pequenos lidos como u16 | NÃO DECODIFICADO — 0% |
-| Anim extra | 764 | 7,57% | 9,09% | com extra após ossos | PARCIAL — extra existe mas não decodificado |
-| Anim divisível bc*12 | 231 | 2,29% | 2,75% | divisível | PARCIAL |
-| Anim plausível finite<1e6 | 62 | 0,61% | 0,74% | rotação [-pi,pi] mas ratio 0,02× NÃO discriminativo vs controle 99,86% | NÃO CONFIRMADO — ratio <1× |
-| Anim plausível [-pi,pi] | 53 | 0,53% | 0,63% | ratio per file 0,04× NÃO discriminativo vs controle 33,76% | NÃO CONFIRMADO |
-| Textura | OZJ 13.832 99,31% OZT 3.404 98,10% TGA 15 100% | — | — | pixels NOT decoded para OZJ, RGBA para OZT | PARCIAL — header+geometry ok pixels NOT decoded OZJ |
+| 2 OPAQUE | 1519 | 15,05% | — | cifra não recuperada, full-scan 1503 PlausiblePath 0 | BLOQUEADO |
+| 3 vértice+normal | 8406 | 83,31% | 100% | posições e normais | CONFIRMADO |
+| 4 topologia | 8405 | 83,30% | 99,99% | 3.681.664 tris | CONFIRMADO |
+| 5 ossos loose | **3693** | **36,60%** | **43,93%** | 7879 bones ratio per file 1846,28× definitivo | CONCLUÍDO E VALIDADO |
+| 5b ossos strict | **1186** | **11,75%** | **14,11%** | FP 0/25218 limite sup ~0,004% ratio >3557× per trial >1185× per file strict ⊂ loose | CONCLUÍDO E VALIDADO |
+| 6 UV | 0 | 0,00% | 0% | 11 hipóteses descartadas platô 9-26× artefato floats | NÃO DECODIFICADO |
+| Anim extra | 764 | 7,57% | 9,09% | extra após ossos | PARCIAL |
+| Anim plausível finite<1e6 | 62 | 0,61% | 0,74% | ratio 0,02× NÃO discriminativo | NÃO CONFIRMADO |
+| Anim plausível [-pi,pi] | 53 | 0,53% | 0,63% | ratio 0,04× NÃO discriminativo | NÃO CONFIRMADO |
+| Textura OZJ/OZT/TGA | 13.832 99,31% / 3.404 98,10% / 15 100% | — | — | header+geometry ok | PARCIAL |
 
-## Revisão classificação C1-E3 à luz lacunas identificadas ciclo13
+## Reconciliações numéricas ciclo14 Parte A
 
-### C1 — Representação interna única malha+esqueleto
-- **Antes:** CONCLUÍDO E VALIDADO com 23 checks
-- **Revisão ciclo13:** mantém CONCLUÍDO E VALIDADO — código `src/mu/assets/mesh.hpp` bone_weights vector<vector<BoneWeight>> + has_bone_weights, Mesh acomoda vértices/normais/UV/índices/hierarquia ossos/pesos skinning independente formato BMD ou glTF, teste TestMeshInternalRepresentation 23 checks cria Mesh 3 vértices has_texcoords true bone_weights 3 vértices 1 e 2 influências has_bone_weights true bounds valid Skeleton Root parent kNoBoneParent Child parent 0 has_bones true verifica tamanhos has flags bounds parent refs soma pesos ~1.0, saída [ RUN ] mesh internal representation (C1) [ OK ], evidência `ciclo13_c1_e3_detailed.log`
-- **Classificação final:** CONCLUÍDO E VALIDADO
+### 1. Histórico ratio 1271×, 1846,28×, 5538×
+- **1271×:** Proveniência tool simplificada ciclo11 single-mesh 52+... sem multi-mesh +-4 contava real 2966 subcontou 727 vs 3693 correto denominador 7209 vs 8405 erro parser intermediário descartado ciclo12 item1 c45b0a0 substituído por 1846,28×. Evidência docs/evidence/ciclo14_ratio_history.md
+- **1846,28×:** Proveniência cálculo definitivo per file LOOSE mesma unidade (3693/8406)/(2/8405)=43,9329%/0,023795%=1846,28× altamente discriminativo com ciclo detection visited[64] self-loop rejeitado reduz FP 8,32%→0,023795% ~1052×. Valor definitivo referência futura. Evidência ciclo13_bones_ratio_final_calc.log
+- **5538×:** Proveniência cálculo per trial LOOSE unidades diferentes (3693/8406)/(2/25215)=43,9329%/0,007932%=5538,84×≈1846,28×*3 inflado 3× misturar arquivo vs tentativa INVÁLIDO não relacionado a 1271× nunca usar. Evidência ciclo14_ratio_history.md
 
-### C2 — Caminho B glTF 2.0
-- **Antes:** CONCLUÍDO
-- **Revisão:** mantém CONCLUÍDO — DEC-013 Caminho B glTF 2.0 escolhido para assets pesados customizados não originais, comparação 4 alternativas glTF vs FBX vs OBJ vs Collada skinning/PBR/maturidade parsing C++ sem dependências/licença tinygltf/cgltf single-header MIT, Caminho B não substitui Caminho A explicitamente, sem teste código mas decisão documentada, arquivo docs/DECISIONS.md contém DEC-013
-- **Classificação final:** CONCLUÍDO
+### 2. BuxCrypt N=10 runs mediana
+- N=10 runs bench_assets 1 MiB 200 reps: median MB/s 2555,8 mean 2549,81 stdev 30,42 min 2510,7 max 2606,0 median med_us 391,3 mean 392,24 stdev 4,67 min 383,7 max 398,3
+- Antes baseline ciclo11 1135,7us 880,5 MB/s depois mediana 391,3us 2555,8 MB/s speedup 2,90× (1135,7/391,3)
+- Pico anterior 3437 MB/s 290,9us ciclo10 outlier não reproduzível max N=10 2606 24% abaixo 3437 explicitamente outlier não representativo, mediana 2555,8 como referência futura
+- Evidência docs/evidence/ciclo14_buxcrypt_10runs.log, BENCHMARKS.md §3.5
 
-### C3 — Limites reais BMD
-- **Antes:** CONCLUÍDO com 63 bones máximo observado vs bc>64 rejeitado aparente contradição
-- **Revisão ciclo13 item6:** reconciliado — 64 teto aceitação parser `if (bone_count == 0 || bone_count > 64) return false;` OOM-safe visited[64] fixo, 63 máximo real encontrado Item/Stick32.bmd entre has_bones true body.complete, sem contradição 63<=64, se 64 seria aceito, 65 rejeitado segurança mas não observado, Tool /tmp/find_max_bones3.cpp max_bc 63 total_bones 7879, Tool /tmp/find_max_bones2.cpp sem has_bones filter encontrou max_bc 200 kunremu_.bmd declared 200 mas bones.size()=0 sem has_bones não conta como máximo observado com bones reais, conclusão sem inconsistência apenas esclarecer, tabela ASSET_FORMATS.md já atualizada com limites conhecidos vs desconhecidos consolidada ciclo12 C3, evidência `ciclo13_bones_limits.log`
-- **Classificação final:** CONCLUÍDO E VALIDADO — 64 teto aceitação, 63 máximo real, sem contradição
+### 3. Culling escala real câmera sintética
+- Config A frustum manual x>=0 x<=10 unbounded Y/Z ortográfico slab 10 largura X infinito Y/Z posição implícita ortográfica alinhada eixos olhando -Z centrada volume slab 0..10 X total_bmd 10090 with_bounds 8406 inside 7 outside 233 intersect 8166 culled 2,77%
+- Config B identity VP -1..1 clip cube col-major identidade Gribb-Hartmann clip cube canônico -1..1 origem olhando -Z near -1 far 1 volume 2x2x2 with_bounds 8406 inside 2 outside 662 intersect 7742 culled 7,88%
+- Justificativa: bounds model space centrados origem não world space, slab 0..10 contém origem infinito Y/Z quase todos intersectam 233 fora esquerda x<0, cube -1..1 pequeno quase todos intersectam bordas 662 fora, baixo culling plausível config artificial mas não representativa jogo real onde objetos world espalhados 0..255 mapa frustum perspectiva FOV 60° near 0.1 far 1000 culling esperado 50-90%, prova funcional escala real 8406 bounds reais não benchmark cenário jogo, ajuste necessário carregar posições world terrain .att + Object placements view eye (128,128,50) target (128,128,0) up (0,1,0) projeção perspectiva fov 60° aspect 800/600
+- Evidência docs/evidence/ciclo14_culling_camera.md, ciclo13_cull_scale.log
 
-### D1 — Buffers VBO/VAO CPU-side sem GL
-- **Antes:** CONCLUÍDO com 21 checks byte a byte
-- **Revisão:** mantém CONCLUÍDO E VALIDADO — código src/mu/render/buffers.hpp PackedVertex px,py,pz,nx,ny,nz,u,v,bone_ids[4],bone_weights[4],weight_count PackedBuffers vertices flat indices flat has_texcoords has_bone_weights bounds skipped_vertices bad_indices ok problem, PackMeshForUpload valida positions non-empty normals size match texcoords size match quando has true bone_weights size match quando has true copia UV senão 0,0 empacota até 4 pesos valida indices múltiplo 3 dropa triângulos bad index conta bad_indices quando indices vazio sequencial 0..N-1 ComputeBounds PackSkeletonForUpload valida parent range self-loop cycle visited[64] fail safe, teste TestPackMeshForUpload 21 checks Tri 3 vértices byte a byte vertices[0] px==0 py==0 pz==0 nx==0 ny==0 nz==1 u==0 v==0 bone_ids[0]==0 bone_weights[0]==1.0 weight_count==1 vertices[1] px==1 u==1 indices 0,1,2 sem texcoords/bone_weights uv 0,0 weight_count 0 has false bad indices drop triângulo bad count 1 indices size 3, saída [ RUN ] pack mesh for upload (D1) [ OK ], evidência `ciclo13_c1_e3_detailed.log`
-- **Classificação final:** CONCLUÍDO E VALIDADO
+### 4. Conteúdo ciclo13_git_incident.log
+- Colado em docs/evidence/ciclo14_git_incident_content.md 256 linhas reflog diff confirmação nada perdido: reflog 65bb1c4 HEAD@{0} commit fix item1, ed88a52 HEAD@{1} reset moving to origin/arena, 454de1b HEAD@{2} checkout, 454de1b HEAD@{3} commit fix item1 baseado 972fabc, 972fabc HEAD@{4} checkout main to arena, 972fabc HEAD@{5} clone from github, log --graph --all --oneline 35 commits, show-ref, diff provando nenhum commit perdido commit 454de1b primeira tentativa fix item1 baseado 972fabc continha Makefile fix e evidence log commit 65bb1c4 segunda tentativa baseado ed88a52 contém mesmo fix reaplicado remote origin/arena continua em ed88a52 até push de 65bb1c4 nenhum commit perdido histórico preservado
 
-### D2 — Skinning LBS CPU strict sem GL
-- **Antes:** CONCLUÍDO mas só com testes degenerados identity/self-loop/zero-movement — classificação otimista demais, não poderia ser CONCLUÍDO E VALIDADO só com casos degenerados
-- **Revisão ciclo13 item4:** adicionado teste transformação NÃO-TRIVIAL rotação 90° Z cálculo independente: matriz row-major [0 -1 0 0; 1 0 0 0; 0 0 1 0; 0 0 0 1] cos=0 sin=1 transforma (1,0,0)->(0,1,0) cálculo manual x'=0*1+(-1)*0=0 y'=1*1+0*0=1 z'=0 portanto vértice (1,0,0) deve ir para (0,1,0) após skinning peso 1.0 bone 0, verifica fabs x-0<1e-5 y-1<1e-5 z-0<1e-5, código src/mu/render/skinning.hpp Mat4 Identity TransformPoint ValidateSkeletonForSkinning ApplySkinningLBS strict count, teste TestSkinningLBS agora 15 checks (a) identity bones equals original (b) self-loop fails safe (c) mesh without bone_weights zero movement (d) rotação 90° Z não-trivial (0,1,0) esperado, saída [ RUN ] skinning LBS CPU strict (D2) [ OK ], 474 checks total, evidência `ciclo13_c1_e3_detailed.log`
-- **Classificação final revisada:** CONCLUÍDO E VALIDADO — agora com teste não-trivial e resultado numérico verificável
+### 5. Trecho código skinning 90° Z
+- Colado em docs/evidence/ciclo14_skinning_90z_code.md: cálculo manual rotação Z 90° cos=0 sin=1 (1,0,0)->(0,1,0) matriz row-major [0 -1 0 0; 1 0 0 0; 0 0 1 0; 0 0 0 1] x'=0 y'=1 z'=0 esperado (0,1,0) fabs<1e-5, 15 checks TestSkinningLBS (a) identity (b) self-loop fails safe (c) zero movement (d) rotação 90° Z não-trivial
 
-### D3 — Frustum culling com bounding boxes reais
-- **Antes:** CONCLUÍDO com 3 casos (a/b/c) testes unitários pontuais mas sem medição escala real — classificação poderia ser PARCIAL se só pontual
-- **Revisão ciclo13 item5:** confirmado 3 casos são unitários pontuais E também medição escala real 8406 arquivos BMD reais bounding boxes extraídas de vértices decodificados de verdade, TestFrustumCull boxes manuais (a) inside 2..8 kInside (b) outside -8..-2 e 12..18 kOutside (c) invalid never culled valid=false true kIntersect, TestFrustumCullRealBounds Mesh sintético 4 vértices 0..1 (a) inside 0..1 frustum 0..10 kInside (b) outside -20..-10 kOutside (c) invalid true kIntersect, medição escala real /tmp/cull_scale.cpp WalkFiles Data 10090 .bmd BmdProbe BmdV0CDecrypt Printable BmdParseBodyV0A complete extrai body.vertices -> Vec3 -> ComputeBounds bounds reais total com bounds 8406 invalid 0 inside 7 outside 233 intersect 8166 culled 233 culled_ratio 2.77% Frustum 0..10 X, identity VP -1..1 clip cube with_bounds 8406 inside 2 outside 662 intersect 7742 culled_ratio 7.88%, bounds são reais não mock extraídas de body.vertices arquivos BMD reais parseados, ferramentas /tmp/cull_scale.cpp /tmp/cull_scale2.cpp src/mu/render/cull.cpp p-vertex conservative safe, saída [ RUN ] frustum cull [ OK ] [ RUN ] frustum cull real bounds (D3) [ OK ] escala real total_bmd 10090 with_bounds 8406 inside 7 outside 233 intersect 8166 culled 2.77% identity VP 2 outside 662 culled 7.88%, evidência `ciclo13_cull_scale.log`
-- **Classificação final revisada:** CONCLUÍDO E VALIDADO — com testes pontuais (a/b/c) E medição escala real 8406 boxes reais culled 2,77% a 7,88%
+## Primeira prova visual ciclo14 Parte B
 
-### D4 — Plano otimização LOD/streaming/draw calls
-- **Antes:** CONCLUÍDO com dados medidos
-- **Revisão:** mantém CONCLUÍDO — docs/RENDERING.md §12.6 Plano otimização consistente com dados medidos (a) LOD (b) streaming (c) redução draw calls separando medido×estimativa×hipótese com números exatos 10.090 BMD 8.406 geometria vértices máximo 22.987 triângulos máximo 39.193 malhas máximo 30 bones máximo 63 total 7879 ratio per file 1846,28× 1.792.108 vértices únicos 978.853 triângulos 4.071 meshes sharing 1,64 63,9% reenvios 67,21 MiB per draw 2.936.559 corner sends textura soma teórica 2.893,80 MB estimativa teórica não medição frustum culling p-vertex etc, sem teste código mas documentação com dados medidos, arquivo existe com 59 linhas novas
-- **Classificação final:** CONCLUÍDO
+### Implementação rasterizador software CPU-only
+- `src/mu/render/software_rasterizer.hpp/.cpp`: framebuffer RGB resolução configurável 800x600, pipeline vértices Mesh BMD → transformação câmera simples projeção perspectiva básica posição/alvo configuráveis → rasterização triângulo z-buffer → sombreamento simples dot(normal, luz direcional fixa) 0.3,0.5,1 normalizada
+- Usa Mesh/Skeleton C1 e skinning D2 e culling D3, exporta PPM binário P6 sem lib externa, sem OpenGL/DirectX/GPU/Windows, puro C++17
+- `mutool render <bmd> <out.ppm> [w h]`: carrega BMD real Cliente_ref CONFIRMADO geometria completa nível4 8405 válidos, rasteriza e salva PPM
 
-### D5 — Esqueleto Win32 wglCreateContext BLOCKED
-- **Antes:** CONCLUÍDO como esqueleto documentado BLOCKED
-- **Revisão ciclo13 item7:** confirmado comentário literal topo arquivo // SPDX-License-Identifier: MIT // D5 — Esqueleto Win32 + WGL (NÃO COMPILADO, BLOCKED — requer Windows + GPU) Objetivo documentar sequência correta chamadas wglCreateContext sem compilar neste ambiente Linux sem Windows SDK/GPU Sequência correta Main.exe faz wglCreateContext/wglMakeCurrent em janela GDI com ChoosePixelFormat/SetPixelFormat + SwapBuffers 1. RegisterClassExW CS_OWNDC 2. CreateWindowExW 3. GetDC 4. PIXELFORMATDESCRIPTOR pfd PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER 5. ChoosePixelFormat 6. SetPixelFormat 1× por janela GDI 7. wglCreateContext 8. wglMakeCurrent 9. Loop PeekMessage/TranslateMessage/DispatchMessage timeBeginPeriod(1) ou QPC 10. Render glClear VBO/VAO DEC-008 SwapBuffers 11. Cleanup wglMakeCurrent(nullptr,nullptr) wglDeleteContext ReleaseDC DestroyWindow UnregisterClass Por que BLOCKED ambiente Linux sem Windows SDK sem wgl.h sem GPU sem OPENGL32.dll compilar exigiria cross-compile mingw + headers Windows + opengl32.lib execução exige Windows real com driver GL testes automatizados não podem criar janela Win32 nem contexto GL aqui registrar como BLOCKED com justificativa não PASS/FAIL não incluir <windows.h> nem <GL/gl.h> para não quebrar build Linux arquivo é apenas documentação + esqueleto Estado D5 CONCLUÍDO ciclo12 como esqueleto documentado BLOCKED para compilação e teste conforme regra não inventar testes Windows sem acesso hardware, src/mu/platform/win32_window.cpp topo similar, lista verificação Windows real RegisterClassExW CS_OWNDC CreateWindowExW GetDC PIXELFORMATDESCRIPTOR ChoosePixelFormat SetPixelFormat 1× wglCreateContext wglMakeCurrent loop PeekMessage/TranslateMessage/DispatchMessage timeBeginPeriod(1) ou QPC render glClear VBO/VAO DEC-008 SwapBuffers cleanup etc, por que BLOCKED, Estado D5 CONCLUÍDO BLOCKED, Win32GLStatus enum kBlockedNoWindowsSDK kBlockedNoGPU kBlockedNoDisplay kOk só Windows real com GPU, TestWin32GLSkeletonBlocked verifica CreateGLWindow falha safe !created !win.created GetWin32GLStatus kBlockedNoWindowsSDK DestroyGLWindow !created, Makefile adiciona win32_window.cpp como stub compilável Linux retorna BLOCKED real Windows compilation BLOCKED, saída [ RUN ] win32 wgl skeleton BLOCKED (D5) [ OK ], evidência `ciclo13_win32_skeleton.log`
-- **Classificação final:** CONCLUÍDO — esqueleto documentado BLOCKED com aviso literal e lista verificação Windows real
+### Modelos renderizados — 4 evidências
 
-### E1 — Áudio arquitetura definida
-- **Antes:** avaliação dependências áudio/rede/interface com versão/licença/segurança em DEPENDENCIES.md §7 mas sem arquitetura áudio definida (formatos, biblioteca pretendida, integração)
-- **Revisão ciclo13 item8:** criado docs/AUDIO.md com arquitetura definida: formatos suportados WAV 1.020 211,9MB SFX CONFIRMADO Data/Sound inventário REFERENCE_AUDIT.md §3 mutool scan, MP3 61 193,8MB música fundo CONFIRMADO, OGG 3 vorbisfile.dll 999KB ogg.dll 53KB CONFIRMADO, WAV PCM decodificação via DSOUND+WINMM original CONFIRMADO import tables wzAudio.dll imports vorbisfile DSOUND WINMM Main.exe DSOUND 2 WINMM 12, OGG Xiph BSD-style, MP3 decoder não identificado PROVÁVEL decoder interno DESCONHECIDO biblioteca exata, biblioteca pretendida miniaudio MIT + stb_vorbis PD/MIT + dr_mp3 PD single-header zero dep sem DLL hijack sem HTTP em módulo áudio (original Audio.dll faz HTTP via WINHTTP/WININET BLOQUEADO não reproduzir), estrutura mu/audio/audio.hpp interface AudioEngine decoder.hpp pluggable mixer.cpp 32 vozes, integração MainLoop::DoUpdate chama AudioEngine::Update streaming SFX quando IsVisible true música streaming buffer duplo culling SFX posicionais só se visível ou próximo, segurança sem HTTP sem bcrypt sem WININET sem DLL diretório atual, testes TestAudioEngine 1.020 checks WAV header duração >0 sem playback BLOCKED sem áudio device, estado CONCLUÍDO ciclo13 arquitetura definida PARCIAL implementação não iniciada mu/audio NOT STARTED próximo passo implementar decoder_wav via miniaudio medir bench, evidência `ciclo13_e1_e2_e3_content.log`
-- **Classificação final revisada:** CONCLUÍDO — arquitetura definida com formatos, biblioteca, integração, antes estava vazio/parcial agora completo
-
-### E2 — Rede estrutura pacotes + main loop
-- **Antes:** esqueleto main loop update/render/present com predição frame budget sem GL, mas sem estrutura pacotes rede documentada com rótulos CONFIRMADO/PROVÁVEL/DESCONHECIDO/BLOQUEADO
-- **Revisão ciclo13 item8:** criado docs/NETWORK.md com estrutura pacotes documentada com rótulos explicitamente: import tables CONFIRMADO WS2_32 32 WSASend, WININET 15, CRYPT32 33, urlmon 2, IPHLPAPI 1 MAC, WINHTTP Audio.dll, protocolo jogo WS2_32 direto TCP/UDP CONFIRMADO import WSASend mas estrutura pacote NÃO decodificada dentro Main.exe VMProtect-protected .vmp0/.vmp1 BLOQUEADO, patch WININET ListaPatch.txt 188 linhas path CRC32 SIZE CONFIRMADO formato relative/path CRC32HEX SIZE verificado mutool verify total 188 match 116 size mismatch 9 crc mismatch 11 missing 52, licensing/anti-cheat hinetworks.dll 520KB 3DGuard.dll 1.455MB etc CONFIRMADO presença byte-identical .data/.rsrc entre hinetworks e 3DPlugin MHPClient.dll 719KB MHPVerify.dll 55KB CONFIRMADO mas protocolo interno DESCONHECIDO e BLOQUEADO comercial não redistribuível não contornar DRM regra permanente, estrutura pacotes rotulada tabela conclusão detalhe rótulo: cliente usa WS2_32 para jogo não HTTP para jogo CONFIRMADO, ListaPatch.txt formato CONFIRMADO, protocolo jogo handshake+login+map load PROVÁVEL inferido strings Lua ProtocolCore.lua, Lua Data/Custom/Script/System/ProtocolCore.lua registra protocolos custom 22 Lua files CONFIRMADO existência mas estrutura pacote interna DESCONHECIDO, pacotes header size+opcode+payload PROVÁVEL baseado conhecimento público MU Online não medição binário protegido, criptografia pacotes BLOQUEADO não tentar desembrulhar, anti-cheat heartbeat DESCONHECIDO presença CONFIRMADA comportamento BLOQUEADO, servidor valida movimento PROVÁVEL, arquitetura pretendida mu/network/socket.hpp wrapper WS2_32/POSIX packet.hpp struct Packet header size opcode payload pluggable crypto.hpp interface PacketCrypto protocol.hpp enum opcodes sem valores hardcoded até medição real client.hpp NetworkClient, segurança não enfraquecer validações servidor para benchmark não contornar DRM/Themida/WinLicense/VMProtect não remover verificações licença validar TLS se usar HTTP não coletar MAC sem consentimento, testes TestPacketParse parsing header size/opcode sem rede real TestSocket BLOCKED sem servidor, compatibilidade manter validação servidor não inventar opcodes medir Wireshark em Windows real com servidor teste registrar condições hardware/rede, estado CONCLUÍDO ciclo13 estrutura documentada com rótulos PARCIAL implementação não iniciada opcodes não decodificados crypto não implementada próximo passo socket.hpp wrapper sem rede real teste parsing header documentar opcodes quando medidos em Windows real Wireshark, E2 CONCLUÍDO como estrutura documentada com rótulos implementação pendente BLOCKED para decodificação real, mais main_loop.hpp/.cpp esqueleto main loop update/render/present com predição frame budget sem GL FrameBudget target_fps target_frame_ms update_ms render_ms present_ms total_ms slack_ms over_budget frame_index InputState quit_requested UpdateResult visible_objects culled_objects elapsed_ms RenderResult draw_calls_prepared triangles_submitted elapsed_ms PresentResult elapsed_ms MainLoop ctor target_fps Tick(InputState) retorna FrameBudget ordem update->render->present mede via high_resolution_clock QPC em Windows real SetTargetFps PredictOverBudget média móvel 30 frames >90% budget History 120 frames, teste TestMainLoopSkeleton Tick target_fps 60 target_frame_ms 16-17 frame_index 0 total_ms>=0 segunda Tick frame_index 1 History size 2 PredictOverBudget false com histórico pequeno SetTargetFps 144 target_frame_ms 6-7, saída [ RUN ] main loop skeleton update/render/present (E2) [ OK ], evidência `ciclo13_e1_e2_e3_content.log` e `ciclo13_c1_e3_detailed.log`
-- **Classificação final revisada:** CONCLUÍDO — estrutura pacotes com rótulos CONFIRMADO/PROVÁVEL/DESCONHECIDO/BLOQUEADO + main loop esqueleto, antes estava vazio/parcial agora completo
-
-### E3 — Próxima tarefa + fluxo telas
-- **Antes:** proposta próxima tarefa incremental BuxCrypt e OztToRgbaTopDown com ganho mensurável real, mas sem fluxo telas definido login→server→char→world e como consome assets decodificados
-- **Revisão ciclo13 item8:** criado docs/INTERFACE.md com fluxo telas definido login→server→char→world: Launcher.exe .NET CONFIRMADO 15,6MB .NET launcher 1 import mscoree.dll, Login Settings.ini [AutoLogin] User Password SaveData plaintext CONFIRMADO 1.011 bytes SECURITY.md alerta, Seleção Servidor Data/Local/Filter.bmd ServerList.bmd PROVÁVEL mas não verificado sem executar cliente BLOCKED sem Windows/GPU, Seleção Personagem Data/Player/ 2.516 arquivos CONFIRMADO inventário Player/*.bmd modelos personagem, Mundo Data/ 29.060 arquivos 2.372 MB Object1..Object110 Monster 945 NPC 335 Skill 369 Effect 353 Interface 835 etc CONFIRMADO, como consome assets Login Interface 835 Local 366 Font Tahoma/Arial CESettings.ini 749 bytes GDI32 14 USER32 83 wglUseFontBitmapsA CONFIRMADO imports DESCONHECIDO layout, ServerSelect Local Filter.bmd ServerList.bmd BMD BmdProbe BmdBody ComputeBounds PackMeshForUpload D1 culling D3 CONFIRMADO parsing 8.406 BLOQUEADO lista, CharSelect Player 2.516 Item 3.585 Mesh C1 bone_weights Skeleton has_bones skinning LBS D2 rotação 90° não-trivial (0,1,0) buffers D1 VBO/VAO culling D3 CONFIRMADO C1/D1/D2/D3 DESCONHECIDO UI, World Object* Monster NPC Skill Effect Map 79 .map att 105 ozb 100 obj 81 Custom/Script 22 Lua ScriptEffect Effect 6 Cg shaders Terrain 265 files classified 100% 97 .att still encrypted BuxCrypt 880 MB/s 40ms map load OztToRgbaTopDown 62,4us median p99 138,6us 2,2× tail frustum culling 8406 bounds reais culled 2,77% a 7,88% escala real streaming bounds primeiro depois geometria quando IsVisible true LOD Caminho A bloqueado bloqueio #1 cifra 85% Caminho B MSFT_lod glTF draw calls 67,21 MiB per draw 2,9M corner sends 63,9% reenvios sem glDrawElements VBO/IBO batching DEC-008 CONFIRMADO medido BLOQUEADO render real, arquitetura pretendida mu/interface/screen.hpp enum Screen kLogin kServerSelect kCharSelect kWorld screen_manager.cpp transição login→server→char→world com FrameBudget login_screen.cpp consome Settings.ini Interface/*.ozj/.ozt Font Tahoma/Arial atlas server_screen.cpp consome Local/*.bmd Interface char_screen.cpp consome Player/*.bmd com skinning D2 Item/*.bmd Interface world_screen.cpp consome Object* Monster NPC Map att ozb obj Custom/Script Lua Effect Cg shaders reimplementados GLSL sampler2D ui/button.cpp label.cpp list.cpp UI widgets sem GDI com atlas glyph cache, integração MainLoop::Tick chama ScreenManager::Update → Render CPU side prepara draw calls via PackMeshForUpload → Present SwapBuffers, assets todos via mu/assets/* sem conversão em lote sem verificar compatibilidade e manter cópia referência regra permanente preferir carregadores compatíveis formatos existentes, segurança não expor credenciais Settings.ini [AutoLogin] plaintext não contornar DRM não usar registry para resolução usar config file input via high-res clock QPC não timeGetTime 1ms 6% frame 60Hz 14% 144Hz sem SetWindowsHookEx global hook, estado CONCLUÍDO ciclo13 fluxo definido PARCIAL implementação não iniciada UI widgets não implementados Lua ScriptEffect não integrado Cg shaders não reimplementados GLSL próximo passo screen_manager.hpp esqueleto com enum Screen e transição sem GL teste unitário transição login→server→char→world, E3 CONCLUÍDO como fluxo definido implementação pendente, mais NEXT_TASK.md E3 proposta próxima tarefa incremental BuxCrypt e OztToRgbaTopDown com ganho mensurável real neste ambiente Linux sem GPU CPU puro: otimizar BuxCrypt 1 MiB median 1135,7us 880,5 MB/s mais lento per-byte 131KB terrain ~150us 265 arquivos ~40ms serial map load gargalo medido load-time e OztToRgbaTopDown 256x256 median 62,4us p95 97,2us p99 138,6us 4003,6 MB/s BGRA→RGBA+flip vertical puro CPU p99 2,2× median tail hitch 1024x1024 ~1,1ms blocking, OzjProbe já otimizado 179,2us→15,2us 11,79× speedup prova word-at-a-time funciona, ganho mensurável via bench_assets BuxCrypt 880→3000+ MB/s 40ms→<15ms OztToRgbaTopDown 62,4us→~6us só copy ou SIMD 2-4× speedup p99 tail reduzido, implementação incremental 5 passos medir baseline log evidence/ciclo13_buxcrypt_baseline.log implementar word-at-a-time unaligned safe memcpy preservar correção testar make test 469 checks + test-san medir after log ciclo13_buxcrypt_after.log comparar median speedup registrar OPTIMIZATION_LOG.md problema→evidência→hipótese→alteração→teste comparativo→antes/depois→efeitos colaterais→decisão repetir para OztToRgbaTopDown opção A eliminar swap GL_BGRA universal desktop GL + medir opção B SIMD SSE2/AVX2 medir commit pequeno descritivo push atualizar CURRENT_STATE e NEXT_TASK, critério aceite make test 469 checks 0 failures test-san 0 ASan/UBSan bench_assets speedup >2× median com evidência log completa buffer size iterações desvio padrão cache quente/frio nenhum regressão parsing BMD 8406/8405/3693/1186 OZJ 13832 ok 96 fail OZT etc documentado OPTIMIZATION_LOG.md com antes/depois e decisão manter/ajustar/reverter, por que não outra LOD streaming draw calls requerem GPU/Windows para medir FPS/VRAM BLOCKED não trazem ganho mensurável aqui Win32 wglCreateContext BLOCKED sem Windows SDK/GPU esqueleto já documentado D5 cifra BMD v0x0C 85% bloqueia mundo mas é bloqueio #1 já investigado decifra V0C validada 400/400 OPAQUE 1519 full-scan 0 variantes plausíveis tentativa falha animação 62 plausíveis ratio 0,02× NÃO discriminativo requer investigação cripto adicional não ganho performance imediato neste ambiente BuxCrypt e OztToRgbaTopDown são gargalos CPU puros medidos neste ambiente com metodologia existente baixo risco alto impacto load-time testáveis sem GPU, evidência `ciclo13_e1_e2_e3_content.log`
-- **Classificação final revisada:** CONCLUÍDO — fluxo telas definido login→server→char→world e como consome assets decodificados + próxima tarefa com ganho mensurável real, antes estava vazio/parcial agora completo
-
-## Otimizações
-
-| ID | Descrição | Antes | Depois | Speedup | Status |
+| Arquivo | V | T total | T raster | Pixels não-bg | Complexidade |
 |---|---|---|---|---|---|
-| OPT-001 | CRC-32 slice-by-1→slice-by-8 | 391,6 MB/s | 1.971,6 MB/s | 5,03× | KEPT |
-| OPT-003 | BuxCrypt vetorizado 8B key64[3] | 880,5 MB/s 1135us | 3437,8 MB/s 290,9us | 3,9× | KEPT ciclo10 Fase C |
-| OPT-004 | JPEG scan word-at-a-time 8B | 179,2us median 272,7us p99 | 15,2us median 32,2us p99 | 11,79× median 8,47× p99 | KEPT ciclo11 item8 |
-| CAND-001 | BGRA upload direto | — | — | — | NOT IMPLEMENTED, BLOCKED GPU |
-| CAND-002 | BuxCrypt word-at-a-time + SIMD | — | — | — | PLANEJADO ciclo13 E3 próxima tarefa |
+| Beer01 | 48 | 30 | 6 | 33768 | simples multi-mesh 2 meshes 19+29v |
+| Object03 | 88 | 103 | 82 | 108154 | médio multi-mesh 2 meshes |
+| AmbitionShield | 385 | 545 | 448 | 32945 | médio-complexo com ossos 3 bones V0C |
+| Axe11 | 1364 | 2665 | 528 | 61696 | complexo com ossos 1 bone |
 
-## Testes
+Evidência: `docs/evidence/ciclo14_first_render_Beer01.ppm` 800x600 1,4MB, `Object03.ppm`, `AmbitionShield.ppm`, `Axe11.ppm`
 
-- `make test`: 474 checks 0 failures (469 ciclo12 +5 não-trivial skinning)
-- `make test-san`: 474 checks 0 failures ASan 0 reports (após fix ciclo13 item1, antes 389 vs 469 discrepância corrigida, evidência `ciclo13_test_san_full.log`)
-- `check_docs_consistency.py`: 56 verificações ciclo11, pendente atualizar para 60+ ciclo13
-- `mutool bmdreport`: total 10090 valid 10023 99,34% plaintext 8571 84,95% OPAQUE 1519 15,05% parsed 8406 83,31% with triangles 8405 83,30% 3681664 tris with bones 3693 36,60% strict 1186 11,75% headline conservador
-- Culling escala real: total_bmd 10090 with_bounds 8406 inside 7 outside 233 intersect 8166 culled 2.77% frustum 0..10 X, identity VP with_bounds 8406 inside 2 outside 662 intersect 7742 culled 7.88% — evidência `ciclo13_cull_scale.log`
-- Evidências em `docs/evidence/` com logs brutos e ferramentas em `/tmp/`
+### Validação visual
+- Beer01: silhueta cilíndrica vertical base e topo, proporções ~1:2 altura/largura, z-buffer sem artefatos sobreposição errada, 33768 não-bg 7% tela, 6 tris não-degenerados de 30 (tri 0-23 degenerados v1,1,1 etc por layout triângulo 64B 3×8B v,n,opt,flag mas arquivo contém degenerados), sem textura UV bloqueado, sem iluminação realista lambert simples, sem animação bloqueada
+- Object03: silhueta retangular altura 287 Z, 82 tris rasterizados 108k não-bg 22% tela, proporções bounds -113..113 X, z-buffer funcionando
+- AmbitionShield: silhueta escudo curvatura, 448 tris 32945 não-bg, bounds -34..37 X -28..2 Y -61..70 Z, z-buffer funcionando, sem textura
+- Axe11: silhueta machado cabo longo 192 X, 528 tris 61696 não-bg 12% tela, proporções corretas, z-buffer funcionando
+
+Limitações: sem textura real UV bloqueado 0% 11 hipóteses platô artefato floats, sem iluminação realista só lambert 0.8*dot+0.2 ambient luz fixa, sem animação bloqueada 62 plausíveis ratio 0,02× NÃO discriminativo, muitos tris degenerados bad_indices 8,4% geral corner refs out of range 5,87% Player 13,87% Object1, sem backface culling desabilitado winding desconhecido, sem clipping avançado só w<=0.001, performance CPU 800x600 500 tris ~100k pixels ~ms não otimizada sem SIMD multithread mas funciona Linux sem GPU
+
+### Testes unitários rasterizador
+- Framebuffer: Resize Clear SetPixel depth test out of bounds 5 checks
+- Camera: eye mapeia origem view, target mapeia (0,0,-dist), proj m[14]==-1, frustum IsVisible 6 checks
+- Triangle: mesh -1,-1,0 1,-1,0 0,1,0 câmera 0,0,5 olhando origem fov45 aspect1 100x100, center pixel 50,50 lit não bg corner 0,0 bg depth <1 5 checks
+- Z-buffer: dois triângulos sobrepostos z=0 e z=0.5 closer deve vencer center lit depth <1 4 checks
+- Total 4 testes 20 checks parte de 500 checks 0 failures
+
+### Status renderização
+- **IMPLEMENTADO (software, CPU-only) — PARCIAL: backend GPU real ainda BLOQUEADO por falta de ambiente Windows/GPU**
+- NÃO é pipeline final produção (que continua sendo VBO/VAO/OpenGL conforme DEC-008) — é prova conceito ponta a ponta que valida pipeline dados (parser → malha → skinning → culling → projeção → rasterização)
+
+## Otimizações ciclo14
+
+| ID | Antes | Depois N=10 mediana | Speedup | Status |
+|---|---|---|---|---|
+| BuxCrypt | 1135,7us 880,5 MB/s | 391,3us 2555,8 MB/s stdev 30,42 min 2510,7 max 2606,0 | 2,90× mediana 2,96× vs ciclo13 382,8us | KEPT, 3437 MB/s outlier não representativo |
+| OztToBgra | 62,4us 4003 MB/s | 6,6us 38057 MB/s 9,45× median 12,26× p99 | 9,45× | KEPT OPT-005 |
+| OzjProbe | 179,2us 1064 MB/s | 22,9us 8342 MB/s 7,8× | 7,8× | KEPT OPT-004 |
+
+## Testes ciclo14
+
+- `make test`: 500 checks 0 failures (474 ciclo13 +26 rasterizador 20 + 6 extras)
+- `make test-san`: 500 checks 0 failures 0 ASan/UBSan — divergência = bloqueio crítico automático, nenhum
+- `mutool render`: 4 renders 800x600 PPM 1,4MB cada, evidência docs/evidence/ciclo14_first_render_*.ppm
+- `bench_assets` N=10 BuxCrypt median 2555,8 MB/s stdev 30,42
 
 ## Segurança
 
-- Parser ossos: detecção ciclo A->B->A com visited[64], self-loop parent==i rejeitado, bc>64 limite, overflow bc>SIZE_MAX/59, bc=1 apenas parent -1 válido, reduz falso-positivo 8,32%→0,0079% 0,023795% per file ratio 1846,28× altamente discriminativo, testes CircularParent, ExtremeCount, Truncated, Overflow, 474 checks ASan0 (SECURITY.md 9.5)
-- BuxCrypt vetorizado: memcpy unaligned safe, phase handling testado fases 0..2 lengths 0..40, timing side-channel não risco pois obfuscação não criptografia segurança, self-inverse mantido (SECURITY.md 9.6)
-- OzjProbe word-at-a-time: memcpy 8B chunk x=chunk ^ 0xFFFFFFFFFFFFFFFF has_zero = (x - 0x0101010101010101) & ~x & 0x8080808080808080 sem FF skip 8B, unaligned safe via memcpy sem strict-aliasing sem leitura além file.size, preserva regras escape FF 00 e FF D0..D7, edge remaining<8 4 casos PASS sem overread, 0 ASan/UBSan, evidência `ciclo12_test_san_opt004.log`
-- Nenhum include gráfico em src/ (trava DEC-010) exceto esqueleto BLOCKED win32_window.hpp/.cpp que não inclui <windows.h> nem <GL/gl.h> propositalmente
-- Makefile fix ciclo13 item1: test-san agora cobre 100% checks 474, antes 389 vs 469 discrepância corrigida, regra permanente qualquer divergência futura entre test e test-san é bloqueio crítico automático
+- Rasterizador: sem alocação extra além framebuffer W*H*3 + depth W*H float, sem overread, sem GL, sem Windows, sem DRM contorno, sem rede, sem exposição credenciais
+- Parser ossos: ciclo detection visited[64] self-loop rejeitado bc>64 limite overflow, ratio 1846,28×
+- BuxCrypt word-at-a-time 8B key64[3] phase, memcpy unaligned safe, self-inverse
+- OzjProbe word-at-a-time 8B has_zero bitmask sem FF skip 8B unaligned safe via memcpy sem strict-aliasing sem leitura além file.size preserva escape FF 00 e FF D0..D7
 
 ## Bloqueios
 
-- OPAQUE 1519 (15,05%) cifra não recuperada, full-scan step/init 1503 com PlausiblePath 0 variantes plausíveis tentativa falha documentada item4 ciclo11, requer key arrays alternativos ou versão 0x0B, compressão etc
-- Animação 62 plausíveis mas ratio 0,02× NÃO discriminativo, 53 plausíveis [-pi,pi] ratio 0,04× NÃO discriminativo, sem parser formal actionCount→kf, ordem xyz vs zyx, convenção Euler/quaternion, falta confirmação
-- UV 0% 11 hipóteses descartadas, platô 9-26× explicado como artefato floats pequenos, investigação encerrada critério parada
-- Backend VBO/VAO com skinning BLOCKED sem GPU/contexto, DEC-008 piso mínimo registrada, D1/D2/D3 implementados CPU-side sem GL mas upload real BLOCKED
-- Baseline FPS/VRAM NOT EXECUTED sem Windows/GPU, roteiro em scripts/ nunca executado
-- Validação visual Windows BLOCKED sem renderer
-- Áudio mu/audio NOT STARTED, rede mu/network NOT STARTED, interface mu/interface NOT STARTED — arquiteturas definidas ciclo13 E1/E2/E3 mas implementação pendente
+- OPAQUE 1519 15,05% cifra não recuperada full-scan 1503 PlausiblePath 0 tentativa falha
+- UV 0% 11 hipóteses platô artefato floats pequenos
+- Animação 62 plausíveis ratio 0,02× NÃO discriminativo
+- Backend VBO/VAO GPU BLOCKED sem Windows/GPU, mas software CPU-only IMPLEMENTADO PARCIAL
+- Baseline FPS/VRAM NOT EXECUTED sem Windows/GPU roteiro scripts/ nunca executado mas agora com rasterizador CPU-only temos primeira prova visual sem GPU
 
-## Próxima tarefa e por quê
+## Próxima tarefa ciclo15
 
-**Próxima: Otimizar BuxCrypt e OztToRgbaTopDown com ganho mensurável real neste ambiente**
+**Com rasterizador funcionando, investigar UV como pista exploratória + melhorar sombreamento com textura OZT**
 
-Por que esta e não outra:
-- BuxCrypt 1 MiB 1135,7us 880,5 MB/s mais lento per-byte 131KB terrain ~150us 265 arquivos ~40ms serial map load gargalo medido load-time, OztToRgbaTopDown 256x256 62,4us median p95 97,2us p99 138,6us 4003,6 MB/s BGRA→RGBA+flip vertical puro CPU p99 2,2× median tail hitch 1024x1024 ~1,1ms blocking na thread que pediu textura, OzjProbe já otimizado 179,2us→15,2us 11,79× speedup prova word-at-a-time funciona neste ambiente, ambos medidos via bench_assets warm-up median+p95+p99 dispersion sem GPU metodologia BENCHMARKS.md §2, ambos CPU puros sem GPU, baixo risco, alto impacto load-time, testáveis sem GPU, metodologia existente, próximo passo ciclo13 E3 já planejado
-- LOD streaming draw calls requerem GPU/Windows para medir FPS/VRAM BLOCKED não trazem ganho mensurável aqui
-- Win32 wglCreateContext BLOCKED sem Windows SDK/GPU esqueleto já documentado D5
-- Cifra BMD v0x0C 85% bloqueia mundo mas é bloqueio #1 já investigado decifra V0C validada 400/400 OPAQUE 1519 full-scan 0 variantes plausíveis tentativa falha animação 62 plausíveis ratio 0,02× NÃO discriminativo requer investigação cripto adicional não ganho performance imediato neste ambiente
-- BuxCrypt e OztToRgbaTopDown são gargalos CPU puros medidos neste ambiente com metodologia existente baixo risco alto impacto load-time testáveis sem GPU
+- Usar rasterizador para testar hipóteses UV: gerar renders com diferentes offsets/layouts UV aplicadas como textura, mesmo sem textura real mapeada, testar se coordenadas candidatas produzem padrão geometricamente plausível vs ruído aleatório — validação adicional não substitui rigor estatístico, tratar como pista exploratória não prova
+- Implementar textura via OZT/OZJ: carregar textura real OZT 3.404 98,10% OZJ 13.832 99,31% e aplicar no rasterizador com UV candidato, medir se mapeamento produz imagem plausível
+- Ou avançar mu/audio decoder_wav via miniaudio, medir bench decode WAV 1.020 arquivos
 
-Critério aceite: make test 474 checks 0 failures, make test-san 474 checks 0 ASan/UBSan, bench_assets speedup >2× median para BuxCrypt ou OztToRgbaTopDown com evidência log completa buffer size iterações desvio padrão cache quente/frio, nenhum regressão parsing BMD 8406/8405/3693/1186 OZJ 13832 ok 96 fail OZT etc, documentado OPTIMIZATION_LOG.md com antes/depois e decisão manter/ajustar/reverter
+Critério: build limpo, teste sanitizado 100% 500 checks, números batendo com ferramenta, sem contradição docs, comparação unidades idênticas, evidência visual PPM
 
-## ESTADO DO GIT NESTE CICLO — até item8
+## ESTADO DO GIT NESTE CICLO — até agora
 
-- Branch: `arena/519f8fc9-clienterecriado`
-- Base: `972fabcea1b0d4e80345f0f5abd287b46d819455` main
-- Commits locais neste ciclo até item8 (hashes + mensagens):
-  - `65bb1c4` fix(ciclo13-item1): corrige discrepância test 469 vs test-san 389 — sanitização agora cobre 100% checks
-  - `bf1b7f0` evidence(ciclo13-item2-3): git incident reflog + diff + no force-push + ratio 1846,28× calc determinístico
-  - `2a44d10` evidence(ciclo13-item4-8): detalha evidência substantiva C1-E3 com código+teste+saída real
-- Push realizado: sim até 2a44d10, `git push origin arena/519f8fc9-clienterecriado` exit 0, remote==local confirmado após push
-- Referência Cliente_ref: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto, mas /tmp/cliente_ref re-clonado ciclo13 item5 para medição escala real culling 8406 bounds reais
-- Métricas finais até item8: 474 checks 0 failures (469+5 não-trivial skinning), test-san 474 checks 0 failures 0 ASan/UBSan após fix, culling escala real 8406 bounds 2,77% a 7,88% culled, bones 3693 loose ratio 1846,28× definitivo 1186 strict limite sup 3557× per trial 1185× per file, OPAQUE 1519 15,05%, animação 62 plausíveis não confirmado ratio 0,02×, UV 0% 11 hipóteses platô explicado
-- Evidências: 6 novos logs ciclo13 até item8 (ciclo13_test_san_full.log 469 checks, ciclo13_git_incident.log reflog+diff+no force-push, ciclo13_bones_ratio_final_calc.log cálculo determinístico 1846,28× passo a passo, ciclo13_cull_scale.log escala real 8406 bounds 2,77% a 7,88%, ciclo13_bones_limits.log reconciliação 63 vs 64 sem contradição, ciclo13_win32_skeleton.log comentário literal topo + lista verificação Windows real, ciclo13_e1_e2_e3_content.log conteúdo técnico central E1/E2/E3, ciclo13_c1_e3_detailed.log assinatura código+teste+saída real C1-E3) + logs anteriores ciclo12
+- Branch: arena/519f8fc9-clienterecriado
+- Base: 972fabcea1b0d4e80345f0f5abd287b46d819455 main
+- HEAD: df8d6cb docs(ciclo14-A): reconciliação numérica + ...
+- Commits ciclo14 até agora: df8d6cb Parte A 1-5
+- Push: pendente, será feito após Parte B
+- Referência: 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9 intacto, /tmp/cliente_ref 10090 BMD
+- Métricas: 500 checks 0 failures, 4 renders PPM 800x600 1,4MB cada, BuxCrypt N=10 median 2555,8 MB/s stdev 30,42, ratio 1846,28× definitivo
+

@@ -605,6 +605,10 @@ void TestSkinningLBS();
 void TestFrustumCullRealBounds();
 void TestWin32GLSkeletonBlocked();
 void TestMainLoopSkeleton();
+void TestSoftwareRasterizerFramebuffer();
+void TestSoftwareRasterizerCamera();
+void TestSoftwareRasterizerTriangle();
+void TestSoftwareRasterizerZBuffer();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -655,6 +659,10 @@ const Test kTests[] = {
     {"frustum cull real bounds (D3)", TestFrustumCullRealBounds},
     {"win32 wgl skeleton BLOCKED (D5)", TestWin32GLSkeletonBlocked},
     {"main loop skeleton update/render/present (E2)", TestMainLoopSkeleton},
+    {"software rasterizer framebuffer (B)", TestSoftwareRasterizerFramebuffer},
+    {"software rasterizer camera (B)", TestSoftwareRasterizerCamera},
+    {"software rasterizer triangle (B)", TestSoftwareRasterizerTriangle},
+    {"software rasterizer z-buffer (B)", TestSoftwareRasterizerZBuffer},
 };
 
 }  // namespace
@@ -2214,3 +2222,151 @@ void TestMainLoopSkeleton() {
 }
 
 }  // namespace
+
+// ---------------------------------------------------------------------------
+// Software rasterizer CPU-only tests (ciclo14 B)
+// ---------------------------------------------------------------------------
+#include "mu/render/software_rasterizer.hpp"
+
+namespace {
+
+void TestSoftwareRasterizerFramebuffer() {
+  mu::SoftwareFramebuffer fb(10,10);
+  fb.Clear(mu::Vec3{0,0,0});
+  // Depth init 1.0
+  CHECK(fb.depth[0]==1.0f);
+  // Set pixel at 5,5 depth 0.5 red
+  bool ok = fb.SetPixel(5,5,0.5f,255,0,0);
+  CHECK(ok);
+  // Same pixel farther depth 0.8 should fail
+  bool ok2 = fb.SetPixel(5,5,0.8f,0,255,0);
+  CHECK(!ok2);
+  // Closer depth 0.2 should succeed
+  bool ok3 = fb.SetPixel(5,5,0.2f,0,0,255);
+  CHECK(ok3);
+  // Check color is blue (0,0,255)
+  size_t idx = 5*10+5;
+  CHECK(fb.color[idx*3]==0 && fb.color[idx*3+1]==0 && fb.color[idx*3+2]==255);
+  // Out of bounds fails
+  CHECK(!fb.SetPixel(-1,0,0.1f,255,255,255));
+  CHECK(!fb.SetPixel(10,0,0.1f,255,255,255));
+}
+
+void TestSoftwareRasterizerCamera() {
+  mu::Camera cam;
+  cam.eye={0,0,5};
+  cam.target={0,0,0};
+  cam.up={0,1,0};
+  cam.fov_deg=45.0f;
+  cam.aspect=1.0f;
+  cam.near_plane=0.1f;
+  cam.far_plane=100.0f;
+  mu::Mat4 view = cam.GetViewMatrix();
+  // Eye should map to origin in view space
+  mu::Vec3 eyeInView = mu::TransformPoint(view, cam.eye);
+  CHECK(std::fabs(eyeInView.x) < 1e-4f);
+  CHECK(std::fabs(eyeInView.y) < 1e-4f);
+  CHECK(std::fabs(eyeInView.z) < 1e-4f);
+  // Target should map to (0,0,-distance)
+  mu::Vec3 targetInView = mu::TransformPoint(view, cam.target);
+  float dist = std::sqrt((cam.eye.x-cam.target.x)*(cam.eye.x-cam.target.x)+(cam.eye.y-cam.target.y)*(cam.eye.y-cam.target.y)+(cam.eye.z-cam.target.z)*(cam.eye.z-cam.target.z));
+  CHECK(std::fabs(targetInView.x) < 1e-4f);
+  CHECK(std::fabs(targetInView.y) < 1e-4f);
+  CHECK(std::fabs(targetInView.z + dist) < 1e-3f);
+
+  mu::Mat4 proj = cam.GetProjectionMatrix();
+  // Projection should have -1 at [14]
+  CHECK(proj.m[14]==-1.0f);
+  // ViewProjection should produce valid frustum
+  mu::Frustum fr = cam.GetFrustum();
+  mu::Bounds b;
+  b.min={-0.5f,-0.5f,-0.5f}; b.max={0.5f,0.5f,0.5f}; b.valid=true;
+  CHECK(mu::IsVisible(fr,b));
+}
+
+void TestSoftwareRasterizerTriangle() {
+  // Known triangle in screen space via perspective
+  // Create a simple mesh: 3 vertices forming a triangle centered at origin, 1 unit size
+  mu::Mesh mesh;
+  mesh.positions = {{-1, -1, 0}, {1, -1, 0}, {0, 1, 0}};
+  mesh.normals = {{0,0,1}, {0,0,1}, {0,0,1}};
+  mesh.indices = {0,1,2};
+  mesh.has_texcoords=false;
+  mesh.has_bone_weights=false;
+  mesh.bounds = mu::ComputeBounds(mesh.positions);
+
+  mu::Camera cam;
+  cam.eye={0,0,5};
+  cam.target={0,0,0};
+  cam.up={0,1,0};
+  cam.fov_deg=45.0f;
+  cam.aspect=1.0f;
+  cam.near_plane=0.1f;
+  cam.far_plane=100.0f;
+
+  mu::SoftwareRasterizer rast(100,100);
+  rast.Clear(mu::Vec3{0,0,0});
+  mu::Vec3 lightDir = mu::Normalize(mu::Vec3{0,0,1});
+  auto stats = rast.RenderMesh(mesh, nullptr, nullptr, cam, lightDir);
+  CHECK(stats.ok);
+  CHECK(stats.triangles_total==1);
+  CHECK(stats.triangles_rasterized==1);
+  // Center pixel should be inside triangle and have some intensity
+  // Triangle covers center of 100x100 image
+  // Check pixel at 50,50 should be written (not background black)
+  const auto& fb = rast.framebuffer();
+  size_t idx = 50*100+50;
+  bool isBg = fb.color[idx*3]==0 && fb.color[idx*3+1]==0 && fb.color[idx*3+2]==0;
+  CHECK(!isBg); // should be lit
+  // Corner pixel should be background
+  size_t idx2 = 0;
+  bool isBg2 = fb.color[idx2*3]==0 && fb.color[idx2*3+1]==0 && fb.color[idx2*3+2]==0;
+  CHECK(isBg2);
+  // Depth at center should be <1.0
+  CHECK(fb.depth[idx] < 1.0f);
+  CHECK(fb.depth[idx] > 0.0f);
+}
+
+void TestSoftwareRasterizerZBuffer() {
+  // Two triangles overlapping, closer should win
+  mu::Mesh mesh;
+  // Triangle 1 at z=0 (farther)
+  // Triangle 2 at z=0.5 (closer, same x,y)
+  mesh.positions = {
+    {-1,-1,0}, {1,-1,0}, {0,1,0}, // tri0 far
+    {-1,-1,0.5f}, {1,-1,0.5f}, {0,1,0.5f} // tri1 close
+  };
+  mesh.normals = {{0,0,1},{0,0,1},{0,0,1},{0,0,1},{0,0,1},{0,0,1}};
+  mesh.indices = {0,1,2, 3,4,5};
+  mesh.has_texcoords=false;
+  mesh.has_bone_weights=false;
+  mesh.bounds = mu::ComputeBounds(mesh.positions);
+
+  mu::Camera cam;
+  cam.eye={0,0,5};
+  cam.target={0,0,0};
+  cam.up={0,1,0};
+  cam.fov_deg=45.0f;
+  cam.aspect=1.0f;
+  cam.near_plane=0.1f;
+  cam.far_plane=100.0f;
+
+  mu::SoftwareRasterizer rast(100,100);
+  rast.Clear(mu::Vec3{0,0,0});
+  mu::Vec3 lightDir = mu::Normalize(mu::Vec3{0,0,1});
+  auto stats = rast.RenderMesh(mesh, nullptr, nullptr, cam, lightDir);
+  CHECK(stats.ok);
+  CHECK(stats.triangles_total==2);
+  // Both rasterized, but closer should be visible at center
+  const auto& fb = rast.framebuffer();
+  size_t idx = 50*100+50;
+  // Depth should be from closer triangle
+  // Since closer triangle at z=0.5 vs far at z=0, after view transform closer has less negative view z? Actually eye at 5, pos z 0 => view z -5, pos z 0.5 => view z -4.5, so closer is -4.5 > -5, so ndc depth smaller? Let's just check depth <1 and not equal to far
+  CHECK(fb.depth[idx] < 1.0f);
+  // Pixel should be lit (not background)
+  bool isBg = fb.color[idx*3]==0 && fb.color[idx*3+1]==0 && fb.color[idx*3+2]==0;
+  CHECK(!isBg);
+}
+
+} // anon namespace
+

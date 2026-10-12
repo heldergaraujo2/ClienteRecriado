@@ -35,6 +35,7 @@
 #include "mu/assets/ozt.hpp"
 #include "mu/assets/terrain.hpp"
 #include "mu/assets/tga.hpp"
+#include "mu/render/software_rasterizer.hpp"
 #include "mu/fs.hpp"
 
 namespace {
@@ -47,7 +48,13 @@ void Usage() {
       "  mutool scan   <data-dir>\n"
       "  mutool info   <file>\n"
       "  mutool verify <manifest> <root>\n"
-      "  mutool dedupe <dir>\n");
+      "  mutool dedupe <dir>\n"
+      "  mutool bmdreport <dir>\n"
+      "  mutool meshimport <dir>\n"
+      "  mutool culltest <dir>\n"
+      "  mutool terrain <dir>\n"
+      "  mutool bmdanim <dir>\n"
+      "  mutool render <bmd-file> <out.ppm> [width height]\n");
 }
 
 struct ExtStats {
@@ -962,6 +969,146 @@ int CmdBmdAnim(int argc, char** argv) {
   return 0;
 }
 
+
+int CmdRender(int argc, char** argv) {
+  if (argc < 4) {
+    std::fprintf(stderr, "usage: mutool render <bmd-file> <out.ppm> [width height]\n");
+    return 1;
+  }
+  std::string bmdPath = argv[2];
+  std::string outPath = argv[3];
+  int width = 800;
+  int height = 600;
+  if (argc >= 5) width = std::atoi(argv[4]);
+  if (argc >= 6) height = std::atoi(argv[5]);
+  if (width < 64) width = 64;
+  if (height < 64) height = 64;
+  if (width > 2048) width = 2048;
+  if (height > 2048) height = 2048;
+
+  std::vector<uint8_t> raw;
+  if (!mu::ReadFile(bmdPath, &raw)) {
+    std::fprintf(stderr, "error: cannot read '%s'\n", bmdPath.c_str());
+    return 1;
+  }
+  mu::ByteView view(raw.data(), raw.size());
+  mu::BmdInfo info;
+  if (!mu::BmdProbe(view, &info) || !info.length_consistent) {
+    std::fprintf(stderr, "error: not a valid BMD or length inconsistent: %s\n", bmdPath.c_str());
+    return 1;
+  }
+  mu::ByteView payload = view.sub(info.payload_offset, info.payload_size);
+  std::vector<uint8_t> plain;
+  if (info.kind == mu::BmdKind::kPlainV0C) {
+    plain.assign(payload.data, payload.data + payload.size);
+    mu::BmdV0CDecrypt(plain.data(), plain.size());
+    bool printable = plain.size() >= 32;
+    for (size_t i=0; printable && i<32; ++i) {
+      uint8_t c = plain[i];
+      if (c!=0 && (c<32 || c>126)) printable=false;
+    }
+    if (!printable) {
+      std::fprintf(stderr, "error: V0C decrypt failed plausibility\n");
+      return 1;
+    }
+    payload = mu::ByteView(plain.data(), plain.size());
+  } else if (info.kind == mu::BmdKind::kBuxContainer) {
+    // Try BUX decrypt whole file payload (first bytes are encrypted)
+    // For simplicity, attempt to decrypt raw buffer in place and re-probe
+    std::vector<uint8_t> tmp = raw;
+    mu::BuxCrypt(tmp.data(), tmp.size());
+    mu::ByteView view2(tmp.data(), tmp.size());
+    mu::BmdInfo info2;
+    if (!mu::BmdProbe(view2, &info2) || !info2.length_consistent) {
+      std::fprintf(stderr, "error: BUX container decrypt failed\n");
+      return 1;
+    }
+    // Use decrypted tmp as new raw
+    raw.swap(tmp);
+    view = mu::ByteView(raw.data(), raw.size());
+    info = info2;
+    payload = view.sub(info.payload_offset, info.payload_size);
+    if (info.kind == mu::BmdKind::kPlainV0C) {
+      plain.assign(payload.data, payload.data + payload.size);
+      mu::BmdV0CDecrypt(plain.data(), plain.size());
+      bool printable2 = plain.size() >= 32;
+      for (size_t i=0; printable2 && i<32; ++i) {
+        uint8_t c = plain[i];
+        if (c!=0 && (c<32 || c>126)) printable2=false;
+      }
+      if (!printable2) {
+        std::fprintf(stderr, "error: V0C decrypt after BUX failed\n");
+        return 1;
+      }
+      payload = mu::ByteView(plain.data(), plain.size());
+    }
+  }
+
+  mu::BmdBody body;
+  mu::Status bs = mu::BmdParseBodyV0A(payload, &body);
+  if (!bs || !body.complete) {
+    std::fprintf(stderr, "error: body parse failed: %s\n", body.problem.c_str());
+    return 1;
+  }
+  mu::MeshImportResult r = mu::MeshFromBmd(body, bmdPath);
+  if (!r.ok) {
+    std::fprintf(stderr, "error: mesh import failed: %s\n", r.problem.c_str());
+    return 1;
+  }
+  mu::Mesh mesh = r.mesh;
+  std::printf("Loaded %s: %zu vertices %zu triangles bounds %s\n",
+              bmdPath.c_str(),
+              mesh.positions.size(),
+              mesh.indices.size()/3,
+              mesh.bounds.valid ? "valid" : "invalid");
+  if (mesh.bounds.valid) {
+    std::printf("  bounds min (%.2f,%.2f,%.2f) max (%.2f,%.2f,%.2f)\n",
+                static_cast<double>(mesh.bounds.min.x), static_cast<double>(mesh.bounds.min.y), static_cast<double>(mesh.bounds.min.z),
+                static_cast<double>(mesh.bounds.max.x), static_cast<double>(mesh.bounds.max.y), static_cast<double>(mesh.bounds.max.z));
+  }
+
+  // Compute camera to fit bounds
+  mu::Camera cam;
+  // Center of bounds
+  mu::Vec3 center{0,0,0};
+  float radius = 1.0f;
+  if (mesh.bounds.valid) {
+    center.x = (mesh.bounds.min.x + mesh.bounds.max.x)*0.5f;
+    center.y = (mesh.bounds.min.y + mesh.bounds.max.y)*0.5f;
+    center.z = (mesh.bounds.min.z + mesh.bounds.max.z)*0.5f;
+    float dx = mesh.bounds.max.x - mesh.bounds.min.x;
+    float dy = mesh.bounds.max.y - mesh.bounds.min.y;
+    float dz = mesh.bounds.max.z - mesh.bounds.min.z;
+    radius = std::sqrt(dx*dx + dy*dy + dz*dz)*0.5f;
+    if (radius < 0.1f) radius = 0.1f;
+  }
+  cam.aspect = static_cast<float>(width)/static_cast<float>(height);
+  cam.fov_deg = 45.0f;
+  cam.near_plane = 0.1f;
+  cam.far_plane = std::max(100.0f, radius*10.0f);
+  // Eye at center + (0, radius*0.5, radius*2) looking at center
+  cam.target = center;
+  cam.eye = mu::Vec3{center.x, center.y + radius*0.3f, center.z + radius*2.2f};
+  cam.up = mu::Vec3{0,1,0};
+
+  mu::SoftwareRasterizer rast(width, height);
+  rast.Clear(mu::Vec3{0.12f,0.12f,0.18f});
+  mu::Vec3 lightDir = mu::Normalize(mu::Vec3{0.3f,0.5f,1.0f});
+
+  mu::RenderStats stats = rast.RenderMesh(mesh, nullptr, nullptr, cam, lightDir);
+  std::printf("Render stats: total %zu culled_frustum %zu rasterized %zu pixels %zu ok %d\n",
+              stats.triangles_total, stats.triangles_culled_frustum,
+              stats.triangles_rasterized, stats.pixels_written, stats.ok);
+
+  if (!rast.SavePPM(outPath)) {
+    std::fprintf(stderr, "error: cannot write '%s'\n", outPath.c_str());
+    return 1;
+  }
+  std::printf("Saved %s %dx%d\n", outPath.c_str(), width, height);
+  return 0;
+}
+
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     Usage();
@@ -977,6 +1124,7 @@ int main(int argc, char** argv) {
   if (cmd == "culltest") return CmdCullTest(argc, argv);
   if (cmd == "terrain") return CmdTerrain(argc, argv);
   if (cmd == "bmdanim") return CmdBmdAnim(argc, argv);
+  if (cmd == "render") return CmdRender(argc, argv);
   if (cmd == "-h" || cmd == "--help" || cmd == "help") {
     Usage();
     return 0;
