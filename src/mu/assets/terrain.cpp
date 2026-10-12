@@ -156,8 +156,18 @@ Status TerrainParseHeight(ByteView file, TerrainHeight* out) {
     }
     out->header_ignored = true;
   }
-  // Raw grid: the body is the trailing part of the file, and everything before
-  // it is a prefix whose contents are not determined.
+  // Fallback: take the body from the end of the file.
+  //
+  // Measured over the reference tree this covers the 29 files whose header is
+  // zeroed. Their size is exactly 4 + 1078 + 65536, which is an 8-bit BMP with
+  // the duplicated prefix, and their prefix is all zeroes in 29 of 29 -- so they
+  // are almost certainly the same format as the BMP-headed files, just with the
+  // header cleared. That is a hypothesis, not a confirmed decode.
+  //
+  // Both paths land on the same bytes, because in a BMP of this shape the pixel
+  // data is also the trailing 65,536. So this is a simplification opportunity
+  // rather than a bug: the output was already correct, the split just does not
+  // match the format.
   out->prefix_size = file.size - body;
   out->cells.assign(file.data + out->prefix_size, file.data + file.size);
   out->complete = out->cells.size() == body;

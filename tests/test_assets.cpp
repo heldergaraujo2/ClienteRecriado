@@ -1440,6 +1440,23 @@ void TestTerrainHeight() {
   CHECK(mu::TerrainParseHeight(mu::ByteView(bad.data(), bad.size()), &hbad).ok());
   CHECK(hbad.header_ignored);
 
+  // A BMP-shaped file whose header has been zeroed. This is the shape measured
+  // on 29 of the 76 real files: size 4 + 1078 + 65536, prefix entirely zero.
+  // Both parser paths land on the same trailing bytes, so the assertions here
+  // are about the flag, not the pixels.
+  std::vector<std::uint8_t> zeroed(4 + 1078 + kBody, 0);
+  for (std::size_t i = 0; i < kBody; ++i) zeroed[4 + 1078 + i] = 99;
+  mu::TerrainHeight hz;
+  CHECK(mu::TerrainParseHeight(mu::ByteView(zeroed.data(), zeroed.size()), &hz).ok());
+  CHECK(hz.complete);
+  CHECK_EQ(4u + 1078u, hz.prefix_size);
+  CHECK_EQ(kBody, hz.cells.size());
+  CHECK(hz.cells[0] == 99);
+  // No "BM" at offset 0, so the BMP branch is not entered and the flag stays
+  // clear. That is correct: the flag means "looked like a BMP but no header
+  // could be read", which is not what happened here.
+  CHECK(!hz.header_ignored);
+
   // A file shorter than one grid is a failure, not a partial success.
   std::vector<std::uint8_t> tiny(100, 0);
   mu::TerrainHeight ht;
