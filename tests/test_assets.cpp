@@ -24,6 +24,7 @@
 #include "mu/render/buffers.hpp"
 #include "mu/render/skinning.hpp"
 #include "mu/platform/win32_window.hpp"
+#include "mu/platform/main_loop.hpp"
 #include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
@@ -603,6 +604,7 @@ void TestPackMeshForUpload();
 void TestSkinningLBS();
 void TestFrustumCullRealBounds();
 void TestWin32GLSkeletonBlocked();
+void TestMainLoopSkeleton();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -652,6 +654,7 @@ const Test kTests[] = {
     {"skinning LBS CPU strict (D2)", TestSkinningLBS},
     {"frustum cull real bounds (D3)", TestFrustumCullRealBounds},
     {"win32 wgl skeleton BLOCKED (D5)", TestWin32GLSkeletonBlocked},
+    {"main loop skeleton update/render/present (E2)", TestMainLoopSkeleton},
 };
 
 }  // namespace
@@ -2154,6 +2157,30 @@ void TestWin32GLSkeletonBlocked() {
   CHECK(status==mu::platform::Win32GLStatus::kBlockedNoWindowsSDK);
   mu::platform::DestroyGLWindow(&win);
   CHECK(!win.created);
+}
+
+
+void TestMainLoopSkeleton() {
+  // E2: esqueleto main loop update/render/present prediz frame budget sem GL
+  mu::platform::MainLoop loop(60.0);
+  mu::platform::InputState input;
+  input.quit_requested=false;
+  auto fb = loop.Tick(input);
+  CHECK(fb.target_fps==60.0);
+  CHECK(fb.target_frame_ms>16.0 && fb.target_frame_ms<17.0);
+  CHECK(fb.frame_index==0);
+  CHECK(fb.total_ms>=0.0);
+  // Segunda chamada incrementa frame_index
+  auto fb2 = loop.Tick(input);
+  CHECK(fb2.frame_index==1);
+  CHECK(loop.History().size()==2);
+  // Predição: com histórico pequeno não prediz over budget
+  CHECK(!loop.PredictOverBudget());
+  // SetTargetFps
+  loop.SetTargetFps(144.0);
+  auto fb3 = loop.Tick(input);
+  CHECK(fb3.target_fps==144.0);
+  CHECK(fb3.target_frame_ms>6.0 && fb3.target_frame_ms<7.0);
 }
 
 }  // namespace
