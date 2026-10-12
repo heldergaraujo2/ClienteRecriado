@@ -142,9 +142,32 @@ These are recorded as open rather than assumed resolved.
 
 ### Cifra BMD v0x0C — xulek/muonline-bmd-viewer (ISC)
 
-O algoritmo e a tabela de chave da cifra do payload BMD v0x0C foram obtidos do
-projeto `xulek/muonline-bmd-viewer`, licenciado sob a **ISC License**, arquivo
-`src/crypto/file-cryptor.ts`.
+| Campo | Valor |
+|---|---|
+| Repositório | `xulek/muonline-bmd-viewer` |
+| URL | https://github.com/xulek/muonline-bmd-viewer |
+| Autor | `xulek <xulek@example.com>` (campo `author` do `package.json`) |
+| Licença declarada | **ISC** (campo `license` do `package.json`) |
+| Commit consultado | `3f11bf89f3702261174d8efa1436d56a15c7d97a` |
+| Data do commit | 24 de julho de 2026 |
+| Arquivo usado | `src/crypto/file-cryptor.ts` |
+
+**Ressalva registrada por honestidade, não por cautela jurídica.** O repositório
+**não contém um arquivo `LICENSE` nem `COPYING`**. A licença ISC consta apenas do
+campo `"license": "ISC"` do `package.json`. O texto ISC reproduzido mais abaixo é
+o texto **padrão** da licença ISC, não uma transcrição de um arquivo daquele
+repositório. O endereço de e-mail do autor é `xulek@example.com`, um domínio de
+exemplo, o que sugere que o campo não foi preenchido com dados reais.
+
+Consequência prática: a atribuição está feita e a licença declarada é permissiva,
+mas **este projeto não pode garantir a cadeia de licenciamento de um
+repositório que não traz arquivo de licença**. Se este cliente vier a ser
+distribuído, a cifra v0x0C deve ser revista por quem responder pela distribuição.
+O que este projeto pode afirmar é o que fez: reimplementou a lógica, não copiou
+código, e atribuiu a fonte.
+
+O algoritmo e a tabela de chave da cifra do payload BMD v0x0C foram obtidos
+desse projeto.
 
 A ISC é permissiva e compatível com a licença MIT deste repositório. O que foi
 feito aqui:
@@ -155,13 +178,19 @@ feito aqui:
   expressão criativa. Está em `mu::kBmdV0CKey`.
 - A **atribuição está registrada** no código-fonte, aqui e em
   `docs/DECISIONS.md`.
+- **Nenhum arquivo do repositório de terceiros foi copiado.** Verificado por
+  `git ls-files | grep -iE "\.ts$|bmd-viewer|file-cryptor"`, que não retorna
+  nada, e por `git show --stat 6821d94`, que lista apenas arquivos deste
+  projeto. O clone de consulta foi feito em `/tmp`, fora do repositório, e não
+  foi commitado.
 
 Declaração de proveniência nos relatórios: quando o projeto informar que a cifra
 v0x0C está quebrada, isso é **resultado de terceiros validado por este projeto**,
 não resultado derivado por este projeto. As demais chaves (XOR-3 do bux, layout
 do corpo v0x0A) foram derivadas de forma independente neste repositório.
 
-Texto da licença ISC, para referência:
+Texto **padrão** da licença ISC, transcrito aqui para referência — não copiado
+do repositório, que não o traz:
 
 > Permission to use, copy, modify, and/or distribute this software for any
 > purpose with or without fee is hereby granted, provided that the above

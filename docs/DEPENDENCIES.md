@@ -86,3 +86,51 @@ Record the decision in [`DECISIONS.md`](DECISIONS.md) when it is made.
 
 If a dependency is added, this document must be updated with its name, version,
 licence, and the reason the dependency-free property was given up.
+
+---
+
+## 5. Conhecimento de terceiros incorporado (ciclo 2)
+
+Este projeto não tem dependências de build, mas **incorporou conhecimento de uma
+fonte externa**. Isso não é uma dependência — nada é baixado, linkado ou
+vendorizado no build — mas é uma obrigação de atribuição e pertence aqui.
+
+| Item | Detalhe |
+|---|---|
+| Fonte | `xulek/muonline-bmd-viewer` — https://github.com/xulek/muonline-bmd-viewer |
+| Commit consultado | `3f11bf89f3702261174d8efa1436d56a15c7d97a` (24 jul 2026) |
+| Arquivo | `src/crypto/file-cryptor.ts` |
+| Licença declarada | ISC (campo `license` do `package.json`) |
+| O que foi usado | Algoritmo e tabela de 16 bytes da cifra do payload BMD v0x0C |
+| O que **não** foi usado | Nenhum arquivo. Não há TypeScript nem código copiado neste repositório |
+| Onde está | `src/mu/assets/bmd.hpp` (`kBmdV0CKey`) e `src/mu/assets/bmd.cpp` (`BmdV0CDecrypt`), com atribuição em comentário no próprio código |
+
+**Verificação de que nada foi copiado em bloco:**
+
+```
+$ git ls-files | grep -iE "\.ts$|bmd-viewer|file-cryptor"
+(sem saída)
+
+$ git show --stat 6821d94
+ docs/evidence/ciclo2_bmdreport_v0c.log | 66 ++++++
+ docs/evidence/ciclo2_test.log          | 44 ++++
+ src/mu/assets/bmd.cpp                  | 16 ++
+ src/mu/assets/bmd.hpp                  | 24 ++
+ src/mu/assets/bmd_report.cpp           | 58 +++++-
+ src/mu/assets/bmd_report.hpp           |  2 +
+ tests/test_assets.cpp                  | 61 ++++++
+ tools/mutool.cpp                       |  6 +-
+```
+
+O clone de consulta foi feito em `/tmp/bmdref`, fora do repositório, e **não foi
+commitado**: `git ls-files | grep -ci "bmdref\|muonline-bmd-viewer"` retorna `0`.
+
+**Ressalva sobre a licença.** O repositório de origem **não traz arquivo
+`LICENSE`**; a licença ISC consta apenas do `package.json`, e o e-mail do autor é
+`xulek@example.com`, um domínio de exemplo. Ver `docs/LICENSING.md` para a
+consequência disso em caso de distribuição.
+
+**O que foi rejeitado da mesma fonte.** As tabelas de layout de registro daquele
+projeto (vértice e normal começando com índice de osso e padding) **não
+correspondem** aos arquivos deste cliente. Foram medidas e descartadas; o layout
+usado aqui foi estabelecido contra os dados. Ver `docs/ASSET_FORMATS.md`.

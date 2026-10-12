@@ -15,21 +15,63 @@ official scale:
 
 ## BLOQUEIO Nº 1 DO PROJETO — geometria BMD
 
-> ### **BLOQUEADO — geometria BMD utilizável: 1.191 de 10.090 arquivos (11,80%)**
->
-> **8.594 arquivos (85,17%) têm payload cifrado cuja cifra não foi recuperada.**
-> Um parser do corpo v0x0A foi implementado no ciclo 1 e extrai **posições de
-> vértice e normais** de 1.191 dos 1.194 arquivos v0x0A. Isso **não** é um modelo
-> renderizável: **índices de face, coordenadas de textura e ossos continuam não
-> decodificados**. Os 8.594 arquivos v0x0C (85,17%) seguem inteiramente opacos.
->
-> Este é o bloqueio mais importante do projeto. Ele impede: renderização de
-> personagens, monstros, itens, asas, objetos de mundo, terreno decorado e toda
-> animação esquelética. **Nenhum trabalho de renderização de mundo ou entidades
-> pode avançar antes dele.**
->
-> Medido por `mutool bmdreport`; saída completa em
-> [`evidence/ciclo1_bmdreport.log`](evidence/ciclo1_bmdreport.log).
+> ## **Sem índices de face, nenhum modelo BMD pode ser renderizado como malha
+> ## neste momento — apenas dados de vértice/normal foram extraídos.**
+
+O bloqueio mudou de natureza no ciclo 2: a cifra foi quebrada, mas a topologia
+não foi recuperada. Declarar o bloqueio "resolvido" seria falso. O estado real é
+por capacidade, e cada linha abaixo tem sua própria evidência.
+
+### Estado por capacidade — execução final do ciclo 2
+
+Medido por `mutool bmdreport` sobre os 10.090 arquivos reais, reconstruído do
+zero (`make clean && make test`). Saída completa em
+[`evidence/ciclo2_scan_final.log`](evidence/ciclo2_scan_final.log).
+
+| Capacidade | Status | Evidência |
+|---|---|---|
+| Decifragem v0x0C | **CONCLUÍDO E VALIDADO** | 7.226 de 8.741 decifrados; validação independente: 400/400 amostrados com corpo completo e normais de norma 1 em 99,98% |
+| Posições de vértice | **CONCLUÍDO E VALIDADO** | 8.406 arquivos (83,31%); `f32 x,y,z` no deslocamento 0 do registro, medido em 740.514 componentes |
+| Normais | **CONCLUÍDO E VALIDADO** | 260.030 de 260.268 com norma 1 (99,91%) em v0x0A; 37.988 de 37.997 (99,98%) em v0x0C |
+| **Índices de face (topologia)** | **BLOQUEADO — não determinado** | Nenhum layout de face foi confirmado contra os dados. Ver `ASSET_FORMATS.md` |
+| **Coordenadas UV** | **BLOQUEADO — hipótese refutada por controle estatístico** | 95,5% em [0,1] contra 87,2% num controle uniforme: razão 1,10×, insuficiente para concluir |
+| **Contagem de malhas** | **BLOQUEADO** | `u16@32` tem mediana 1 e máximo 18, coerente com contagem de malhas, mas não foi verificado um a um |
+| **Estrutura de ossos** | **BLOQUEADO** | Nenhum registro de osso foi localizado nem validado |
+| **Animação** | **BLOQUEADO** | Depende de ossos, que estão bloqueados |
+| 1.519 arquivos v0x0C | **BLOQUEADO** | A verificação de plausibilidade rejeitou a decifragem; causa não determinada |
+
+### O que isso impede, concretamente
+
+Com vértices e normais mas sem topologia, é possível saber **onde** estão os
+pontos de um modelo e **para onde** cada um aponta. Não é possível saber **quais
+pontos formam cada triângulo**. Portanto:
+
+- Renderização de personagens, monstros, itens, asas e objetos de mundo:
+  **BLOQUEADA** — exige topologia.
+- Animação esquelética: **BLOQUEADA** — exige ossos.
+- Terreno decorado com modelos: **BLOQUEADO**.
+- Cálculo de caixa delimitadora, nuvem de pontos e análise de footprint:
+  **POSSÍVEL** — usa apenas posições.
+
+Um trabalho de renderização que precise de malha **não pode avançar** sobre os
+assets originais. O que pode avançar é o pipeline de renderização em si, testado
+com geometria sintética — desde que rotulado como teste de pipeline e nunca como
+suporte a asset original.
+
+### Tabela final de três níveis — execução final do ciclo 2
+
+| Nível | Resultado | Percentual |
+|---|---|---|
+| 1 — estrutura de contêiner válida | 10.023 de 10.090 | 99,34% |
+| 2 — payload obtível em claro | 8.571 de 10.090 | 84,95% |
+| 3 — geometria parseável (vértices e normais) | 8.406 de 10.090 | 83,31% |
+
+Detalhamento do nível 2: 1.245 plaintext + 100 bux + 7.226 v0x0C = 8.571;
+1.519 OPAQUE.
+
+O nível 3 **não** significa modelo renderizável. Ele conta arquivos dos quais
+posições e normais foram extraídas. A distância entre 83,31% e um modelo
+renderizável é exatamente o que está bloqueado na tabela acima.
 
 ### Por que um relatório anterior estava errado
 
@@ -85,7 +127,7 @@ amostra.
 | `.map` terreno | 79 | 79 (100%) | **PARCIAL** — contêiner + grade; 77 cifrados |
 | `.obj` terreno | 81 | 81 (100%) | **PARCIAL** — contêiner; layout de registro não resolvido |
 | OZJ textura | 13.928 | 13.832 (99,31%) | **PARCIAL** — cabeçalho e geometria validados; **pixels não decodificados**, não há decodificador JPEG |
-| BMD modelo | 10.090 | 10.023 estrutura (99,34%) | **BLOQUEADO** — 0% de geometria; ver acima |
+| BMD modelo | 10.090 | 8.406 com vértice/normal (83,31%) | **BLOQUEADO** para renderização — sem topologia; ver acima |
 | `.ozb` | 100 | 0 | **NÃO IMPLEMENTADO** |
 | `.smd` | 10 | 0 | **NÃO IMPLEMENTADO** (texto simples) |
 | `.lua` | 22 | 0 | **NÃO IMPLEMENTADO** (texto simples) |
@@ -115,8 +157,8 @@ Cg/`NV_texture_rectangle`.
 | Capacidade | Classificação |
 |---|---|
 | Janela e contexto GL | NÃO IMPLEMENTADO |
-| Renderização de modelos | **BLOQUEADO** (cifra BMD) |
-| Animação esquelética | **BLOQUEADO** (cifra BMD) |
+| Renderização de modelos | **BLOQUEADO** (topologia BMD não determinada) |
+| Animação esquelética | **BLOQUEADO** (ossos BMD não determinados) |
 | Renderização de terreno | **BLOQUEADO** (cifra `Enc*`) |
 | Upload de textura para GPU | NÃO IMPLEMENTADO |
 | Partículas e efeitos de skill | NÃO IMPLEMENTADO |
