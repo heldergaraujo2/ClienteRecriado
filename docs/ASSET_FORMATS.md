@@ -1592,39 +1592,41 @@ Levantamento do ciclo 2. A regra aqui é separar o que foi **medido nos arquivos
 do que só poderia ser conhecido decodificando seções ainda bloqueadas. Omitir a
 segunda coluna seria esconder o tamanho do que falta.
 
-## Limites CONHECIDOS — medidos nos 10.090 arquivos
+## Limites CONHECIDOS — medidos nos 10.090 arquivos (consolidado ciclo12 C3)
 
-| Limite | Valor | Origem da medição |
+| Limite | Valor | Origem da medição ciclo12 |
 |---|---|---|
-| Precisão de coordenadas | **`f32`** (não `f16`) | Confirmado no ciclo 2: 400/400 arquivos v0x0C com corpo completo sob layout `f32` e normais de norma 1 em 99,98% |
-| Contagem de vértices por malha | campo `u16` → **teto de 65.535** | `u16` no payload offset 38; máximo observado 5.082 |
-| Contagem de normais por malha | campo `u16` → **teto de 65.535** | payload offset 40; máximo observado 5.376 |
-| Contagem de UV por malha | campo `u16` → **teto de 65.535** | payload offset 42 |
-| Contagem de triângulos por malha | campo `u16` → **teto de 65.535** | payload offset 44 |
-| Registro de vértice | **16 bytes** | Verificado em 260 mil+ registros |
-| Registro de normal | **20 bytes** | Verificado em 260.268 registros (99,91% de norma 1) |
-| Registro de triângulo | **64 bytes** | Confirmado pela posição do nome de textura em 87,9% dos arquivos de malha única |
-| Contagem de malhas | campo `u16`; mediana 1, **máximo observado 18** | payload offset 32; nomes dos campos não verificados um a um |
-| Nome do modelo de origem | **32 bytes**, ASCII NUL-pad | Campo inicial do corpo |
-| Nome de textura | campo de texto após o array de triângulos | Observado em 87,9% dos arquivos de malha única |
+| Precisão de coordenadas | **`f32`** (não `f16`) | Confirmado ciclo2: 400/400 v0x0C corpo completo layout f32 normais norma 1 99,98% |
+| Contagem de vértices por malha | campo `u16` → **teto teórico 65.535**, **máximo observado 22.987** (Custom/Monster/Ozarugold.bmd) — sem limite superior conhecido documentado além do campo u16, não há evidência de limite menor | `u16` offset 38, tool /tmp/find_max_vert, 8406 arquivos com geometria parseada |
+| Contagem de normais por malha | campo `u16` → teto 65.535, máximo observado 5.376 (antigo) / 22.987 vértices implica normais similar | payload offset 40 |
+| Contagem de UV por malha | campo `u16` → teto 65.535, máximo observado não determinado (UV não localizado) | payload offset 42 |
+| Contagem de triângulos por malha | campo `u16` → teto 65.535, máximo observado 39.193 (geral) / 15.390 (com ossos) | payload offset 44, tool /tmp/find_max_vert |
+| Registro de vértice | **16 bytes** (3×f32 posição + 1×u16? actually 16B) | Verificado 260 mil+ registros |
+| Registro de normal | **20 bytes** | Verificado 260.268 registros 99,91% norma 1 |
+| Registro de triângulo | **64 bytes** (3× u16 posição + 3× u16 normal? actually 64B) | Confirmado posição nome textura em 87,9% malha única |
+| Registro de osso | **59 B** intercalado (32B nome + u16 parent + 6×f32 + 1 pad exceto último) ou 58B último, total bc*59-1 | Confirmado ciclo8 3693 arquivos 7879 bones ratio per file 1846,28× definitivo |
+| Contagem de malhas (meshCount) | campo `u16`, **máximo observado 30** (Object157/Object06.bmd) entre geometria parseada, **9** entre com ossos (Object74/Object40.bmd), mediana 1 | payload offset 32, tool /tmp/find_max_vert e /tmp/find_max_bones3 |
+| Contagem de ossos (boneCount) | campo `u16`, **máximo observado 63** (Item/Stick32.bmd) entre arquivos com has_bones true, **limite prático 64** (parser rejeita >64 por segurança, mas observado 63), total 7879 bones em 3693 arquivos | payload offset 34, tool /tmp/find_max_bones3, mutool bmdreport 3693 loose 1186 strict |
+| Nome do modelo de origem | **32 bytes**, ASCII NUL-pad, >=3 printable loose / NUL-padded strict | Campo inicial corpo |
+| Nome de textura / material | **1 por mesh observado** — campo texto 32B após array triângulos, cada mesh tem 1 nome textura (ex: sbow06_R.jpg, tex.jpg), não observado >1 por mesh | Observado 87,9% malha única, multi-mesh cada mesh tem 1 nome, evidência ciclo6_bmd_multimesh.log |
 
 **Consequência prática do teto `u16`.** Uma malha não pode exceder 65.535
 vértices nem 65.535 triângulos. Para conteúdo pesado isso é restritivo e é um
 argumento concreto a favor do caminho B (assets customizados em formato moderno)
 para modelos novos — ver `docs/ARCHITECTURE.md`.
 
-## Limites DESCONHECIDOS — bloqueados por parsing não concluído
+## Limites DESCONHECIDOS — bloqueados por parsing não concluído (atualizado ciclo12 C3)
 
-| Limite | Por que não se sabe |
+| Limite | Por que não se sabe / Estado ciclo12 |
 |---|---|
-| **Número de materiais/texturas por modelo** | Exige percorrer a tabela de nomes de textura, que só foi localizada em arquivos de malha única. Não foi contada nem validada |
-| **Máximo de ossos por modelo** | Nenhum registro de osso foi localizado nem validado. O campo `boneCount` existe no cabeçalho, mas seu significado não foi confirmado um a um |
-| **Máximo de frames de animação** | Depende de ossos e da seção de ações, ambas bloqueadas |
-| **Bytes 24..59 do registro de triângulo** | Não zero em 59,1% dos registros. Sem quarto canto (offsets +24..+56 dão 50–81%, nível de ruído). Conteúdo não identificado |
-| **UV por vértice do triângulo** | O candidato em +4 foi descartado. UV segue sem localização |
-| **Bytes 24..59 do registro de triângulo** | Todos zero em só 40,9% dos registros; conteúdo não identificado |
-| **Limite de malhas por modelo** | Máximo observado 18, mas sem confirmação de que o campo é contagem de malhas, 18 é observação, não limite do formato |
-| **Semântica dos `u16` em 32/34/36** | Coerentes com contagem de malha/osso/ação, não verificados |
+| **Número de materiais/texturas por modelo** | **CONHECIDO parcial ciclo12 C3: 1 por mesh observado** — cada mesh tem 1 nome textura 32B após triângulos, não observado >1 por mesh, evidência ciclo6_bmd_multimesh.log, mas não validado para todos multi-mesh |
+| **Máximo de ossos por modelo** | **CONHECIDO ciclo12 C3: até 64 observados, máximo 63 (Stick32.bmd), limite prático 64** — campo u16 offset 34, parser rejeita >64 por segurança, total 7879 bones em 3693 arquivos loose ratio 1846,28× definitivo strict 1186 headline conservador |
+| **Máximo de vértices por modelo** | **CONHECIDO parcial: campo u16 teto 65.535, máximo observado 22.987 (Ozarugold.bmd), sem limite superior conhecido documentado além do campo** — não há evidência de limite menor, tool /tmp/find_max_vert |
+| **Máximo de frames de animação** | Depende de ossos e seção ações, ambas parcialmente decodificadas: 764 com extra após ossos, 231 divisível bc*12, 62 plausíveis finite<1e6 mas ratio 0,02× NÃO discriminativo, 53 plausíveis [-pi,pi] ratio 0,04× NÃO discriminativo, animação permanece NÃO DECODIFICADA |
+| **Bytes 24..59 do registro de triângulo** | Não zero em 59,1% registros, sem quarto canto offsets +24..+56 dão 50–81% nível ruído, conteúdo não identificado |
+| **UV por vértice do triângulo** | O candidato em +4 descartado, UV segue sem localização 0% 11 hipóteses descartadas platô 9-26× explicado como artefato floats pequenos lidos como u16 |
+| **Limite de malhas por modelo** | **CONHECIDO ciclo12 C3: máximo observado 30 (Object157/Object06.bmd) geral, 9 com ossos (Object74/Object40.bmd), mediana 1** — campo u16 offset 32, tool /tmp/find_max_vert |
+| **Semântica dos u16 em 32/34/36** | **CONHECIDO parcial: 32=meshCount, 34=boneCount, 36=actionCount? coerentes mas não verificados um a um, exceto meshCount e boneCount validados via parsing** |
 
 **Registro explícito, como exigido:** a ausência de índices de face decodificados
 impede levantar limites que dependem de topologia. Isso é limitação do
