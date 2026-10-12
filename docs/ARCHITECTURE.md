@@ -204,14 +204,26 @@ Importador dos formatos do cliente para a representação interna.
 | Posições de vértice | **CONCLUÍDO E VALIDADO** (8.406 arquivos, 83,31%) |
 | Normais | **CONCLUÍDO E VALIDADO** (99,91% com norma 1) |
 | Localização do array de triângulos | **CONCLUÍDO** (98,05% contra controle de 2,35%) |
-| **Conteúdo do registro de triângulo** | **BLOQUEADO** — 58 dos 64 bytes não decodificados |
-| **Coordenadas UV** | **BLOQUEADO** — hipótese refutada por controle estatístico |
-| **Ossos e animação** | **BLOQUEADO** — nenhum registro localizado |
+| Registro de triângulo (topologia) | **CONCLUÍDO, em C++** — 3 referências de 8 B em +0/+8/+16; `bmd_body.cpp` lê o array; 1.221.030 triângulos em 4.149 arquivos |
+| Array de coordenadas UV | **CONCLUÍDO** — pares `f32`, zero não-finitos em 250.450 leituras |
+| Hierarquia de ossos | **CONCLUÍDO** — registro intercalado de 59 B; 98,68% dos 3.552 cujo tamanho fecha |
+| Tamanho do registro de animação | **PARCIAL — 77,00%** — `boneCount × keyframes × 12 B`, 385 de 500 |
+| Altura de terreno | **CONCLUÍDO** — `TerrainHeight.OZB`, BMP de 8 bits com prefixo duplicado |
+| **Índice de UV por canto** | **BLOQUEADO** — oito hipóteses descartadas |
+| **Ordem dos 6 floats de transformação** | **NÃO CONFIRMADO** — posição antes de rotação é inferência |
+| **Conteúdo dos 3 floats de keyframe** | **NÃO DETERMINADO** |
+| **Escala vertical da altura** | **NÃO DETERMINADO** — três caminhos fechados |
 | Texturas OZJ/OZT | **CONCLUÍDO** para decodificação de contêiner |
 
+**Implementado em código:** `MeshFromBmd` produz posições, normais, índices e
+caixa delimitadora, com testes. **Não produz UV nem ossos**, e `has_texcoords`
+fica `false` de propósito.
+
 O caminho A **não está pronto** e não há data que este projeto possa prometer
-para ele: depende de decodificar o registro de triângulo, que resistiu a todas as
-tentativas até agora.
+para ele. O que mudou é a natureza do bloqueio: **não é mais geometria** — malha
+é montada. É **texturização** (índice de UV) e **animação** (ordem dos floats e
+conteúdo de keyframe). Um modelo sem textura pode ser desenhado; um modelo
+texturizado não pode.
 
 ### 9.3 Caminho B — assets pesados customizados
 
@@ -256,3 +268,100 @@ Declarado explicitamente, porque é a confusão mais fácil de cometer aqui:
 
 A regra de rotulagem de `DECISIONS.md` (DEC-009) se aplica: teste com geometria
 sintética ou com asset do caminho B nunca conta como progresso no caminho A.
+
+---
+
+## 10. Limites reais do formato BMD, medidos
+
+Levantados no ciclo 3 a partir da árvore completa, não de amostra. Estes são os
+tetos que a representação interna precisa não herdar.
+
+| Limite | Valor | Como foi medido | Consequência |
+|---|---|---|---|
+| Contagens de vértice/normal/UV/triângulo | `u16` = 65.535 por malha | offsets 38/40/42/44 do payload | Teto por malha, não por arquivo. Malha maior exige dividir |
+| Malhas por arquivo | 18 observado | offset 32, máximo na árvore | **Só `meshCount == 1` é parseado.** O layout de múltiplas malhas não foi confirmado |
+| Ossos por arquivo | 8 testados, máximo real não determinado | registro de 59 B | O parser rejeita `boneCount > 8`; o teto real é desconhecido |
+| Registro de vértice | 16 B fixos | `f32 ×3` + 2 × `u16` | Precisão `f32`, sem posição em dupla precisão |
+| Registro de normal | 20 B fixos | `f32 ×5` | Dois floats auxiliares sem identificação |
+| Registro de triângulo | 64 B fixos | 3 × 8 B + 36 B `f32` + 4 B | Bytes 24..59 são `f32` não identificados |
+| Registro de osso | 59 B | 32 B nome + 27 B transformação | Nome truncado a 31 caracteres |
+| Nome de textura | 32 B ASCII NUL-pad | após o array de triângulos | Caminhos longos não cabem |
+| Grid de terreno | 256 × 256, `u8` de altura | `TerrainHeight.OZB` | Altura de 8 bits: 256 níveis, sem sub-nível |
+
+**O que estes limites significam para o caminho B.** Cada um deles é uma razão
+concreta para a representação interna usar contagem de 32 bits e precisão
+configurável, em vez de espelhar o formato de origem. Herdar o teto `u16`
+significaria que "suportar assets mais pesados" falharia na camada de dados,
+antes de o renderer entrar na história.
+
+**O que NÃO é limite do formato, e sim do parser atual:**
+
+- Malhas múltiplas: o formato provavelmente suporta, o parser não lê
+- `boneCount > 8`: rejeitado por cautela, não por evidência de teto
+
+---
+
+## 11. Requisitos de escalabilidade de renderização
+
+O que o renderer precisa fazer para que malha pesada não custe FPS. Cada item
+diz o que é, por que importa, e **se está medido ou não** — este ambiente não tem
+GPU, então quase nada aqui está medido.
+
+### 11.1 Redução de draw calls
+
+**Por que:** `glBegin`/`glEnd` envia um vértice por chamada. Com malha pesada, o
+custo de driver domina antes do custo de rasterização.
+
+**Estado:** `DEC-008` registra VBO/VAO como piso mínimo. **Nenhuma linha de código
+de backend existe** — ver `DEC-010` para o que está bloqueado até a decisão formal.
+
+**Medido:** não. Sem GPU.
+
+### 11.2 Frustum culling
+
+**Por que:** descartar objetos inteiros antes do draw é a redução mais barata que
+existe, porque custa matemática em CPU e economiza uma chamada inteira.
+
+**Estado:** **implementado e testado** (`src/mu/render/cull.cpp`). Conservador na
+direção segura: pode custar uma draw call extra, nunca descartar geometria visível.
+
+**Medido:** `mutool culltest` conta draw calls evitadas sobre malhas reais. O
+número (97,54%) **não é número de jogo** — os objetos são posicionados em grade
+sintética porque o BMD não carrega transformação de mundo. **Efeito sobre FPS:
+não medido.**
+
+### 11.3 Níveis de detalhe
+
+**Por que:** malha pesada longe da câmera desperdiça preenchimento e largura de
+banda de vértice.
+
+**Estado:** **não implementado.** O BMD não carrega LOD; o caminho B (glTF) tem a
+extensão `MSFT_lod` disponível.
+
+**Medido:** não.
+
+### 11.4 Streaming e orçamento de memória
+
+**Por que:** o inventário do ciclo 1 estimou **2.893,80 MB** de textura se tudo
+estivesse carregado. Esse número é **estimativa teórica `w × h × 4`, não gargalo
+medido** — a correção está registrada desde o ciclo 1 e continua valendo.
+
+**Estado:** **não implementado.** Não há gerenciador de residência de textura.
+
+**Medido:** não. O número citado é footprint máximo teórico.
+
+### 11.5 O que este ambiente pode e não pode estabelecer
+
+| Requisito | Pode ser estabelecido aqui? |
+|---|---|
+| Culling descarta o que deve descartar | **SIM** — testes com respostas conhecidas por construção |
+| Contagens de 32 bits não estouram | **SIM** — testes de limite |
+| Caixa delimitadora correta | **SIM** — testes |
+| Draw calls em cena real | **NÃO** — exige posições reais e pipeline |
+| FPS, frametime, stuttering | **NÃO** — exige GPU |
+| Latência de entrada | **NÃO** — exige GPU e dispositivo de entrada |
+| VRAM real | **NÃO** — exige GPU |
+
+**Regra que decorre disso:** nenhum relatório deste projeto pode citar melhoria de
+desempenho sem dizer onde foi medida. `PERFORMANCE_BASELINE.md` continua sem
+baseline de FPS, e isso é uma limitação declarada, não uma omissão.
