@@ -23,6 +23,7 @@
 #include "mu/render/cull.hpp"
 #include "mu/render/buffers.hpp"
 #include "mu/render/skinning.hpp"
+#include "mu/platform/win32_window.hpp"
 #include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
@@ -601,6 +602,7 @@ void TestMeshInternalRepresentation();
 void TestPackMeshForUpload();
 void TestSkinningLBS();
 void TestFrustumCullRealBounds();
+void TestWin32GLSkeletonBlocked();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -649,6 +651,7 @@ const Test kTests[] = {
     {"pack mesh for upload (D1)", TestPackMeshForUpload},
     {"skinning LBS CPU strict (D2)", TestSkinningLBS},
     {"frustum cull real bounds (D3)", TestFrustumCullRealBounds},
+    {"win32 wgl skeleton BLOCKED (D5)", TestWin32GLSkeletonBlocked},
 };
 
 }  // namespace
@@ -2133,6 +2136,24 @@ void TestFrustumCullRealBounds() {
   CHECK(!invalid.valid);
   CHECK(mu::IsVisible(f, invalid));
   CHECK(mu::CullBox(f, invalid)==mu::CullResult::kIntersect);
+}
+
+
+void TestWin32GLSkeletonBlocked() {
+  // D5: esqueleto Win32 + WGL — BLOCKED neste ambiente, documentado como esqueleto
+  // Não compila em Windows real sem SDK/GPU, aqui retorna BLOCKED
+  // Testa apenas que o status BLOCKED é retornado e que CreateGLWindow falha safe
+  // Isso não é teste de janela real, é teste de que o esqueleto está presente e marcado BLOCKED
+  mu::platform::Win32GLConfig cfg;
+  cfg.width=800; cfg.height=600;
+  mu::platform::Win32GLWindow win;
+  bool created = mu::platform::CreateGLWindow(cfg, &win);
+  CHECK(!created); // BLOCKED neste ambiente Linux sem Windows SDK/GPU
+  CHECK(!win.created);
+  auto status = mu::platform::GetWin32GLStatus();
+  CHECK(status==mu::platform::Win32GLStatus::kBlockedNoWindowsSDK);
+  mu::platform::DestroyGLWindow(&win);
+  CHECK(!win.created);
 }
 
 }  // namespace
