@@ -399,15 +399,110 @@ cliente — e essa compatibilidade é parte do escopo.
 
 ### O que esta decisão NÃO diz
 
-**Nada aqui está implementado, medido ou validado.** Não há baseline de FPS,
-frametime ou VRAM neste projeto, porque não há Windows nem GPU no ambiente. Esta
-é uma decisão de arquitetura com justificativa de capacidade, não uma afirmação
-de desempenho. Qualquer número de ganho só pode ser declarado depois de medido
-em condições declaradas, conforme a regra permanente deste projeto.
+**Nada aqui está implementado ou validado em GPU.** Não há baseline de FPS,
+frametime ou VRAM neste projeto, porque não há Windows nem GPU no ambiente.
+Qualquer número de ganho só pode ser declarado depois de medido em condições
+declaradas, conforme a regra permanente deste projeto.
 
 E **não substitui o bloqueio nº 1.** Ver DEC-009 e o item 10 do comando: teste
 de pipeline com geometria sintética é teste de pipeline, não suporte a asset
 original.
+
+---
+
+## DEC-008-A — Comparação formal de custo e risco (completando DEC-008)
+
+**Data:** ciclo 4 · **Status:** registrada · **Depende de:** DEC-008 ·
+**Exigida por:** DEC-010, que travou todo código de backend até aqui
+
+DEC-008 registrou a intenção. DEC-010 apontou corretamente que intenção não é
+decisão, e listou quatro itens que faltavam. Esta seção os responde.
+
+### 1. Comparação explícita: fixed-function/immediate mode contra VBO/VAO
+
+Os quatro eixos que a auditoria pediu, cada um com o que se sabe e de onde vem:
+
+| Eixo | Fixed-function / immediate mode (como o original) | VBO/VAO com draw indexado |
+|---|---|---|
+| **Capacidade de suportar malha pesada** | Teto estrutural. `glBegin`/`glEnd` envia um vértice por chamada; sem `glDrawElements` no binário, toda malha é submetida expandida. **Medido:** a expansão por quadro custa **21.459,9 µs** de marshalling de CPU para o volume desta árvore — **128,8% do orçamento inteiro de um quadro a 60 FPS**, e isso é só CPU, sem driver nem GPU | O volume único é enviado uma vez e fica residente. **Medido:** submissão indexada por quadro custa **837,3 µs** (**25,63×** menos) e **1.144.451 envios de vértice a menos por quadro (38,97%)** |
+| **Número de draw calls** | Uma chamada por primitiva em immediate mode; display list agrupa mas é estática e opaca. Sem índice, não há como reduzir o volume dentro de uma chamada | Uma chamada por malha via `glDrawElements`, volume independente da contagem de vértice. Instancing disponível. **Contagem real de draw call em tempo de execução: BLOQUEADA** — exige contexto |
+| **Compatibilidade com hardware e drivers modernos** | OpenGL 1.1 fixed-function está **deprecado** desde GL 3.1 e **removido do perfil core** desde GL 3.2. Drivers modernos mantêm caminho de compatibilidade, mas em camadas de tradução (ex.: D3D12/Vulkan por baixo no Windows), o que tipicamente custa mais, não menos. Hardware antigo que roda o cliente original roda GL 2.0+ | GL 2.0 como piso, disponível em todo hardware que hoje roda o cliente original. Não exige driver recente nem troca de API. **Desempenho em driver específico: BLOQUEADO** |
+| **Complexidade de implementação** | Zero — é o que o original faz. Mas não atende ao requisito de conteúdo pesado, então o custo zero compra um teto intransponível | Moderada e conhecida: buffer + VAO + shader mínimo substituindo a função fixa. Mesmo conjunto de conceitos, sem biblioteca nova. Estimativa de esforço: **não medida**, e não será afirmada como prazo |
+
+### 2. Custo e risco de cada alternativa, incluindo o risco de não medir
+
+| Alternativa | Custo de implementação | Risco técnico | Risco de não conseguir medir | Veredicto |
+|---|---|---|---|---|
+| Manter fixed-function | zero | **alto**: teto de capacidade intransponível; caminho deprecado em drivers modernos | baixo, mas irrelevante — medir confirmaria o teto | **rejeitada** |
+| **VBO/VAO em OpenGL (adotada)** | reescrever o caminho de desenho; shader mínimo | **baixo**: mesmos conceitos, mesma stack, sem dependência nova | **alto e declarado**: não há GPU nem contexto aqui, então a validação final não pode ocorrer neste ambiente | **adotada** |
+| Trocar de API (Vulkan / D3D12) | reescrita completa do backend | **alto**: perde compatibilidade com hardware antigo, que é requisito do projeto | alto | **rejeitada** |
+
+O risco de não medir é **alto na opção adotada e isso não a desqualifica** —
+qualifica a afirmação que se pode fazer sobre ela. A alternativa de menor risco
+de medição (manter fixed-function) é justamente a que não atende ao requisito.
+Escolher por facilidade de medição seria otimizar a métrica errada.
+
+### 3. O que será medido para decidir, e em que hardware
+
+**Já medido neste ambiente** (evidência:
+[`evidence/ciclo4_dec008_submission_cost.log`](evidence/ciclo4_dec008_submission_cost.log)):
+
+| Medida | Valor | Desvio |
+|---|---|---|
+| Expansão indexado → flat, por quadro | 21.459,9 µs | 7,31% |
+| Submissão indexada, por quadro | 837,3 µs | 3,84% |
+| Upload único do vertex buffer | 3.610,2 µs | 3,83% |
+| Razão expandido/indexado | **25,63×** | — |
+| Upload se paga em | **0,18 quadro** a 60 FPS | — |
+
+Contagens reais da árvore (`mutool meshimport`): 1.792.108 vértices, 978.853
+triângulos, 4.071 malhas. Razão de compartilhamento medida: 1,64 vértice por
+triângulo em vez de 3.
+
+**Critério objetivo de validação — em duas partes, porque uma delas está
+bloqueada:**
+
+- **PARTE A — CONCLUÍDA.** Custo de marshalling de CPU, medido sem contexto
+  gráfico. Resultado acima. O que sustenta: o modelo expandido custa, em CPU,
+  mais que o orçamento inteiro de um quadro a 60 FPS para este volume de
+  geometria. Isso independe de driver e de GPU, porque é trabalho que a CPU faz
+  antes de qualquer chamada.
+- **PARTE B — BLOQUEADA.** Benchmark sintético comparando upload de N vértices
+  via immediate mode contra VBO, em contexto real. **Não pode ser executado
+  neste ambiente**: não há GPU, não há driver, não há `wglCreateContext`, e o
+  ambiente não permite instalá-los (sem root, sem headers de GL). Estado:
+  **BLOCKED**, com roteiro reproduzível em
+  [`BENCHMARKS.md`](BENCHMARKS.md) e `scripts/benchmark_windows.ps1`.
+
+**O que decidirá entre as opções quando a Parte B puder rodar:** o mesmo
+critério da Parte A, medido em GPU — tempo de quadro e contagem de draw call
+para volume de geometria declarado, com hardware, driver, resolução e estado de
+cache registrados. Se a diferença medida for menor que a diferença de CPU já
+estabelecida, a decisão é revisada, não defendida.
+
+### 4. O que acontece com a compatibilidade visual em cada caso
+
+| Alternativa | Efeito sobre DEC-001 (fidelidade visual) |
+|---|---|
+| Manter fixed-function | Preserva por construção — é o mesmo caminho. Mas o requisito de conteúdo pesado fica não atendido |
+| **VBO/VAO (adotada)** | **Preservada em princípio**: muda *como* a geometria chega à GPU, não *o que* é desenhado. O caminho A produz a mesma malha. **Não verificada**: sem GPU não há como comparar pixel a pixel. Estado: `NOT EXECUTED` |
+| Trocar de API | Preservada em princípio, com risco maior de diferença de arredondamento e de comportamento de driver |
+
+A compatibilidade visual da opção adotada é **`NOT EXECUTED`, não
+"preservada"**. Dizer "preservada" sem comparação medida seria exatamente o
+tipo de afirmação que a regra permanente deste projeto proíbe.
+
+### O que destrava agora
+
+Com esta seção registrada, a trava de DEC-010 sobre código de backend deixa de
+valer por ausência de decisão. **Permanece valendo por ausência de ambiente:**
+escrever código de GL aqui seria não testável, e código não testável de backend
+gráfico é o caminho mais curto para afirmar compatibilidade que não foi
+verificada. A ordem correta é:
+
+1. Caminho A completo (UV, multi-mesh) — não depende de GPU para ser escrito e testado
+2. Backend VBO/VAO — escrito quando houver ambiente que o execute, ou com camada de abstração testável sem GL
+3. Validação da Parte B — em Windows com GPU
 
 ---
 
@@ -506,19 +601,24 @@ estão bloqueados até lá:
 A distinção que torna culling aceitável e estes inaceitáveis: culling tem uma
 resposta correta independente da API; uma chamada de GL **é** a escolha da API.
 
-### Decisão formal de pipeline: AINDA PENDENTE
+### Decisão formal de pipeline: REGISTRADA no ciclo 4
 
-DEC-008 registra a **intenção** (VBO/VAO como piso mínimo) mas não a comparação
-de custo/risco exigida por este projeto para decisões de arquitetura. Antes de
-qualquer código de backend, DEC-008 precisa ser completada com:
+DEC-008 registrou a **intenção** (VBO/VAO como piso mínimo) sem a comparação de
+custo/risco. Esta seção apontou os quatro itens que faltavam, e **DEC-008-A os
+respondeu no ciclo 4**:
 
-1. Custo de implementação de cada alternativa considerada
-2. Risco de cada uma, incluindo o risco de não conseguir medir neste ambiente
-3. O que será medido para decidir entre elas, e em que hardware
-4. O que acontece com o requisito de compatibilidade visual em cada caso
+1. Custo de implementação de cada alternativa considerada — respondido
+2. Risco de cada uma, incluindo o risco de não conseguir medir — respondido, e o
+   risco de não medir é **alto na opção adotada**, declarado em vez de omitido
+3. O que será medido para decidir, e em que hardware — respondido em duas
+   partes: Parte A (CPU, **concluída e medida**) e Parte B (GPU, **BLOQUEADA**)
+4. O que acontece com a compatibilidade visual — respondido, e o estado é
+   **`NOT EXECUTED`**, não "preservada"
 
-**Sem isso, o pipeline permanece não decidido, e nenhum código de backend deve
-ser iniciado.**
+**A decisão está registrada.** O que continua impedindo código de backend não é
+mais a ausência de decisão, e sim a ausência de ambiente que o execute: sem GPU
+nem contexto, backend gráfico escrito aqui seria não testável, e backend não
+testável é o caminho mais curto para afirmar compatibilidade não verificada.
 
 ### Como verificar o cumprimento
 
