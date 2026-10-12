@@ -89,11 +89,23 @@ struct Mesh {
   /// Triangle indices into positions. Size is a multiple of 3 when non-empty.
   std::vector<uint32_t> indices;
 
+  /// Bone weights per vertex, parallel to positions when present.
+  /// Each vertex may have 0..N influences. Count per vertex is explicit
+  /// rather than fixed 4, because different formats use different numbers
+  /// and padding would waste memory and bandwidth. BMD importer leaves
+  /// this empty (weights not yet decoded), glTF importer will populate.
+  std::vector<std::vector<BoneWeight>> bone_weights;
+
   /// Set only when texcoords is populated AND a mapping from each triangle
   /// corner to a texcoord is known. The BMD importer leaves this false: it can
   /// read the texcoord array but not the index that binds a corner to an entry,
   /// so texturing would be guesswork. See docs/ASSET_FORMATS.md.
   bool has_texcoords = false;
+
+  /// Set only when bone_weights is populated and each weight references
+  /// a valid bone in the associated Skeleton and weights sum to ~1.0.
+  /// BMD importer leaves this false (weights not decoded), glTF will set true.
+  bool has_bone_weights = false;
 
   Bounds bounds;
 

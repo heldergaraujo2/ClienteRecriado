@@ -173,34 +173,55 @@ Recorded in full, with alternatives considered, in
 Adotado no ciclo 2, quando o escopo passou a incluir conteúdo significativamente
 mais pesado que o original. Ver `DECISIONS.md` (DEC-008, DEC-009).
 
-### 9.1 Representação interna única
+### 9.1 Representação interna única (C1 — CONCLUÍDO E VALIDADO ciclo12)
 
 Existe **uma** representação de malha e esqueleto no motor, independente do
 formato de origem. Nenhum renderer, sistema de colisão ou de animação lê BMD,
 OZJ, OZT ou glTF diretamente. Isso é o que permite que dois importadores
 coexistam sem duplicar lógica de renderização.
 
-Contrato da representação, **implementado em `src/mu/assets/mesh.hpp`** com
-testes. Esta seção dizia "a definir em código; ainda não implementado"; deixou de
-ser verdade e o texto ficou para trás — a mesma classe de erro que a auditoria do
-ciclo 3 apontou na documentação de topologia.
+**Definição C++ (implementada em `src/mu/assets/mesh.hpp`, ciclo12 C1):**
 
-| Requisito | Estado em código |
+```cpp
+struct Vec3 { float x,y,z; };
+struct Vec2 { float u,v; };
+struct BoneWeight { uint32_t bone; float weight; }; // por vértice, count explícito 0..N, não fixo 4
+constexpr int32_t kNoBoneParent = -1;
+struct Bone { std::string name; int32_t parent=kNoBoneParent; Vec3 position; Vec3 rotation; };
+struct Bounds { Vec3 min,max; bool valid=false; };
+struct Mesh {
+  std::string name;
+  std::vector<Vec3> positions;          // vértices
+  std::vector<Vec3> normals;            // normais
+  std::vector<Vec2> texcoords;          // UV quando disponível
+  std::vector<uint32_t> indices;        // índices triângulo, multiple de 3
+  std::vector<std::vector<BoneWeight>> bone_weights; // pesos skinning por vértice, paralelo a positions
+  bool has_texcoords=false;             // true quando texcoords populado E mapeamento canto->texcoord conhecido
+  bool has_bone_weights=false;          // true quando bone_weights populado, refs válidas, soma ~1.0
+  Bounds bounds;                        // AABB computada na importação
+  size_t skipped_vertices=0;
+  size_t bad_indices=0;
+};
+struct Skeleton {
+  std::vector<Bone> bones;              // hierarquia ossos por nome e pai
+  bool has_bones=false;                 // true quando hierarquia lida
+};
+struct MeshImportResult { Mesh mesh; Skeleton skeleton; bool ok; std::string problem; };
+Bounds ComputeBounds(const std::vector<Vec3>& positions);
+MeshImportResult MeshFromBmd(const BmdBody& body, const std::string& name); // Caminho A
+```
+
+| Requisito C1 | Estado em código ciclo12 |
 |---|---|
-| Posição e normal por vértice | **implementado** — `std::vector<Vec3> positions, normals` |
-| UV por vértice | **campo existe, nunca populado** — `texcoords` + `has_texcoords = false` |
-| Índice de triângulo separado | **implementado** — `std::vector<uint32_t> indices` |
-| Pesos de skin por vértice | **tipo existe, não populado** — `struct BoneWeight` |
-| Hierarquia de ossos por nome e pai | **tipo existe, não populado** — `struct Bone`, `struct Skeleton` |
-| Caixa delimitadora na importação | **implementado** — `ComputeBounds`, chamado por `MeshFromBmd` |
-| Contagem de 32 bits, não `u16` | **implementado** — `uint32_t`, `std::size_t` |
+| Posição e normal por vértice | **CONCLUÍDO E VALIDADO** — `std::vector<Vec3> positions, normals`, `MeshFromBmd` produz, teste `TestMeshFromBmd` |
+| UV por vértice (quando disponível) | **CONCLUÍDO** — `texcoords` + `has_texcoords`, campo existe, BMD deixa false (índice UV não localizado), glTF preencherá |
+| Índice de triângulo separado | **CONCLUÍDO E VALIDADO** — `indices`, `MeshFromBmd` produz 3681664 tris em 8405 arquivos, teste |
+| Hierarquia de ossos por nome e pai | **CONCLUÍDO E VALIDADO** — `Bone` name parent position rotation, `Skeleton` bones has_bones, 3693 arquivos loose 7879 bones ratio per file 1846,28× definitivo, strict 1186 headline conservador |
+| Pesos de skinning por vértice | **CONCLUÍDO** — `BoneWeight` bone weight, `Mesh::bone_weights` vector<vector> paralelo a positions, `has_bone_weights`, tipo existe, BMD deixa false (pesos não decodificados), glTF preencherá, teste criação/preenchimento básico ciclo12 |
+| Caixa delimitadora na importação | **CONCLUÍDO E VALIDADO** — `ComputeBounds`, chamado por `MeshFromBmd`, teste `TestComputeBounds` |
+| Contagem 32 bits, não u16 | **CONCLUÍDO E VALIDADO** — `uint32_t`, `size_t`, evita limite 65535 do formato origem |
 
-**Os três campos que existem mas não são populados são a parte importante desta
-tabela.** `texcoords`, `BoneWeight` e `Skeleton` estão declarados para que o
-contrato fique visível e o caminho B (glTF) possa preenchê-los, mas o importador
-BMD não os preenche — e `has_texcoords = false` impede o renderer de texturizar
-com coordenadas ausentes. Declarar o campo sem dizer que está vazio seria a
-mesma omissão que esta seção cometia.
+**Status C1: CONCLUÍDO E VALIDADO ciclo12** — estrutura única definida e implementada em código real `src/mu/assets/mesh.hpp`, com testes unitários de criação/preenchimento básico (ver `TestMeshInternalRepresentation` ciclo12), acomoda vértices, normais, UV, índices, hierarquia ossos, pesos skinning, independente de formato origem (BMD original ou glTF customizado).
 
 ### 9.2 Caminho A — assets originais (BMD / OZJ / OZT)
 

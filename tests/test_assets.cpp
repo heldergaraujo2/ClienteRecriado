@@ -1,3 +1,4 @@
+#include <cmath>
 // SPDX-License-Identifier: MIT
 // Test suite for the ClienteRecriado asset library.
 //
@@ -594,6 +595,7 @@ void TestBmdBonesCircularParent();
 void TestBmdBonesExtremeCount();
 void TestBmdBonesTruncated();
 void TestBmdBonesOverflow();
+void TestMeshInternalRepresentation();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -638,6 +640,7 @@ const Test kTests[] = {
     {"bmd bones extreme boneCount", TestBmdBonesExtremeCount},
     {"bmd bones truncated payload", TestBmdBonesTruncated},
     {"bmd bones overflow check", TestBmdBonesOverflow},
+    {"mesh internal representation (C1)", TestMeshInternalRepresentation},
 };
 
 }  // namespace
@@ -1914,5 +1917,54 @@ void TestBmdMultiMeshOverflow() {
   auto st = mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
   CHECK(!st.ok() || !parsed.complete || parsed.vertices.empty());
 }
+
+
+void TestMeshInternalRepresentation() {
+  // C1: representação interna única de malha e esqueleto
+  mu::Mesh mesh;
+  mesh.name = "TestMesh";
+  mesh.positions = {{0,0,0}, {1,0,0}, {0,1,0}};
+  mesh.normals = {{0,0,1}, {0,0,1}, {0,0,1}};
+  mesh.texcoords = {{0,0}, {1,0}, {0,1}};
+  mesh.indices = {0,1,2};
+  mesh.has_texcoords = true;
+  // bone weights per vertex
+  mu::BoneWeight w0; w0.bone=0; w0.weight=1.0f;
+  mu::BoneWeight w1; w1.bone=0; w1.weight=0.5f; mu::BoneWeight w1b; w1b.bone=1; w1b.weight=0.5f;
+  mesh.bone_weights = {{w0}, {w1, w1b}, {w0}};
+  mesh.has_bone_weights = true;
+  mesh.bounds = mu::ComputeBounds(mesh.positions);
+  CHECK(mesh.positions.size()==3);
+  CHECK(mesh.normals.size()==3);
+  CHECK(mesh.texcoords.size()==3);
+  CHECK(mesh.indices.size()==3);
+  CHECK(mesh.bone_weights.size()==3);
+  CHECK(mesh.bone_weights[0].size()==1);
+  CHECK(mesh.bone_weights[1].size()==2);
+  CHECK(mesh.has_texcoords);
+  CHECK(mesh.has_bone_weights);
+  CHECK(mesh.bounds.valid);
+  CHECK(mesh.bounds.min.x==0.0f && mesh.bounds.min.y==0.0f);
+  CHECK(mesh.bounds.max.x==1.0f && mesh.bounds.max.y==1.0f);
+
+  mu::Skeleton skel;
+  mu::Bone root; root.name="Root"; root.parent=mu::kNoBoneParent; root.position={0,0,0}; root.rotation={0,0,0};
+  mu::Bone child; child.name="Child"; child.parent=0; child.position={1,0,0}; child.rotation={0,0,1.57f};
+  skel.bones = {root, child};
+  skel.has_bones = true;
+  CHECK(skel.bones.size()==2);
+  CHECK(skel.bones[0].parent==mu::kNoBoneParent);
+  CHECK(skel.bones[1].parent==0);
+  CHECK(skel.has_bones);
+  for(size_t i=0;i<mesh.bone_weights.size();++i){
+    float sum=0;
+    for(auto& bw: mesh.bone_weights[i]){
+      CHECK(bw.bone < skel.bones.size());
+      sum+=bw.weight;
+    }
+    CHECK(std::fabs(sum-1.0f) < 0.001f);
+  }
+}
+
 
 }  // namespace
