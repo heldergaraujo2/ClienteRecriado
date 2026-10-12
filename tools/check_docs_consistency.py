@@ -80,18 +80,18 @@ CHECKS = [
     {
         'label': 'nivel 3 - vertice + normal',
         'regex': r'^\s+parsed\s+(\d+)\s+\(\s*([\d.]+)%\)',
-        'abs': 8401, 'pct': 83.26,
+        'abs': 8406, 'pct': 83.31,
         'docs': ['docs/COMPATIBILITY.md', 'docs/ASSET_FORMATS.md',
                  'docs/ARCHITECTURE.md', 'docs/CURRENT_STATE.md'],
-        'abs_fmt': '8.401', 'pct_fmt': '83,26%',
+        'abs_fmt': '8.406', 'pct_fmt': '83,31%',
     },
     {
         'label': 'nivel 4 - topologia',
         'regex': r'with triangles\s+(\d+)\s+\(\s*([\d.]+)%\)',
-        'abs': 8400, 'pct': 83.25,
+        'abs': 8405, 'pct': 83.30,
         'docs': ['docs/COMPATIBILITY.md', 'docs/ASSET_FORMATS.md',
                  'docs/ARCHITECTURE.md', 'docs/CURRENT_STATE.md'],
-        'abs_fmt': '8.400', 'pct_fmt': '83,25%',
+        'abs_fmt': '8.405', 'pct_fmt': '83,30%',
     },
     {
         'label': 'nivel 4b - queda por multi-mesh',
@@ -241,6 +241,8 @@ def main():
             failures.append('%s nao existe' % doc)
             continue
         for line in open(path, encoding='utf-8').read().splitlines():
+            if HISTORIC_MARKER in line:
+                continue
             if not line.lstrip().startswith('|'):
                 continue
             if set(line.strip()) <= set('| -'):

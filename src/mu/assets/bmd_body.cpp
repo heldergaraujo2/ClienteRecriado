@@ -1,5 +1,14 @@
 // SPDX-License-Identifier: MIT
 // BMD v0x0A body parsing. See bmd_body.hpp for the layout and its evidence.
+//
+// Provenance: loop structure over meshCount and per-mesh field order inspired
+// by xulek/muonline-bmd-viewer (src/bmd-loader.ts:348-422, ISC, commit
+// 3f11bf89f3702261174d8efa1436d56a15c7d97a). The 14-byte header
+// [vc,nc,ntc,ntri,texIdx,u48,u50] and triangle layout [vertex at +0/+8/+16]
+// are this project's own measurements, not that project's tables, which were
+// refuted for these files (polygon byte 3/4 at 3.01% ≈ random). Texture name
+// delta -4 is this project's discovery. See docs/LICENSING.md and
+// docs/DEPENDENCIES.md.
 #include "mu/assets/bmd_body.hpp"
 
 #include <cmath>
@@ -215,6 +224,16 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
   // The texture name is systematically 4 bytes early (end-4) in many files,
   // so we search with delta.
   if (global_mesh_count > 1) {
+    // Safety: meshCount comes from untrusted file. 0xFFFF would cause a huge
+    // loop and OOM. Max observed in the real tree is 18, so 64 is generous and
+    // still prevents abuse. See item 5 of the cycle-5 audit.
+    constexpr std::size_t kMaxMeshCount = 64;
+    if (global_mesh_count > kMaxMeshCount) {
+      out->problem = "meshCount exceeds safety limit";
+      out->topology_skip = BmdTopologySkip::kDoesNotFit;
+      return Status::Make(Status::kCorrupt, out->problem);
+    }
+
     std::size_t offset = kBmdMeshCountOffset + 6;  // 38, start of first mesh header
     std::size_t total_vertices = 0;
     std::size_t total_normals = 0;
@@ -237,16 +256,77 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
       // texIdx at +8, u48 at +10, u50 at +12 - not needed for geometry but
       // checked for overflow.
 
-      if (vc > 10000 || nc > 10000 || ntc > 10000 || ntri > 10000) {
+      // Overflow-safe multiplication: check before multiply. vc etc are u16
+      // (max 65535) so product fits in 64-bit, but we still guard against
+      // payload-size overflow and against absurd allocation.
+      auto mul_overflows = [](std::size_t a, std::size_t b, std::size_t limit) -> bool {
+        if (a == 0 || b == 0) return false;
+        return a > limit / b;
+      };
+      // Use payload size as limit for per-mesh arrays; if any single array
+      // would exceed the whole payload it cannot fit.
+      if (mul_overflows(vc, kBmdVertexRecordSize, payload.size) ||
+          mul_overflows(nc, kBmdNormalRecordSize, payload.size) ||
+          mul_overflows(ntc, 8, payload.size) ||
+          mul_overflows(ntri, kBmdTriangleRecordSize, payload.size)) {
         out->topology_skip = BmdTopologySkip::kDoesNotFit;
         break;
       }
 
       const std::size_t v_start = offset + 14;
-      const std::size_t n_start = v_start + vc * kBmdVertexRecordSize;
-      const std::size_t tc_start = n_start + nc * kBmdNormalRecordSize;
-      const std::size_t tri_start = tc_start + ntc * 8;
-      const std::size_t tri_end = tri_start + ntri * kBmdTriangleRecordSize;
+      // Check addition overflow and bounds. Use careful order to avoid wrap.
+      if (v_start > payload.size) {
+        out->topology_skip = BmdTopologySkip::kDoesNotFit;
+        break;
+      }
+      std::size_t n_start = 0, tc_start = 0, tri_start = 0, tri_end = 0;
+      // v_start + vc*16
+      {
+        std::size_t add = vc * kBmdVertexRecordSize;
+        if (v_start > payload.size || add > payload.size - v_start) {
+          out->topology_skip = BmdTopologySkip::kDoesNotFit;
+          break;
+        }
+        n_start = v_start + add;
+      }
+      {
+        std::size_t add = nc * kBmdNormalRecordSize;
+        if (n_start > payload.size || add > payload.size - n_start) {
+          // Allow n_start to be exactly payload.size when nc==0 etc, but
+          // otherwise must fit.
+          if (nc != 0) {
+            out->topology_skip = BmdTopologySkip::kDoesNotFit;
+            break;
+          }
+        } else {
+          tc_start = n_start + add;
+        }
+        if (nc == 0) tc_start = n_start;
+      }
+      {
+        std::size_t add = ntc * 8;
+        if (tc_start > payload.size || (ntc != 0 && add > payload.size - tc_start)) {
+          out->topology_skip = BmdTopologySkip::kDoesNotFit;
+          break;
+        }
+        tri_start = tc_start + add;
+        if (ntc == 0) tri_start = tc_start;
+      }
+      {
+        std::size_t add = ntri * kBmdTriangleRecordSize;
+        if (tri_start > payload.size + 8) {  // allow -4 tolerance
+          out->topology_skip = BmdTopologySkip::kDoesNotFit;
+          break;
+        }
+        if (ntri != 0 && add > payload.size + 8 - tri_start) {
+          // tri_end would exceed payload+8 tolerance
+          if (tri_start + add > payload.size + 8) {
+            out->topology_skip = BmdTopologySkip::kDoesNotFit;
+            break;
+          }
+        }
+        tri_end = tri_start + add;
+      }
 
       if (v_start > payload.size || n_start > payload.size ||
           tc_start > payload.size || tri_start > payload.size) {

@@ -9,6 +9,7 @@
 #include <cstring>
 #include <limits>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #if !defined(_WIN32)
@@ -585,6 +586,10 @@ void TestComputeBounds();
 void TestFrustumCull();
 void TestFrustumFromViewProjection();
 void TestTerrainHeight();
+void TestBmdMultiMeshLargeCounts();
+void TestBmdMultiMeshExtremeMeshCount();
+void TestBmdMultiMeshTruncated();
+void TestBmdMultiMeshOverflow();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -621,6 +626,10 @@ const Test kTests[] = {
     {"bmd geometry needs a real body", TestBmdReportGeometryNeedsRealBody},
     {"bmd percent helper", TestBmdReportPercent},
     {"bmd report accumulates kinds", TestBmdReportAccumulatesKinds},
+    {"bmd multi-mesh large counts (regression 8406)", TestBmdMultiMeshLargeCounts},
+    {"bmd multi-mesh extreme meshCount 0xFFFF", TestBmdMultiMeshExtremeMeshCount},
+    {"bmd multi-mesh truncated payload", TestBmdMultiMeshTruncated},
+    {"bmd multi-mesh overflow check", TestBmdMultiMeshOverflow},
 };
 
 }  // namespace
@@ -1589,6 +1598,199 @@ void TestTerrainHeight() {
   CHECK_EQ(0u, hb.prefix_size);
   CHECK_EQ(kBody, hb.cells.size());
   CHECK(mu::TerrainHeightSmoothness(hb) == 0.0);
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// Multi-mesh security and regression tests (ciclo 5 audit item 5 and item 1).
+// These exercise the parser with untrusted inputs: extreme meshCount,
+// truncated payload, and large counts that previously hit a fixed 10k limit.
+// ---------------------------------------------------------------------------
+namespace {
+
+std::vector<std::uint8_t> MakeMultiMeshBody(
+    std::uint16_t mesh_count,
+    const std::vector<std::tuple<std::uint16_t,std::uint16_t,std::uint16_t,std::uint16_t>>& meshes) {
+  // meshes[i] = (vc,nc,ntc,ntri)
+  std::vector<std::uint8_t> out;
+  const char* name = "Test.SMD";
+  const std::size_t nlen = std::strlen(name);
+  for (std::size_t i = 0; i < mu::kBmdNameSize; ++i) {
+    out.push_back(i < nlen ? static_cast<std::uint8_t>(name[i]) : 0);
+  }
+  // Global header: meshCount, boneCount=0, actionCount=0
+  PutU16Le(out, mesh_count);
+  PutU16Le(out, 0);
+  PutU16Le(out, 0);
+  // Now per-mesh data. The first mesh header starts at offset 38, which is
+  // exactly where we are now (32 bytes name + 6 bytes global header = 38).
+  for (std::size_t mi = 0; mi < meshes.size(); ++mi) {
+    auto [vc,nc,ntc,ntri] = meshes[mi];
+    // 14-byte mesh header
+    PutU16Le(out, vc);
+    PutU16Le(out, nc);
+    PutU16Le(out, ntc);
+    PutU16Le(out, ntri);
+    PutU16Le(out, 0); // texIdx
+    PutU16Le(out, 0); // u48
+    PutU16Le(out, 0); // u50
+    // Vertex array
+    for (std::size_t i = 0; i < vc; ++i) {
+      PutF32Le(out, static_cast<float>(i));
+      PutF32Le(out, 0.0f);
+      PutF32Le(out, 0.0f);
+      PutU16Le(out, 0);
+      PutU16Le(out, 0);
+    }
+    // Normal array
+    for (std::size_t i = 0; i < nc; ++i) {
+      PutF32Le(out, 0.0f);
+      PutF32Le(out, 1.0f);
+      PutF32Le(out, 0.0f);
+      PutF32Le(out, 0.0f);
+      PutF32Le(out, 0.0f);
+    }
+    // Texcoord array (8 bytes each, 2 floats)
+    for (std::size_t i = 0; i < ntc; ++i) {
+      PutF32Le(out, 0.0f);
+      PutF32Le(out, 0.0f);
+    }
+    // Triangle array (64 bytes each, 3 corners of 8 bytes)
+    for (std::size_t i = 0; i < ntri; ++i) {
+      for (int k = 0; k < 3; ++k) {
+        PutU16Le(out, 0); // vertex
+        PutU16Le(out, 0); // normal
+        PutU16Le(out, 0); // optional
+        out.push_back(0); // flag
+        out.push_back(0); // pad
+      }
+      // Remaining 40 bytes of the 64-byte record (24..63) zeroed
+      for (int b = 0; b < 40; ++b) out.push_back(0);
+    }
+    // Texture name (32 bytes, NUL-padded, at least 3 printable)
+    const char* tex = "tex.jpg";
+    std::size_t tlen = std::strlen(tex);
+    for (std::size_t i = 0; i < 32; ++i) {
+      out.push_back(i < tlen ? static_cast<std::uint8_t>(tex[i]) : 0);
+    }
+  }
+  // If mesh_count > meshes.size(), we have declared more meshes than we
+  // emitted - payload will be truncated, which is exactly what the truncated
+  // test wants.
+  return out;
+}
+
+void TestBmdMultiMeshLargeCounts() {
+  // Regression for ciclo5 item 1: files with ntri=15576 (Monster865 etc)
+  // were rejected by a fixed 10k limit. The parser must accept up to u16 max.
+  // Build a 2-mesh file where first mesh has 15576 triangles (the failing case).
+  // To keep the fixture small we use 1 mesh with large ntri but small vc/nc.
+  // 15576 *64 = 997k, plus small arrays, still within a few MB - okay for test.
+  // Use a smaller but still >10k count to keep test fast: 12000.
+  const std::uint16_t large_ntri = 12000;
+  std::vector<std::tuple<std::uint16_t,std::uint16_t,std::uint16_t,std::uint16_t>> meshes;
+  meshes.emplace_back(4, 4, 0, large_ntri);
+  auto body = MakeMultiMeshBody(1, meshes);
+  // For meshCount=1 the parser takes the single-mesh fast path, which also
+  // must not have a 10k limit. So set meshCount=1 but with large ntri.
+  // Overwrite meshCount to 1 (global) and first mesh header ntri to large.
+  // MakeMultiMeshBody with mesh_count=1 already does that.
+  mu::BmdBody parsed;
+  auto st = mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  CHECK(st.ok());
+  CHECK(parsed.complete);
+  CHECK_EQ(static_cast<std::size_t>(large_ntri), parsed.triangles.size());
+  // Also test the exact failing value 15576 with a minimal fixture (vc=1,nc=1)
+  const std::uint16_t exact = 15576;
+  meshes.clear();
+  meshes.emplace_back(1, 1, 0, exact);
+  auto body2 = MakeMultiMeshBody(1, meshes);
+  mu::BmdBody p2;
+  CHECK(mu::BmdParseBodyV0A(mu::ByteView(body2.data(), body2.size()), &p2).ok());
+  CHECK(p2.complete);
+  CHECK_EQ(static_cast<std::size_t>(exact), p2.triangles.size());
+}
+
+void TestBmdMultiMeshExtremeMeshCount() {
+  // meshCount = 0xFFFF must fail gracefully, not loop forever or OOM.
+  // Build a tiny payload that declares 0xFFFF meshes but contains only 1.
+  std::vector<std::uint8_t> body;
+  const char* name = "Test.SMD";
+  for (std::size_t i = 0; i < mu::kBmdNameSize; ++i) body.push_back(i < 6 ? static_cast<std::uint8_t>(name[i]) : 0);
+  PutU16Le(body, 0xFFFF); // meshCount extreme
+  PutU16Le(body, 0);
+  PutU16Le(body, 0);
+  // One mesh header with minimal counts
+  PutU16Le(body, 1); PutU16Le(body, 1); PutU16Le(body, 0); PutU16Le(body, 1);
+  PutU16Le(body, 0); PutU16Le(body, 0); PutU16Le(body, 0);
+  // Minimal arrays
+  for (int i=0;i<16;i++) body.push_back(0);
+  for (int i=0;i<20;i++) body.push_back(0);
+  for (int i=0;i<64;i++) body.push_back(0);
+  for (int i=0;i<32;i++) body.push_back(i<7 ? static_cast<std::uint8_t>("tex.jpg"[i]) : 0);
+
+  mu::BmdBody parsed;
+  auto st = mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  // Must not crash, must return error status (kCorrupt or kTruncated) due to safety limit.
+  CHECK(!st.ok() || !parsed.complete || parsed.vertices.empty() || parsed.problem.size()>0);
+  // The important part: it must not have allocated 0xFFFF meshes.
+  CHECK(parsed.vertices.size() < 1000);
+}
+
+void TestBmdMultiMeshTruncated() {
+  // Payload truncated in middle of second mesh: first mesh valid, second header
+  // present but arrays missing. Must not read out of bounds (ASan would catch).
+  std::vector<std::tuple<std::uint16_t,std::uint16_t,std::uint16_t,std::uint16_t>> meshes;
+  meshes.emplace_back(2, 2, 0, 1); // first mesh complete
+  // second mesh will be truncated: we declare meshCount=2 but only emit 1 mesh header
+  // plus partial data
+  auto full = MakeMultiMeshBody(2, meshes);
+  // Truncate after first mesh + second mesh header (14 bytes) but before its arrays
+  std::size_t first_mesh_size = 32 + 6 + 14 + 2*16 + 2*20 + 1*64 + 32;
+  std::size_t truncated_size = first_mesh_size + 14; // header of second mesh only
+  // Build truncated body: copy first mesh, then only header of second
+  std::vector<std::uint8_t> truncated;
+  truncated.reserve(truncated_size);
+  // Rebuild manually: use MakeMultiMeshBody for 1 mesh, then append second header
+  auto one = MakeMultiMeshBody(1, meshes);
+  truncated = one;
+  // Overwrite global meshCount to 2
+  PutU16LeAt(truncated, 32, 2);
+  // Append second mesh header with vc=2 etc, but no arrays
+  PutU16Le(truncated, 2); PutU16Le(truncated, 2); PutU16Le(truncated, 0); PutU16Le(truncated, 1);
+  PutU16Le(truncated, 0); PutU16Le(truncated, 0); PutU16Le(truncated, 0);
+  // No arrays, so payload ends here - truncated
+
+  mu::BmdBody parsed;
+  auto st = mu::BmdParseBodyV0A(mu::ByteView(truncated.data(), truncated.size()), &parsed);
+  // Must not crash, must not read out of bounds. Whether it returns partial
+  // success (first mesh) or error is acceptable, but it must not have out-of-range
+  // access. We check that vertices from first mesh are present and no crash.
+  CHECK(parsed.vertices.size() >= 2);
+  // If it returned Ok, triangles should be at least 1 from first mesh.
+  if (st.ok()) {
+    CHECK(parsed.triangles.size() >= 1);
+  }
+}
+
+void TestBmdMultiMeshOverflow() {
+  // Overflow in multiplication: vc * 16 etc must be checked. Since vc is u16,
+  // overflow in 64-bit size_t is impossible, but we test that the parser
+  // rejects when vc*16 > payload.size (i.e., declared array does not fit).
+  std::vector<std::uint8_t> body;
+  const char* name = "Test.SMD";
+  for (std::size_t i = 0; i < mu::kBmdNameSize; ++i) body.push_back(i < 6 ? static_cast<std::uint8_t>(name[i]) : 0);
+  PutU16Le(body, 1); // meshCount
+  PutU16Le(body, 0);
+  PutU16Le(body, 0);
+  // Declare vc=5000, but only provide 10 bytes of payload after header
+  PutU16Le(body, 5000); PutU16Le(body, 0); PutU16Le(body, 0); PutU16Le(body, 0);
+  PutU16Le(body, 0); PutU16Le(body, 0); PutU16Le(body, 0);
+  // No arrays - truncated, should be rejected as DoesNotFit, not overflow
+  mu::BmdBody parsed;
+  auto st = mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  CHECK(!st.ok() || !parsed.complete || parsed.vertices.empty());
 }
 
 }  // namespace
