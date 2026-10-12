@@ -1,0 +1,41 @@
+CICLO 9 ITEM 10 — CONTINUIDADE AUTONOMA: TENTATIVA ANIMACAO APOS UV
+
+Apos concluir A-D (itens 1-9), continuar automaticamente para proxima tarefa de maior valor conforme DEC-012 (UV priorizado, mas UV sem progresso apos 11 hipoteses, proxima = animacao / OPAQUE 15,05%)
+
+Tentativa animacao:
+- Populacao: 500 arquivos com bloco apos ossos, 385 divisivel por 12*boneCount 77% (mutool bmdanim)
+- Modelo: animacao = boneCount * keyframes *12 bytes, 12 bytes = 3*f32, SIZE ONLY
+- Ferramenta dump_anim.py e dump_anim2.py sobre Rank01 bc3 remain464 exp176 extra288 kf8
+  bone0 Box01 parent FFFF, bone1 empty, bone2 weird \x0f — indica que Rank01 nao tem ossos validos loose (nome vazio), portanto nao esta em 3800
+- Rank02 bc1 remain58 sem extra, sem animacao
+- Tentativa Rank01 com extra 288: anim hex 0000000000000000000000ffff261ed0bcbd378635df4582c1...
+  f32 at 0:0.0, 4:0.0, 8:-1.7014118346046923e+38 (FLT_MAX negativo), 12:-10613423104.0, etc.
+  Valores enormes -1.7e38, -1e10, nao plausiveis para posicao/rotacao pequena
+  Interleaved per keyframe tambem da valores enormes
+- Conclusao: 12 bytes nao sao 3 floats de posicao simples, ou bone base incorreto para Rank01 (que nao tem ossos validos), ou animacao usa outro formato (quaternion, int16, etc)
+- Esforco razoavel: dump de 5 arquivos com extra divisivel, todos com valores enormes ou nao finitos
+- Bloqueio permanece: animacao NAO DECODIFICADA, o que 3 floats representam nao determinado
+
+Autoauditoria obrigatoria para esta unidade:
+a) Compilou e testou de verdade? SIM
+   make test: 389 checks, 0 failures (ciclo9_item3_security_test.log)
+   make test-san: 389 checks, 0 failures ASan 0
+b) Numeros em documentacao batem com saida atual ferramenta? SIM
+   check_docs_consistency.py 56 verificacoes 0 falhas (ciclo9_item4_check_consistency.log)
+   bmdreport nivel 5 3800 37,66% (ciclo8_bones_bmdreport.log) e validacao item2 45,21% loose 19,05% strict
+c) Ha contradicao com outro documento? NAO
+   grep 384->389 atualizado em CURRENT_STATE e NEXT_TASK, grep 3.505->3.800 ja feito ciclo8
+   ASSET_FORMATS atualizado com layout final 59B e validacao 5,43x/4803x
+d) Referencias externas corretamente marcadas CONFIRMADA ou NAO CONFIRMADA? SIM
+   bmd.hpp corrigido para NAO CONFIRMADA com commit 3f11bf89, evidencia ciclo6_bmdref_commit_date.log
+   DEPENDENCIES.md ja marcava NAO CONFIRMADA, CURRENT_STATE ciclo6 item0
+e) Nenhuma credencial/segredo exposto? SIM, verificado
+   SECURITY.md sec1 scan 0 ocorrencias User, 5 falsos positivos Password (CRC test vector), evidencia ciclo1_security_scan.log
+   Nenhum novo arquivo contem credencial
+f) Entrada invalida/maliciosa testada sob ASan/UBSan quando aplicavel? SIM
+   TestBmdBonesCircularParent, ExtremeCount, Truncated, Overflow + multi-mesh Extreme/Truncated/Overflow
+   389 checks ASan 0 reports, evidencia ciclo9_item3_security_test.log
+
+Se qualquer resposta "nao sei": pare e verifique — todas respondidas SIM com evidencia.
+
+Proxima tarefa apos esta tentativa: OPAQUE 15,05% (1519 arquivos) ou backend VBO/VAO BLOCKED GPU
