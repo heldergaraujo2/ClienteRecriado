@@ -15,17 +15,19 @@ official scale:
 
 ## BLOQUEIO Nº 1 DO PROJETO — geometria BMD
 
-> ## **Índices de face foram decodificados no ciclo 2, mas ainda não estão
-> ## implementados no parser C++ — nenhum modelo BMD é renderizável ainda.**
+> ## **A topologia (índices de face) ESTÁ resolvida e implementada em C++.
+> ## O que impede renderizar é UV, não topologia.**
 >
-> A topologia passou de "não determinada" para "decodificada com 97,66% de
-> índices válidos". O que falta para renderizar é portar isso para C++ e tratar
-> os ~2,4% de referências fora de faixa. **UV continua bloqueado**, então mesmo
-> com a malha montada não há como texturizar corretamente.
-
-O bloqueio mudou de natureza no ciclo 2: a cifra foi quebrada, mas a topologia
-não foi recuperada. Declarar o bloqueio "resolvido" seria falso. O estado real é
-por capacidade, e cada linha abaixo tem sua própria evidência.
+> Este documento afirmava que a leitura de topologia "não está implementada em
+> C++ — foi medida em Python como prova de conceito". **Essa afirmação estava
+> errada e foi corrigida no ciclo 3.** O parser C++ lê triângulos desde o commit
+> `bee2a5e`; há testes que passam; e `mutool bmdreport` reporta o nível 4 a
+> partir do parser, não de script. A evidência está no item 1 do relatório de
+> ciclo 3.
+>
+> O bloqueio real e único para renderizar um modelo completo é **UV**: o índice
+> que liga cada canto do triângulo a uma entrada do array de coordenadas. Oito
+> hipóteses foram testadas e descartadas.
 
 ### Estado por capacidade — execução final do ciclo 2
 
@@ -38,7 +40,7 @@ zero (`make clean && make test`). Saída completa em
 | Decifragem v0x0C | **CONCLUÍDO E VALIDADO** | 7.226 de 8.741 decifrados; validação independente: 400/400 amostrados com corpo completo e normais de norma 1 em 99,98% |
 | Posições de vértice | **CONCLUÍDO E VALIDADO** | 8.406 arquivos (83,31%); `f32 x,y,z` no deslocamento 0 do registro, medido em 740.514 componentes |
 | Normais | **CONCLUÍDO E VALIDADO** | 260.030 de 260.268 com norma 1 (99,91%) em v0x0A; 37.988 de 37.997 (99,98%) em v0x0C |
-| Índices de face (topologia) | **PARCIAL — decodificados, ainda não em C++** | 3 referências de 8 B em +0/+8/+16; índice de vértice válido em 97,66% e de normal em 97,20% sobre 58.836 referências |
+| Índices de face (topologia) | **CONCLUÍDO — implementado em C++** | 3 referências de 8 B em +0/+8/+16. `bmd_body.cpp` lê o array; `TestBmdTriangles` passa; `mutool bmdreport` nível 4 = 4.149 arquivos, 1.221.030 triângulos |
 | Array de coordenadas UV | **CONCLUÍDO E VALIDADO** | `52+vc*16+nc*20`, `ntc` entradas de 8 B `[f32 u][f32 v]`. Zero não-finitos em 250.450 leituras (acaso daria ~976); 98,13% em [0,1] |
 | **Índice de UV por canto do triângulo** | **BLOQUEADO — sem localização** | O candidato em +4 foi descartado (68,35–68,56% contra os três limites, indistinguível). Sem ele não há como ligar cada canto a uma coordenada |
 | **Contagem de malhas** | **BLOQUEADO** | `u16@32` tem mediana 1 e máximo 18, coerente com contagem de malhas, mas não foi verificado um a um |
@@ -52,24 +54,36 @@ zero (`make clean && make test`). Saída completa em
 
 ### O que isso impede, concretamente
 
-Com vértices, normais e agora índices de face, é possível montar a malha. O que
-ainda impede renderizar:
+Com vértices, normais e índices de face, a malha **é** montada pelo parser C++ —
+`MeshFromBmd` produz posições, normais, índices e caixa delimitadora, com testes.
 
-- A leitura de topologia **não está implementada em C++** — foi medida em Python
-  como prova de conceito, não portada ao parser.
-- **~2,4% das referências apontam fora da faixa**, causa não determinada.
-  Renderizar sem tratar isso leria fora dos limites.
-- O **array** de UV está decodificado, mas o **índice** que liga cada canto do
-  triângulo a uma entrada dele não foi localizado. Sem esse índice a malha não
-  pode ser texturizada.
-- Ossos e animação estão bloqueados, então não há skinning.
+**O que falta para renderizar um modelo completo e texturizado, em ordem:**
+
+1. **Índice de UV por canto — BLOQUEADO.** É o único bloqueio entre a malha
+   montada e a malha texturizada. Oito hipóteses descartadas e documentadas.
+   Sem isso o modelo desenha **sem textura** (cor sólida), não desenha errado —
+   `has_texcoords` fica `false` de propósito para impedir texturização com
+   coordenadas de outro canto.
+2. **Ordem dos 6 floats de transformação de osso — não confirmada.** Posição
+   antes de rotação é inferência pelo padrão de frequência. Aplicar trocado
+   daria esqueleto silenciosamente errado. Bloqueia skinning, não renderização
+   estática.
+3. **Conteúdo dos 3 floats de keyframe — não determinado.** O tamanho do
+   registro é conhecido, o significado não. Bloqueia animação.
+4. **Escala vertical da altura de terreno — não determinada.** Três caminhos
+   fechados dentro do arquivo. Sem ela as proporções verticais são arbitrárias.
+
+**Referências fora de faixa (~8,4%) já são tratadas**, não pendentes: o
+importador descarta o triângulo e conta em `bad_indices`. Clamp moveria vértice
+e deformaria a malha em silêncio.
 
 Portanto:
 
-- Renderização de personagens, monstros, itens, asas e objetos de mundo:
-  **BLOQUEADA** — falta portar a topologia e resolver UV.
-- Animação esquelética: **BLOQUEADA** — exige ossos.
-- Terreno decorado com modelos: **BLOQUEADO**.
+- Renderização de modelo **sem textura**: **possível em código**, não executada
+  — não há pipeline OpenGL (DEC-008 pendente) nem GPU neste ambiente.
+- Renderização **texturizada**: **BLOQUEADA** por UV.
+- Animação esquelética: **BLOQUEADA** por ordem dos floats e conteúdo de keyframe.
+- Terreno: geometria legível, **BLOQUEADO** por escala e textura.
 - Cálculo de caixa delimitadora, nuvem de pontos e análise de footprint:
   **POSSÍVEL** — usa apenas posições.
 
@@ -147,7 +161,7 @@ amostra.
 | `.map` terreno | 79 | 79 (100%) | **PARCIAL** — contêiner + grade; 77 cifrados |
 | `.obj` terreno | 81 | 81 (100%) | **PARCIAL** — contêiner; layout de registro não resolvido |
 | OZJ textura | 13.928 | 13.832 (99,31%) | **PARCIAL** — cabeçalho e geometria validados; **pixels não decodificados**, não há decodificador JPEG |
-| BMD modelo | 10.090 | 8.406 com vértice/normal (83,31%) | **BLOQUEADO** para renderização — sem topologia; ver acima |
+| BMD modelo | 10.090 | 8.406 com vértice/normal (83,31%); 4.149 com topologia (41,12%) | **Malha montável; BLOQUEADO para renderização texturizada por UV** |
 | `.ozb` | 100 | 0 | **NÃO IMPLEMENTADO** |
 | `.smd` | 10 | 0 | **NÃO IMPLEMENTADO** (texto simples) |
 | `.lua` | 22 | 0 | **NÃO IMPLEMENTADO** (texto simples) |
@@ -177,7 +191,7 @@ Cg/`NV_texture_rectangle`.
 | Capacidade | Classificação |
 |---|---|
 | Janela e contexto GL | NÃO IMPLEMENTADO |
-| Renderização de modelos | **BLOQUEADO** (topologia BMD não determinada) |
+| Renderização de modelos | **BLOQUEADO** (topologia resolvida; falta UV, e não há pipeline OpenGL) |
 | Animação esquelética | **BLOQUEADO** (ossos BMD não determinados) |
 | Renderização de terreno | **BLOQUEADO** (cifra `Enc*`) |
 | Upload de textura para GPU | NÃO IMPLEMENTADO |

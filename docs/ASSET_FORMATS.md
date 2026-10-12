@@ -725,11 +725,20 @@ as tabelas de layout, não.
    hipótese de corpo organizado por malha permanece plausível, mas não foi
    demonstrada; foi inferida da mesma fonte cujo layout de registro falhou.
 
-### Topologia — localização CONFIRMADA, conteúdo interno NÃO DETERMINADO
+### Topologia — RESOLVIDA e implementada em C++
 
-Avanço do ciclo 2 sobre o item que estava bloqueado. O array de triângulos foi
-localizado com controle estatístico, o que este projeto não havia conseguido nas
-tentativas anteriores.
+> **Correção do ciclo 3.** Este título dizia "conteúdo interno NÃO DETERMINADO" e
+> o corpo dizia que a leitura era prova de conceito em Python. **Ambos estavam
+> defasados.** O registro de triângulo foi decodificado (commit `03052f0`) e o
+> parser C++ lê o array desde o commit `bee2a5e`. Há testes (`TestBmdTriangles`,
+> `TestMeshFromBmd`) e o nível 4 do `mutool bmdreport` sai do parser, não de
+> script. A evidência completa está no item 1 do relatório de ciclo 3.
+>
+> O que **não** foi determinado é o **índice de UV por canto** — outra coisa, e
+> o único bloqueio restante para texturizar.
+
+O array de triângulos foi localizado com controle estatístico, o que este projeto
+não havia conseguido nas tentativas anteriores.
 
 **Localização, para arquivos de malha única:**
 

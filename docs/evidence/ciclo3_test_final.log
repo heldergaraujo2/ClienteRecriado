@@ -1,0 +1,79 @@
+=== make clean && make test - do zero ===
+data: 2026-10-12T14:18:55Z
+HEAD ClienteRecriado: c03264b9d321c46b96af4a70dc9eed05ece7215a
+HEAD Cliente_ref    : 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+gcc: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+
+rm -rf build build-san
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tests/test_assets.cpp -o build/tests/test_assets.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/format.cpp -o build/src/mu/assets/format.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozt.cpp -o build/src/mu/assets/ozt.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozj.cpp -o build/src/mu/assets/ozj.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd.cpp -o build/src/mu/assets/bmd.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_body.cpp -o build/src/mu/assets/bmd_body.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/mesh.cpp -o build/src/mu/assets/mesh.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/cull.cpp -o build/src/mu/render/cull.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_report.cpp -o build/src/mu/assets/bmd_report.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/terrain.cpp -o build/src/mu/assets/terrain.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/tga.cpp -o build/src/mu/assets/tga.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/manifest.cpp -o build/src/mu/assets/manifest.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/fs.cpp -o build/src/mu/fs.o
+ar rcs build/libmuassets.a build/src/mu/assets/format.o build/src/mu/assets/ozt.o build/src/mu/assets/ozj.o build/src/mu/assets/bmd.o build/src/mu/assets/bmd_body.o build/src/mu/assets/mesh.o build/src/mu/render/cull.o build/src/mu/assets/bmd_report.o build/src/mu/assets/terrain.o build/src/mu/assets/tga.o build/src/mu/assets/manifest.o build/src/mu/fs.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc build/tests/test_assets.o -Lbuild -lmuassets -o build/test_assets 
+build/test_assets
+ClienteRecriado asset library tests
+[ RUN  ] crc32 known vectors
+[  OK  ] crc32 known vectors
+[ RUN  ] ozt round trip
+[  OK  ] ozt round trip
+[ RUN  ] ozt variant with extra prefix
+[  OK  ] ozt variant with extra prefix
+[ RUN  ] ozt rejects bad input
+[  OK  ] ozt rejects bad input
+[ RUN  ] ozj probe
+[  OK  ] ozj probe
+[ RUN  ] ozj duplicated header prefix
+[  OK  ] ozj duplicated header prefix
+[ RUN  ] bux cipher is self inverse
+[  OK  ] bux cipher is self inverse
+[ RUN  ] bmd probe
+[  OK  ] bmd probe
+[ RUN  ] entropy separates plaintext from ciphertext
+[  OK  ] entropy separates plaintext from ciphertext
+[ RUN  ] terrain probe
+[  OK  ] terrain probe
+[ RUN  ] manifest parse
+[  OK  ] manifest parse
+[ RUN  ] manifest verify
+[  OK  ] manifest verify
+[ RUN  ] extension helpers
+[  OK  ] extension helpers
+[ RUN  ] bmd v0x0c cipher
+[  OK  ] bmd v0x0c cipher
+[ RUN  ] bmd triangles
+[  OK  ] bmd triangles
+[ RUN  ] mesh from bmd
+[  OK  ] mesh from bmd
+[ RUN  ] compute bounds
+[  OK  ] compute bounds
+[ RUN  ] frustum cull
+[  OK  ] frustum cull
+[ RUN  ] frustum from view projection
+[  OK  ] frustum from view projection
+[ RUN  ] terrain height
+[  OK  ] terrain height
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
+[ RUN  ] bmd report levels are separate
+[  OK  ] bmd report levels are separate
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
+[ RUN  ] bmd percent helper
+[  OK  ] bmd percent helper
+[ RUN  ] bmd report accumulates kinds
+[  OK  ] bmd report accumulates kinds
+
+344 checks, 0 failures
+EXIT=0

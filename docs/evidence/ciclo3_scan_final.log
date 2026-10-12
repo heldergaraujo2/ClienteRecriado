@@ -1,0 +1,161 @@
+=== mutool bmdreport - arvore completa, codigo atual ===
+data: 2026-10-12T14:19:30Z
+HEAD ClienteRecriado: c03264b9d321c46b96af4a70dc9eed05ece7215a
+HEAD Cliente_ref    : 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+
+BMD usability report for /home/user/Cliente_ref/Data
+
+Three separate questions, three separate answers. A container
+header that classifies cleanly says nothing about whether a
+vertex can be extracted from it.
+
+  total .bmd files                            10090
+
+LEVEL 1 - container structure valid
+  magic + version recognised, and for v0x0C the declared
+  payload length agrees with the file length.
+    valid                                     10023  ( 99.34%)
+    invalid                                      67  (  0.66%)
+
+LEVEL 2 - payload obtainable in the clear
+    plaintext                                  1245  ( 12.34%)
+    bux-decryptable                             100  (  0.99%)
+    v0x0C-decryptable                          7226  ( 71.62%)
+    OPAQUE (cipher not recovered)              1519  ( 15.05%)
+
+LEVEL 3 - geometry actually parsed (vertices/faces/bones)
+    parsed                                     8406  ( 83.31%)
+    Counts vertex positions and normals only.
+
+LEVEL 4 - topology (face indices) parsed
+    with triangles                            4149  ( 41.12%)
+    triangles read                        1221030
+    corner refs out of range               306109  ( 8.357% of refs)
+    Single-mesh files only. Texture coordinates are NOT
+    located and bones are NOT decoded, so a file counted here
+    is still NOT a renderable model.
+
+container kinds
+    BMD v0x0C                                  8741  ( 86.63%)
+    BMD v0x0A (legacy)                         1194  ( 11.83%)
+    BMD other version                            31  (  0.31%)
+    bux-encrypted container                     100  (  0.99%)
+    unrecognised                                 24  (  0.24%)
+
+payload entropy: max 7.9980 bits/byte, 8570 above 7.5
+
+sample files with a payload in the clear:
+    /home/user/Cliente_ref/Data/Custom/Item/PrickleGlove_left.bmd entropy 5.183  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/PrickleGlove_right.bmd entropy 5.640  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/Sword40.bmd  entropy 5.348  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/Sword40_L.bmd entropy 5.732  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/Sword40_R.bmd entropy 5.441  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/sword50.bmd  entropy 5.669  kind BMD_OTHER_VERSION
+    /home/user/Cliente_ref/Data/Custom/Item/sword50_L.bmd entropy 5.619  kind BMD_OTHER_VERSION
+    /home/user/Cliente_ref/Data/Custom/Item/sword50_R.bmd entropy 5.627  kind BMD_OTHER_VERSION
+    /home/user/Cliente_ref/Data/Custom/Monster/Monster263.bmd entropy 7.020  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Monster/Monster277.bmd entropy 7.033  kind BMD_V0A
+
+sample OPAQUE files (cipher not recovered):
+    /home/user/Cliente_ref/Data/Custom/Monster/CustomNpc02.bmd entropy 7.997  kind BMD_V0C
+    /home/user/Cliente_ref/Data/Custom/Monster/CustomNpc03.bmd entropy 7.997  kind BMD_V0C
+    /home/user/Cliente_ref/Data/Custom/Monster/IceGolem.bmd entropy 7.997  kind BMD_V0C
+    /home/user/Cliente_ref/Data/Custom/Monster/Monster20_golden.bmd entropy 7.997  kind BMD_V0C
+    /home/user/Cliente_ref/Data/Custom/Monster/Monster438.bmd entropy 7.998  kind BMD_V0C
+
+sample structurally invalid files:
+    /home/user/Cliente_ref/Data/Custom/Item/sword50.bmd  declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Custom/Item/sword50_L.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Custom/Item/sword50_R.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Custom/Monster/NHMine1.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Custom/ScriptImages/cassanic1.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/ElixirNH.bmd        declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/ElixirPieceNH.bmd   declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/TempleGuard_Material.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/TempleGuard_anvil.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/TempleGuard_bow.bmd declared payload length does not match file length
+EXIT_bmdreport=2
+
+=== mutool meshimport ===
+BMD -> internal mesh pipeline for /home/user/Cliente_ref/Data
+
+  .bmd files seen                       10090
+  v0x0C decrypted and plausible          7226
+  body parsed complete                   8408
+  converted to internal mesh             8408  ( 83.33%)
+
+  vertices produced                   1792108
+  meshes with triangles                  4071
+  triangles produced                   978853
+  corner refs dropped (out of range)   242177
+  meshes with a bounding box             8408
+  meshes with texture coordinates           0
+
+  Texture coordinates are ZERO by design, not by failure: the
+  BMD corner-to-UV binding was never located, so the importer
+  refuses to guess. No mesh here is renderable as a textured
+  model. See docs/ASSET_FORMATS.md.
+EXIT_meshimport=0
+
+=== mutool terrain ===
+TerrainHeight grids under /home/user/Cliente_ref/Data
+
+  height files seen                        76
+  parsed to a complete grid                76
+  consistent prefix size               472404  (6216 avg)
+
+  mean neighbour difference             8.037
+  smoothest file                        0.000
+  roughest file                       138.237
+  files below 30.0 (smooth field)          72  ( 94.74%)
+
+  Independent random bytes would average about 85.3. These are
+  roughly 19x below that, which is what a height field looks
+  like and what arbitrary bytes do not.
+
+  The vertical scale is NOT determined, so these values are
+  relative, not metric. This is not a renderable terrain.
+EXIT_terrain=2
+
+=== mutool bmdanim ===
+BMD animation block measurement for /home/user/Cliente_ref/Data
+
+  files with bytes after the bones        500
+  extra divisible by 12*boneCount         385  ( 77.00%)
+
+  keyframes per bone, where it divides:
+       4 keyframes :    1 files
+       6 keyframes :    1 files
+       8 keyframes :   28 files
+      10 keyframes :   11 files
+      12 keyframes :   19 files
+      14 keyframes :   28 files
+      15 keyframes :    2 files
+      16 keyframes :    8 files
+      18 keyframes :   54 files
+      20 keyframes :   21 files
+      22 keyframes :   28 files
+      24 keyframes :   20 files
+      26 keyframes :    2 files
+      28 keyframes :   23 files
+      30 keyframes :    9 files
+      32 keyframes :    2 files
+      34 keyframes :    1 files
+      38 keyframes :   71 files
+      40 keyframes :    5 files
+      43 keyframes :    1 files
+      46 keyframes :    5 files
+      48 keyframes :    7 files
+      52 keyframes :    1 files
+      58 keyframes :   20 files
+      78 keyframes :    7 files
+      98 keyframes :    5 files
+     118 keyframes :    2 files
+     120 keyframes :    1 files
+     158 keyframes :    1 files
+     358 keyframes :    1 files
+
+  Model: animation = boneCount * keyframes * 12 bytes,
+  12 bytes = 3 floats. SIZE ONLY - what the three floats mean
+  is NOT determined and this tool does not interpret them.
+EXIT_bmdanim=0
