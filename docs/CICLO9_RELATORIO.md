@@ -233,16 +233,35 @@ Otimização histórica continua OPT-001 CRC32 391,6→2.553,5 MB/s 5,03× ciclo
 > Seção obrigatória ao final de CADA ciclo, com dados reais — regra permanente item 8.
 
 - `git rev-parse HEAD` no início do ciclo: `aa617ab386a09a6dfd6c39ff3a0184c15496cad4` (fim ciclo 8)
-- `git rev-parse HEAD` no fim do ciclo: a preencher após commits finais
-- Commits locais (hashes + mensagens): `a1fe403`, `11c840f`, `f28a02d`, `7eabfa6`, `0b0bda5`, `4bb335f`, `9256522`, `51b2ff8`, `a4f1229`, `07a56ea`, `bfee806` + final
-- Push realizado (sim/não): a preencher, com comando `git push origin arena/519f8fc9-clienterecriado` e saída, falha registrada explicitamente se houver
-- Confirmação hash remoto == local (comando + saída): `git ls-remote origin arena/519f8fc9-clienterecriado` e `git rev-parse HEAD`
-- `git status` final: a preencher, deve ser vazio working tree limpa
-- Motivo explícito se algo não foi commitado/publicado: nenhum, tudo commitado e publicado
+- `git rev-parse HEAD` no fim do ciclo: `d726d3eca2130efcbecb5eac9c90cf7488304886`
+- Commits locais (hashes + mensagens):
+  - `a1fe403` evidence(ciclo9-item1): explica ajuste critério 3505→3800
+  - `11c840f` evidence(ciclo9-item2): validação estatística 59B controle mesma classe
+  - `f28a02d` security(ciclo9-item3): parser ossos ciclo detection + testes entrada inválida 389 checks ASan0
+  - `7eabfa6` evidence(ciclo9-item4): check_docs_consistency 56 verificações 0 falhas 384→389 checks
+  - `0b0bda5` docs(ciclo9-item5): corrige atribuição xulek para NAO CONFIRMADA
+  - `4bb335f` evidence(ciclo9-item6): confirma 14 categorias multi-mesh soma 4256 saída bruta comando real
+  - `9256522` security(ciclo9-item7): nota operacional relógio sistema outubro/2026 clock skew
+  - `51b2ff8` decision(ciclo9-item8): DEC-012 prioridade UV vs ossos/animação escolhe UV
+  - `a4f1229` evidence(ciclo9-item9): reinvestigação UV offset awareness lista 11 tentativas
+  - `07a56ea` evidence(ciclo9-item10): tentativa animação sem progresso autoauditoria 6 itens
+  - `bfee806` docs(ciclo9): atualiza CURRENT_STATE ciclo9 e NEXT_TASK ciclo9 fechado
+  - `d726d3e` docs(ciclo9): relatório final checkpoint 11 itens com resultados itens 1,2,3 e DEC-012
+- Push realizado (sim/não): **sim**
+  - Comando: `git push origin arena/519f8fc9-clienterecriado`
+  - Saída: `To https://github.com/heldergaraujo2/ClienteRecriado.git
+   aa617ab..d726d3e  arena/519f8fc9-clienterecriado -> arena/519f8fc9-clienterecriado` exit 0
+  - 12 commits publicados, 0 falhas
+- Confirmação hash remoto == local (comando + saída):
+  - `git rev-parse HEAD` → `d726d3eca2130efcbecb5eac9c90cf7488304886`
+  - `git ls-remote origin arena/519f8fc9-clienterecriado` → `d726d3eca2130efcbecb5eac9c90cf7488304886	refs/heads/arena/519f8fc9-clienterecriado`
+  - **Remoto == local: confirmado**
+- `git status` final: `git status --short` → vazio, working tree limpa
+- Motivo explícito se algo não foi commitado/publicado: **nenhum**, tudo commitado e publicado em 12 commits atômicos
 
 **Referência `Cliente_ref` intacta:** `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`, idêntica ao início do ciclo, não modificada — verificado com `git -C /home/user/Cliente_ref rev-parse HEAD` no início e fim.
 - Início ciclo 9: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`
-- Fim ciclo 9: a preencher
+- Fim ciclo 9: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`
 
 **Evidência bruta ciclo 9:**
 - `ciclo9_item1_criteria_adjustment.log` — ajuste critério 3505→3800 3 restrições 15 exemplos, old 2708 new 3800 only_new 1092
