@@ -1032,8 +1032,8 @@ comparar com o modelo de origem, que este projeto não tem para estes arquivos.
 - Se a rotação é em graus ou radianos, e em qual convenção (Euler, quaternion
   comprimido).
 - Por que o modelo tem `− 1` byte.
-- A seção de animação, que vem depois dos ossos nos arquivos com sobra maior que
-  a prevista.
+- A seção de animação. Localizada — começa logo após o último osso, nos arquivos
+  cuja sobra excede `boneCount × 59 − 1` — mas **não decodificada**. Ver abaixo.
 
 **Estado: hierarquia de ossos decodificada; skinning ainda BLOQUEADO.** Ler a
 hierarquia não é o mesmo que poder animar: falta a seção de animação, e a ordem
@@ -1082,6 +1082,39 @@ trocadas produziria um esqueleto silenciosamente errado.
 **Estado: PARCIAL.** Nomes de osso localizados na maioria dos arquivos;
 transformações, hierarquia e animação não determinados. Skinning continua
 **BLOQUEADO** — exige transformações, não nomes.
+
+### Seção de animação — localizada, NÃO decodificada
+
+Existe conteúdo após o último osso nos arquivos cuja sobra excede
+`boneCount × 59 − 1`. Exemplo medido: `Rank01.bmd` tem `boneCount=3`,
+`actionCount=1` (o `u16` em payload 36), sobra de 464 bytes contra 176 previstos
+— **288 bytes de animação**.
+
+Os primeiros bytes após os ossos:
+
+```
+00 00 00 00 00 00 00 00 00 00 00 ff ff
+26 1e d0 bc  bd 37 86 35  df 45 82 c1
+26 1e d0 bc  bd 37 86 35  8e d1 4e c1
+26 1e d0 bc  bd 37 86 35  d4 e8 3c ..
+```
+
+Três observações, todas registradas como observação e não como resultado:
+
+1. Há um `ff ff` (65535) após 13 bytes zero — o mesmo valor que marca "sem pai"
+   na transformação de osso, o que sugere outra sentinela de fim de lista.
+2. Depois dele, grupos de **três `f32`** em que **os dois primeiros se repetem
+   idênticos** (`26 1e d0 bc bd 37 86 35`) e **o terceiro varia** a cada grupo.
+   Esse padrão é coerente com keyframes de animação, onde dois componentes
+   permanecem e um avança.
+3. O mesmo arquivo da série `Rank0N` produz bytes idênticos nesta região, o que é
+   esperado se compartilham o esqueleto.
+
+**Nada disso foi confirmado.** Não foi determinado quantos keyframes há por osso,
+qual é o tamanho do registro, nem o que os três floats representam. `actionCount`
+em payload 36 vale 1 nestes arquivos, mas seu significado não foi verificado.
+
+**Estado: animação BLOQUEADA.** É o último bloco do formato BMD não decodificado.
 
 ### Verificação independente da decifragem v0x0C
 
