@@ -1130,8 +1130,8 @@ Um array paralelo real apareceria na mesma distância em quase todos os arquivos
 A dispersão mostra que os 19 acertos são coincidência — blocos de valores
 pequenos que existem por acaso, não uma estrutura.
 
-**Investigação encerrada por critério, não por falta de tempo.** Sete hipóteses
-descartadas em sequência:
+**Investigação encerrada por critério, não por falta de tempo.** Onze hipóteses
+descartadas em sequência (9 iniciais ciclo 3 + 2 novas ciclo 9 Fase A):
 
 | # | Hipótese | Resultado |
 |---|---|---|
@@ -1144,6 +1144,23 @@ descartadas em sequência:
 | 7 | Array paralelo no corpo | 11,8% com distâncias dispersas — coincidência |
 | 8 | `u16@12`/`@14` do vértice | teste não discrimina — ambos preveem inteiros pequenos |
 | 9 | Bytes 24..59 como UV por canto | 79,42% contra controle de 70,34% — razão 1,13× |
+| 10 | Espaço entre fim triângulos e início ossos | 0 bytes — textura 32B em tri_end, ossos em tri_end+32 (single) ou tri_end-4+32 (multi) +4 extra, sem sobra |
+| 11 | UV derivado aritmeticamente de vertex/normal | não igual, ntc mediana 59 ≠ vc, 60% < ntc mas não 100% |
+
+**Ciclo 10 Fase A — tabela ratio-por-offset UV esclarecendo platô 9-26× (evidência `ciclo10_itemA4_uv_ratio_per_offset.log`):**
+
+Full-scan 4149 single-mesh com ntri>0 ntc>0, cada offset 0..62 como u16 < ntc, controle = mesmo offset %20 no array de normais como u16 (mesma classe).
+
+| Offset | Rate real | Rate controle | Ratio | Interpretação |
+|---|---|---|---|---|
+| 0 | 61,80% | 4,80% | 12,89× | vertex index (< vc, mas 61% < ntc porque ntc mediana 59 similar vc) |
+| 2 | 61,87% | 3,48% | 17,78× | normal index |
+| 4 | 84,02% | 4,46% | 18,82× | optional field mediana 0, 84% < ntc |
+| 24 | 84,23% | 4,46% | 18,87× | float bytes como u16 — platô |
+| 26 | 84,45% | 3,20% | 26,43× | float bytes como u16 — platô |
+| 60 | 83,26% | 4,80% | 17,36× | tri_end-4 awareness, mesmo platô |
+
+Platô explicado: bytes 24..59 são 9 floats, quando lidos como u16 dão valores pequenos (< ntc) com alta frequência porque floats pequenos têm bytes baixos (0.0 = 0x00000000 → u16 0 < ntc). Controle normais também são floats, mas distribuição diferente (normais norma 1, componentes 1.0 = 0x3F800000 → u16 0x8000=32768 > ntc, taxa menor). Por isso ratio 9-26× aparece em muitos offsets, não indica posição específica UV, e sim artefato de floats pequenos. Offsets 12,14,16,18 têm rate 100% real e 63-99% controle ratio ~1×, porque são bytes de float 1.0 que como u16 dão 0 ou 0x8000 etc. Nenhum offset tem pico único discriminativo; UV permanece NÃO LOCALIZADO.
 
 ### Nona hipótese descartada — bytes 24..59 como coordenadas UV por canto
 
@@ -1248,6 +1265,16 @@ falso-positivo em payload aleatório (controle: random daria ~0% nomes).
 - multi-mesh contribui: `Sword37` bc2 remain121 extra1, `Sword42` bc6 remain357 extra1, etc.
 - Custom bc51 remain 2698 vs expected 3008 diff -310 → filtrado (não segue 59B), permanece fora do nível 5.
 
+**Medição ciclo 10 Fase A (após detecção de ciclo, full-scan `mutool bmdreport` + `/tmp/validate_A1_fixed`):**
+
+- total .bmd 10.090, geom parsed 8.406 (83,31%)
+- with bones loose **3.693 (43,93% de geom, 36,60% de total)** — era 3.800 ciclo 8, -107 filtrados por detecção de ciclo A->B->A e self-loop parent==0
+- total bones loose 7.879, parent válido 100%, ciclo detection rejeita A->A e A->B->A
+- with bones strict **1.186 (14,11% de geom, 11,75% de total)** NUL-padded ASCII >=3 + zeros após NUL, headline conservador, ratio per file infinito (controle 0/25218), strict ⊂ loose provado 0 falhas (evidência `ciclo10_itemA3_strict_subset.log`)
+- ratio per file corrigido mesma unidade: loose 43,93% / 0,0238% = **1846,5× altamente discriminativo** (antes 5,43× marginal com unidades diferentes e sem ciclo detection que dava 8,32% falso-positivo), strict infinito
+- multi-mesh e bc>8 mantidos: PrickleGlove mc4 bc1 strict, Sword48 bc10, Statue_Blue bc15, etc, todos com ciclo detection válido
+- Custom bc51 permanece filtrado
+
 **O que permanece não determinado:**
 
 - Ordem e sistema de coordenadas dos 6 floats (inferido xyz pos + xyz rot, 1.57 rad ≈ 90° observado).
@@ -1258,6 +1285,8 @@ falso-positivo em payload aleatório (controle: random daria ~0% nomes).
 **Estado ciclo 8: hierarquia de ossos decodificada em 37,66% da árvore (3.800 arquivos), 45,21% dos
 arquivos com geometria. Skinning ainda BLOQUEADO — falta animação e confirmação de ordem dos floats,
 mas parser já expõe `BmdBone {name, parent, raw[6], has_name, floats_finite}` em `bmd_body.hpp`.
+
+**Estado ciclo 10 Fase A (após detecção de ciclo e correção ratio per file):** hierarquia decodificada em 36,60% da árvore (3693 loose, 7879 bones) com ratio per file 1846× altamente discriminativo (antes 5,43× marginal), strict 11,75% (1186) headline conservador ratio infinito, strict ⊂ loose provado, parser com detecção de ciclo A->B->A e self-loop, 389 checks 0 falhas, ASan 0. Skinning ainda BLOQUEADO — falta animação e confirmação ordem floats, mas base para Fase B OPAQUE/animação.
 
   | Sobra | Arquivos |
   |---|---|

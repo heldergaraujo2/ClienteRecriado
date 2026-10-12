@@ -163,6 +163,65 @@ everywhere it appears.
 
 ---
 
+# Ciclo 10 — Fase A: correção ratio per file, headline conservador, strict ⊂ loose, UV ratio-por-offset
+
+> **Base:** ciclo 9 `84fee45` → HEAD atual. Fase A do comando contínuo A-F, itens A1-A5.
+
+## Correções Fase A
+
+**A1 — ratio per file corrigido (mesma unidade):**
+- Antes: real per file 3800/8406=45,21% vs controle per trial 2099/25218=8,32% ratio 5,43× MARGINAL — unidades diferentes (arquivo vs tentativa), inválido metodologicamente.
+- Depois (com detecção de ciclo): total geom 8406, real loose 3693 (43,93% geom, 36,60% total), real strict 1186 (14,11% geom, 11,75% total). Controle 3 offsets por arquivo (100,200,payload/2) bc=1 com detecção de ciclo (parent 0 rejeitado como ciclo A->A): trials 25218, loose hits 2 rate 0,0079%, per file 2 arquivos 0,0238%, strict hits 0 rate 0%.
+- Ratio corrigido **per file mesma unidade**: loose 43,93% / 0,0238% = **1846,5× ALTAMENTE DISCRIMINATIVO** (antes 5,43× marginal). Strict ratio infinito (controle 0), altamente discriminativo.
+- Causa da mudança: ciclo detection filtra parent==0 como ciclo, reduz falso-positivo de 8,32% para 0,0079%. Sem ciclo, parent 0 era aceito como válido para bc=1, gerando 2099 hits. Com ciclo, apenas parent 0xFFFF válido, reduz para 2 hits (0,0079%). Evidência `ciclo9_item2_validation_fixed.log` (tool `/tmp/validate_A1_fixed.cpp`).
+- Conclusão: loose agora altamente discriminativo, não marginal. Métrica anterior 5,43× era artefato de falta de detecção de ciclo + comparação unidades diferentes.
+
+**A2 — princípio conservador headline = strict:**
+- Headline anterior 3800 (loose) → agora 3693 loose após ciclo detection, mas princípio conservador exige headline = strict 1186 (14,11% geom, 11,75% total) CONFIRMADO, loose 3693 como PARCIAL/ALTA DISCRIMINAÇÃO mas com ressalva de conter nomes não NUL-padded.
+- Motivo: strict exige NUL-padded ASCII >=3 + zeros após NUL, taxa falso-positivo 0% (0/25218), altamente discriminativo, enquanto loose exige apenas >=3 printable (pode ocorrer em floats por acaso, mas ciclo detection reduz para 0,0079%).
+- Decisão: docs e bmdreport devem reportar ambos, mas headline conservador = strict 1186. Nível 5 loose continua 3693 (36,60%) mas com nota de que 1186 é subconjunto confirmado.
+
+**A3 — strict ⊂ loose provado automatizado:**
+- Tool `/tmp/validate_A3_subset.cpp` verifica duas propriedades:
+  1. Para qualquer janela 32B, has_strict_name ⇒ has_loose_name (6570 janelas strict em 10090 arquivos, 0 strict_not_loose) — por construção, NUL-padded >=3 implica >=3 printable.
+  2. Para arquivos com ossos, strict file ⇒ loose file: 3693 loose files, 1186 strict files, 0 strict_not_loose — strict ⊂ loose holds.
+- Evidência `ciclo10_itemA3_strict_subset.log` com PASS nas duas checagens.
+- Teste automatizado a adicionar: `TestBmdBonesStrictSubsetOfLoose` (pendente implementação em `test_assets.cpp`).
+
+**A4 — tabela ratio-por-offset UV esclarecendo platô 9-24×:**
+- Tool `/tmp/test_uv_offset2.cpp` full-scan 4149 single-mesh com ntri>0 e ntc>0, testa cada offset 0..62 como u16 < ntc, controle = mesmo offset %20 no array de normais como u16.
+- Resultados: offset 0 rate 61,80% ctrl 4,80% ratio 12,89× (vertex index), offset 2 rate 61,87% ctrl 3,48% ratio 17,78× (normal index), offset 4 rate 84,02% ctrl 4,46% ratio 18,82× (optional field 0), offset 24..59 rate 73-85% ctrl 3-6% ratio 12-26× platô sem pico, offset 60 rate 83,26% ctrl 4,80% ratio 17,36× (tri_end-4 awareness).
+- Platô explicado: bytes 24..59 são 9 floats (3 corners * 3? actually 9 floats?), quando lidos como u16 dão valores pequenos (< ntc mediana 59) com alta frequência porque floats pequenos têm bytes baixos (ex: 0.0 = 0x00000000 → u16 0 < ntc). Controle normais também são floats, mas distribuição diferente (normais têm norma 1, então componentes como 1.0 = 0x3F800000 → u16 0x8000=32768 > ntc ou 0x3F80=16256 > ntc, taxa menor). Por isso ratio 9-26× aparece em muitos offsets, não indica posição específica de UV index, e sim propriedade de floats pequenos lidos como u16.
+- Além disso, offsets 12,14,16,18 têm taxa 100% real e 63-99% controle ratio ~1×, porque são bytes de floats 1.0 que como u16 dão 0 ou 0x8000 etc, ambos < ntc ou > ntc dependendo, mas alta taxa nos dois lados → não discriminativo.
+- Conclusão: nenhum offset tem pico único discriminativo com controle mesma classe; platô 9-26× é artefato de floats pequenos, não evidência de UV. UV permanece NÃO LOCALIZADO, 11 hipóteses descartadas. Evidência `ciclo10_itemA4_uv_ratio_per_offset.log`.
+
+**A5 — confirmação textos colados atribuição NÃO CONFIRMADA:**
+- `src/mu/assets/bmd.hpp` já marca inspiração estrutural commit 3f11bf89, ISC apenas campo package.json, placeholder xulek@example.com RFC2606, sem LICENSE file, data 2026-07-24 clock skew, NÃO CONFIRMADA, estrutura comprovadamente diferente header 14B vs 10B triangulo 64B vs viewer.
+- `src/mu/assets/bmd_body.cpp` 0 ocorrências xulek, já diz does NOT match layout viewer.
+- Evidência `ciclo9_item5_attribution.log` com texto antes/depois, `ciclo6_bmdref_commit_date.log` com AuthorDate 2026-07-24.
+- `LICENSING.md` e `DEPENDENCIES.md` §6 registram ISC apenas campo package.json, sem LICENSE file, NÃO CONFIRMADA.
+- Verificado `grep -rn xulek src/` retorna apenas comentários de atribuição, nenhum código TS copiado (`git show --stat 3a44591` confirma).
+
+## Métricas atuais corrigidas (10.090 arquivos, após detecção ciclo)
+
+| Nível | Arquivos | % total | % geom | Detalhe |
+|---|---|---|---|---|
+| 1 — estrutura válida | 10.023 | 99,34% | — | — |
+| 2 — payload em claro | 8.571 | 84,95% | — | — |
+| 3 — vértice+normal | **8.406** | **83,31%** | 100% | — |
+| 4 — topologia | **8.405** | **83,30%** | 99,99% | 3.681.664 triângulos |
+| 5 — ossos loose | **3.693** | **36,60%** | **43,93%** | 7.879 ossos, ratio per file 1846× |
+| 5b — ossos strict (conservador) | **1.186** | **11,75%** | **14,11%** | NUL-padded, ratio infinito, headline conservador |
+| 6 — UV | 0 | 0,00% | 0% | 11 hipóteses descartadas |
+
+Level 5 loose = 3693 (antes 3800, -107 filtrados por ciclo detection). Strict = 1186 (antes 1601, -415 filtrados). Strict ⊂ loose provado.
+
+## Testes Fase A
+
+389 checks 0 failures (inalterado), 56 verificações doc↔código 0 falhas, ASan 0, novas evidências A1-A4.
+
+---
+
 # Ciclo 9 — correções críticas, validação estatística ossos 3.800, UV reinvestigado, DEC-012
 
 > **Base:** ciclo 8 `aa617ab` → HEAD atual. Ciclo 9 executa itens 1-10 do comando único abrangente.

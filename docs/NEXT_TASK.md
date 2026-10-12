@@ -1,6 +1,8 @@
 # Próxima tarefa
 
-> **Ciclo 9 fechado** com correções críticas, validação estatística ossos 3.800, UV reinvestigado, DEC-012. Base `aa617ab` → HEAD atual. 7 commits atômicos itens 1-7 + 3 itens 8-10, checker 56 verificações 0 falhas, build limpo 389/0 ASan 0.
+> **Ciclo 10 Fase A fechada** com correção ratio per file 1846×, headline conservador strict 1186, strict ⊂ loose provado, UV ratio-por-offset platô 9-26×. Base `84fee45` → HEAD atual. Fase A itens A1-A5, checker 56 verificações 0 falhas, build limpo 389/0 ASan 0. Métricas corrigidas: total geom 8406, loose 3693 (43,93% geom, 36,60% total, 7879 bones) ratio per file 1846× altamente discriminativo (antes 5,43× marginal devido falta ciclo detection + unidades diferentes), strict 1186 (14,11% geom, 11,75% total) ratio infinito headline conservador, strict ⊂ loose provado 0 falhas.
+
+> **Ciclo 9 fechado** anteriormente com correções críticas, validação estatística ossos 3.800 (agora corrigido para 3693 após ciclo detection), UV reinvestigado, DEC-012.
 
 ## O que mudou neste ciclo (ciclo 9)
 
@@ -17,20 +19,26 @@
 - Item9: reinvestigação UV com consciência offset v0A4 vs v0C8 base correta payload após bf1668c, delta multi +-4 textura tri_end-4 sem espaço triângulos-ossos 0 bytes, âncora ossos 59B, re-teste full-scan 4149 offset 0 rate61,80% control6,27% ratio9,86x platô 24..59 rate84% ratio14x, float [0,1] 79,42% vs 70,34% ratio1,13x rejeita, 10a espaço 0 bytes 11a derivado não igual, lista agora 11 tentativas UV permanece NAO LOCALIZADO
 - Item10: continuidade autônoma animação 500 arquivos 385 divisível 77% bc*keyframes*12 dump Rank01 com valores enormes -1.7e38 -1e10 não plausíveis, animação permanece NAO DECODIFICADA, autoauditoria 6 itens todas SIM
 
-## Próxima tarefa: redução OPAQUE 15,05% e backend VBO/VAO com skinning (após UV sem progresso)
+## Próxima tarefa: Fase B — OPAQUE 15,05% + animação + backend VBO/VAO (após Fase A)
 
-**Por que esta, e não outra.** Nível 4 83,30% (8.405) igual nível3 83,31% (8.406), nível5 37,66% (3.800) loose marginal 5,43x strict 19,05% 4803x confirmado com segurança 389 checks, nível6 UV 0% com 11 hipóteses descartadas mesmo com offset awareness (v0A4 vs v0C8, delta +-4, âncora 59B) — investigação encerrada com critério parada. DEC-012 escolheu UV por fidelidade visual, UV re-testado sem progresso.
+**Por que esta, e não outra.** Nível 4 83,30% (8.405) igual nível3 83,31% (8.406), nível5 loose 36,60% (3693) ratio per file 1846× altamente discriminativo após correção ciclo detection (antes 37,66% 3800 marginal 5,43×), strict 11,75% (1186) headline conservador ratio infinito, segurança 389 checks, nível6 UV 0% com 11 hipóteses descartadas + tabela ratio-por-offset platô 9-26× explicada como floats pequenos lidos como u16. DEC-012 escolheu UV por fidelidade visual, UV re-testado sem progresso, agora com evidência platô.
 
-Próximos bloqueios com maior valor agora:
+Fase A corrigiu:
+- Ratio per file mesma unidade (arquivo vs arquivo) em vez de arquivo vs tentativa
+- Ciclo detection reduz falso-positivo de 8,32% para 0,0079%, ratio de 5,43× para 1846×
+- Headline conservador strict 1186 (antes 1601) com prova strict ⊂ loose
+- UV platô explicado com controle mesma classe e tabela por offset
+
+Próximos bloqueios com maior valor agora (Fase B):
 - OPAQUE 1.519 (15,05%) — cifra não recuperada, bloqueia 15% da árvore, pré-requisito para aumentar nível3/4/5
-- Animação 500 arquivos 385 divisível 77% — 3 f32 por keyframe não decodificados, bloqueia skinning
+- Animação 500 arquivos 385 divisível 77% — 3 f32 por keyframe não decodificados, bloqueia skinning, tentativa anterior valores -1.7e38 não plausíveis
 - Backend VBO/VAO com skinning — DEC-008 registrada piso mínimo, mas BLOCKED sem GPU/contexto
 
 Já temos:
-- Vértices, normais, faces, ossos hierarquia com ciclo detection em 3.800 arquivos
+- Vértices, normais, faces, ossos hierarquia com ciclo detection em 3693 arquivos loose 1186 strict
 - Texturas OZT/OZJ/TGA 98-100%, altura terreno decodificada
-- Validação estatística ossos 5,43x marginal 4803x strict, segurança 389 checks ASan0
-- UV 11 hipóteses descartadas com controle mesma classe
+- Validação estatística ossos ratio per file 1846× altamente discriminativo, strict infinito, segurança 389 checks ASan0, strict ⊂ loose provado
+- UV 11 hipóteses descartadas com controle mesma classe + tabela ratio-por-offset 9-26× platô explicado
 
 O que falta:
 - Reduzir OPAQUE: investigar se 1.519 usam chave diferente, compressão, ou versão 0x0B etc
@@ -39,12 +47,12 @@ O que falta:
 
 É testável sem GPU: parsing puro CPU, evidência automática.
 
-**Critério de aceite:**
+**Critério de aceite Fase B:**
 1. OPAQUE <15,05% ou animação decodificada com evidência bruta versionada, OU relatório conclusivo com evidência negativa
 2. make test e make test-san limpos (389 checks)
 3. check_docs_consistency.py 0 falhas (56 verificações)
 4. Documentação com evidência em ASSET_FORMATS.md, sem inferência
-5. Zero regressão nível3 8.406 nível4 8.405 nível5 3.800
+5. Zero regressão nível3 8.406 nível4 8.405 nível5 loose 3693 strict 1186 (após correção)
 
 ## Depois disso
 

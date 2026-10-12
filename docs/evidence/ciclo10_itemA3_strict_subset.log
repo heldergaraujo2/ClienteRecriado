@@ -1,0 +1,4 @@
+files 10090 strict_windows 6570 loose_from_strict 6570 strict_not_loose 0
+PASS: strict => loose for all windows, strict subset of loose holds by name property
+files_loose 3693 files_strict 1186 files_strict_not_loose 0
+PASS: every strict file is also loose file, strict ⊂ loose holds
