@@ -239,34 +239,26 @@ Dados finais, pós todas as correções.
 
 ### Commits locais deste ciclo
 
-Quinze commits, um por unidade coerente de trabalho, na ordem em que o trabalho
-foi feito:
+**A lista canônica é o próprio Git, não este documento.** Execute:
 
 ```
-6821d94 feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,31%
-e4dd633 docs: atribuição ISC, DEC-007, e correção da afirmação falsa de bloqueio de acesso
-bf1668c revert(assets): desfaz a troca de layout de registro — a medicao que a motivou estava errada
-4456202 docs: corrige o anexo do ciclo 2 e verifica a decifragem v0x0C por via independente
-92efef2 docs(ciclo2): evidência final, reclassificação por capacidade e auditoria de licenciamento
-d3dcfcd feat(assets): array de triangulos BMD localizado com controle estatistico (item 5)
-77662f5 docs(arquitetura): itens 6 a 10 - pipeline VBO/VAO, limites do BMD, importacao dual, escalabilidade
-a98c10e docs: relatorio final do ciclo 2 com 11 itens e secao final de Git
-7c71c0a docs: corrige secao de Git defasada pelo proprio commit do relatorio
-03052f0 feat(assets): registro de triangulo BMD decodificado - indices de face legiveis
-bee2a5e feat(assets): parser C++ le topologia BMD - 1.221.030 triangulos em 4.149 arquivos
-6b8dd0d docs(assets): array de coordenadas de textura BMD confirmado como pares f32
-86a8f26 docs(assets): campo +4 do triangulo e padding, nao indice - e nao ha quarto canto
-4045af8 fix(mutool): elimina 2 warnings -Wconversion no calculo de referencias fora de faixa
-fecbc39 docs(assets): terceira hipotese para o indice de UV descartada - relacao implicita
+git log --oneline 12aa5d1..HEAD
 ```
 
-**Este relatório foi escrito antes dos últimos sete commits e revisado depois.**
-Uma versão anterior afirmava que "nenhum commit posterior a `a98c10e` pertence ao
-ciclo 2". Isso foi falso assim que o trabalho continuou: a topologia foi
-decodificada, portada para C++, o array de UV foi confirmado e três hipóteses de
-índice de UV foram descartadas — tudo dentro do mesmo ciclo. A afirmação foi
-removida em vez de remendada, porque uma lista de commits não pode ser declarada
-fechada enquanto o ciclo está aberto.
+`12aa5d1` é a base do ciclo 2. O intervalo vai até o HEAD atual, então inclui o
+commit que contém este relatório — que é exatamente o que uma lista copiada aqui
+não consegue fazer.
+
+**Por que este documento não enumera mais os commits.** Quatro versões
+anteriores desta seção ficaram defasadas, sempre pela mesma razão: o commit que
+atualiza a lista é posterior a ela, então a lista nasce incompleta. Contar
+"quinze" ou "dezesseis" aqui é garantir que o número esteja errado no instante
+seguinte. A causa não é descuido, é estrutural — e a correção é não duplicar um
+dado que o Git já mantém.
+
+O que este documento registra, e que o Git não registra sozinho, é **o que cada
+unidade de trabalho fez**. Isso está nas mensagens de commit, que são
+descritivas por regra permanente deste projeto.
 
 Um commit não pode conter o próprio hash, então o hash de ponta **não se copia
 deste documento**: lê-se com `git rev-parse HEAD` no momento da consulta.
@@ -280,13 +272,14 @@ commit. Nenhuma falha de push ocorreu neste ciclo.
 
 ```
 $ git rev-parse HEAD
-fecbc3980310ded8db289d4c6ec5ad70498402e1
+1090b6eb3673f7d56b241e249e070d4c3e7b5e36
 
 $ git ls-remote origin arena/519f8fc9-clienterecriado
-fecbc3980310ded8db289d4c6ec5ad70498402e1	refs/heads/arena/519f8fc9-clienterecriado
+1090b6eb3673f7d56b241e249e070d4c3e7b5e36	refs/heads/arena/519f8fc9-clienterecriado
 ```
 
-**Idênticos.**
+**Idênticos.** (Este par é um registro da verificação feita, não um valor para
+reutilizar: o commit que o gravou é posterior a ele.)
 
 ### `git status` final
 
