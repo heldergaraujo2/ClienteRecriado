@@ -276,7 +276,7 @@ Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),
   8.408 malhas internas, 1.792.108 vértices, 978.853 triângulos
 - `mutool culltest <dir>` — mede culling sobre malhas reais
 - `mutool terrain <dir>` — lê as 76 grades de altura reais e mede suavidade
-- Testes: **329 checks, 0 failures**; ASan+UBSan 329/0; zero warnings sob 12 flags `-W`
+- Testes: **338 checks, 0 failures**; ASan+UBSan 338/0; zero warnings sob 12 flags `-W`
 
 **Bloqueado:**
 

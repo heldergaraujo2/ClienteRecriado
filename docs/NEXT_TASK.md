@@ -1,26 +1,31 @@
 # Próxima tarefa
 
-## Decodificar o prefixo duplicado dos arquivos de altura
+## (EXECUTADA) Decodificar o prefixo duplicado dos arquivos de altura
 
-Descoberta mais recente do ciclo 2, e a única com caminho concreto aberto.
+**Resolvida.** O cabeçalho BMP real está no **offset 4**, após um prefixo
+duplicado de quatro bytes — o mesmo padrão que o formato OZJ deste cliente usa.
+Medido nos 47 arquivos BMP: cabeçalho válido no offset 4 em 44, no offset 0 em 1.
 
-**O que se sabe, medido:** 47 dos 76 arquivos `TerrainHeight.OZB` abrem com `"BM"`
-e têm cabeçalho ilegível — `pixoff = 0`, `bpp = 0`, e o valor 40 onde deveria
-estar a largura. Os primeiros quatro bytes aparecem **duas vezes** (`"BM6\0"`
-seguido de `"BM6\0"`), o mesmo padrão de prefixo duplicado que o formato OZJ deste
-cliente usa.
+Resultado: 42 arquivos agora são lidos pela estrutura em vez de por fallback.
+O campo `header_ignored` distingue decodificação de palpite.
 
-**Hipótese concreta a testar:** o cabeçalho BMP real começa após o prefixo
-duplicado, como no OZJ. Se for, `pixoff` e `bpp` ficam legíveis e a altura passa a
-ser lida pela estrutura em vez de por fallback.
+**O que isso revelou:** a versão anterior lia o cabeçalho no offset 0, obtinha
+`bpp = 0`, caía no fallback — e **o fallback produzia campo suave, então o defeito
+era invisível**. Só localizar o cabeçalho de verdade mostrou que 46 arquivos
+estavam sendo lidos por adivinhação.
 
-**Por que vale:** hoje 46 arquivos são lidos por fallback (grade final), o que
-funciona em 94,74% dos casos mas não é decodificação. O campo `header_ignored`
-marca isso no código.
+## Próxima tarefa: escala vertical da altura de terreno
 
-**Por que não é urgente:** o fallback já produz campo suave na maioria dos casos,
-e a escala vertical continua desconhecida — sem ela a altura é relativa, não
-métrica, e terreno não fica renderizável de qualquer forma.
+Sem ela os valores de altura são relativos, não métricos, e o terreno não fica
+renderizável — independentemente de o campo estar legível.
+
+**O que procurar:** um fator de escala no prefixo dos arquivos de altura (os 1.082
+bytes antes do corpo nos arquivos de grade crua, ou os 1.078 do cabeçalho BMP), ou
+um valor constante em outro arquivo do mundo.
+
+**Alternativa de maior impacto, se houver acesso a GPU:** iniciar o pipeline
+VBO/VAO (DEC-008). É pré-requisito de todo o requisito de desempenho e não está
+bloqueado por nenhuma descoberta pendente — apenas pela ausência de hardware.
 
 ---
 
