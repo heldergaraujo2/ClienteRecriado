@@ -3,6 +3,26 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
+## 2026-10-12 — performance target and renderer priority
+
+### Added
+
+- `docs/PERFORMANCE_TARGET.md`: records the selected target of maximum practical
+  performance on modern Windows PCs with dedicated GPUs, preservation of original
+  assets, optional visual enhancements, heavier-scene support, architecture
+  boundaries and benchmark evidence requirements.
+- Replaced the stale audio-first next task with a Windows/GPU renderer vertical
+  slice: real window/device, evidence-based API selection, real model rendering
+  and a reproducible GPU baseline.
+- Updated README and project overview to distinguish the CPU software-rendering
+  proof of concept from a production GPU renderer, and to distinguish BMD
+  structural recognition from usable geometry and real UV support.
+
+### Not claimed
+
+No production GPU renderer, FPS gain, VRAM usage, input-latency improvement or
+Windows runtime validation was performed by this documentation change.
+
 ## Unreleased — initial reconstruction work
 
 ### Added
