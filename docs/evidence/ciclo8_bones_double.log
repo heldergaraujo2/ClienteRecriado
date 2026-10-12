@@ -1,0 +1,15 @@
+FOUND /home/user/Cliente_ref/Data/Effect/Sapiatttres2.bmd bc=2 remain=117
+ bone0 rec=752 len=59 name='zx01' parent=65535 hex tail ffff00000000000000000000000000000000000000005cffd23f00
+  f0=0.0
+  f1=0.0
+  f2=0.0
+  f3=0.0
+  f4=0.0
+  f5=1.6484179496765137
+ bone1 rec=811 len=58 name='Object04' parent=0 hex tail 0000d84c53c1d671283f6e32aabe00000000000000005cffd2bf
+  f0=-13.206260681152344
+  f1=0.6579869985580444
+  f2=-0.33241599798202515
+  f3=0.0
+  f4=0.0
+  f5=-1.6484179496765137
