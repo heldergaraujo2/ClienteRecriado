@@ -195,6 +195,25 @@ local é que está desalinhado.
 Evidência completa do incidente, com reflog e diffs de verificação:
 [`evidence/ciclo4_git_incident.log`](evidence/ciclo4_git_incident.log).
 
+### 9.4 Confiabilidade do relógio do sistema — observada em outubro/2026
+
+Durante verificação do commit externo `xulek/muonline-bmd-viewer` `3f11bf89` (auditoria ciclo 6 item 0 e ciclo 9 item 7), o ambiente de execução reportou data local **outubro/2026** (`date -u --iso-8601=seconds` → `2026-10-12T...`), enquanto o commit externo tem `AuthorDate 2026-07-24` e `CommitDate 2026-07-24`.
+
+Em 2026-10-12, a data do commit é passado (julho), não futuro, mas o histórico do repositório externo mostra desordem temporal: commits de 2025-07-02 a 2026-07-24 com um commit 2025-11-09 fora de ordem, indicando **clock skew** no ambiente de origem.
+
+**Risco operacional:** o relógio do ambiente de execução pode não ser confiável para validar datas de commits externos, expiração de certificados, ou ordenação temporal. Em 2026-10-12, o sistema reportou outubro/2026, que é consistente com `date` local, mas não há garantia de sincronização NTP ou de que o relógio não tenha sido manipulado ou restaurado de snapshot.
+
+**Mitigação recomendada:**
+- Validar datas de commits externos por meio independente quando possível (ex.: `git show --format=%ad --date=iso` vs `GitHub API` vs `package.json` vs histórico de releases)
+- Registrar `git log -1 --format=fuller` com AuthorDate e CommitDate em evidência bruta (`ciclo6_bmdref_commit_date.log`)
+- Não usar data do sistema como única fonte para decidir se commit é futuro/passado; comparar com múltiplas fontes
+- Para certificados e assinaturas, validar com `openssl` e com serviço externo de timestamp quando aplicável
+- Documentar desordem temporal observada (2025-11-09 fora de ordem) como evidência de clock skew
+
+Evidência: `docs/evidence/ciclo6_bmdref_commit_date.log`, `docs/evidence/ciclo9_item6_multimesh_14cat.log` (Data: 2026-10-12T...), e `date -u` durante ciclo 9.
+
+
+
 ### 9.2 O que o incidente custou, e o que não custou
 
 Nenhum commit foi perdido e nenhum force-push foi feito. O custo real foi de
