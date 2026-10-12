@@ -600,6 +600,7 @@ void TestBmdBonesOverflow();
 void TestMeshInternalRepresentation();
 void TestPackMeshForUpload();
 void TestSkinningLBS();
+void TestFrustumCullRealBounds();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -647,6 +648,7 @@ const Test kTests[] = {
     {"mesh internal representation (C1)", TestMeshInternalRepresentation},
     {"pack mesh for upload (D1)", TestPackMeshForUpload},
     {"skinning LBS CPU strict (D2)", TestSkinningLBS},
+    {"frustum cull real bounds (D3)", TestFrustumCullRealBounds},
 };
 
 }  // namespace
@@ -2091,6 +2093,46 @@ void TestSkinningLBS() {
   CHECK(resNoW.ok);
   CHECK(resNoW.positions.size()==2);
   CHECK(resNoW.positions[0].x==0.0f && resNoW.positions[1].x==1.0f);
+}
+
+
+void TestFrustumCullRealBounds() {
+  // D3: culling com bounding boxes reais de Mesh (não mock)
+  mu::Mesh mesh;
+  mesh.positions = {{0,0,0}, {1,0,0}, {0,1,0}, {0,0,1}};
+  mesh.normals = {{0,0,1}, {0,0,1}, {0,0,1}, {0,0,1}};
+  mesh.has_texcoords = false;
+  mesh.has_bone_weights = false;
+  mu::Bounds b = mu::ComputeBounds(mesh.positions);
+  CHECK(b.valid);
+  CHECK(b.min.x==0.0f && b.max.x==1.0f);
+  auto packed = mu::PackMeshForUpload(mesh);
+  CHECK(packed.ok);
+  CHECK(packed.bounds.valid);
+  CHECK(packed.bounds.min.x==0.0f && packed.bounds.max.x==1.0f);
+
+  // Frustum que contém 0..10 em X, unbounded resto
+  mu::Frustum f{};
+  f.planes[0].normal = {1,0,0}; f.planes[0].d=0; // x>=0
+  f.planes[1].normal = {-1,0,0}; f.planes[1].d=10; // x<=10
+  for(int i=2;i<6;++i){ f.planes[i].normal={0,1,0}; f.planes[i].d=1e6f; }
+
+  // (a) inside kept
+  CHECK(mu::CullBox(f, b)==mu::CullResult::kInside);
+  CHECK(mu::IsVisible(f, b));
+  CHECK(mu::IsVisible(f, packed.bounds));
+
+  // (b) outside culled: desloca bounds para -20..-10
+  mu::Bounds outside;
+  outside.min={-20,-1,-1}; outside.max={-10,1,1}; outside.valid=true;
+  CHECK(mu::CullBox(f, outside)==mu::CullResult::kOutside);
+  CHECK(!mu::IsVisible(f, outside));
+
+  // (c) invalid never culled fail safe
+  mu::Bounds invalid;
+  CHECK(!invalid.valid);
+  CHECK(mu::IsVisible(f, invalid));
+  CHECK(mu::CullBox(f, invalid)==mu::CullResult::kIntersect);
 }
 
 }  // namespace
