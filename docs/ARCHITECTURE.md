@@ -180,17 +180,27 @@ formato de origem. Nenhum renderer, sistema de colisão ou de animação lê BMD
 OZJ, OZT ou glTF diretamente. Isso é o que permite que dois importadores
 coexistam sem duplicar lógica de renderização.
 
-Contrato da representação (a definir em código; ainda não implementado):
+Contrato da representação, **implementado em `src/mu/assets/mesh.hpp`** com
+testes. Esta seção dizia "a definir em código; ainda não implementado"; deixou de
+ser verdade e o texto ficou para trás — a mesma classe de erro que a auditoria do
+ciclo 3 apontou na documentação de topologia.
 
-- Posição, normal e UV por vértice, com contagem declarada — não assumida.
-- Índice de triângulo separado da lista de vértices, para malha com vértice
-  compartilhado não pagar expansão.
-- Pesos de skin por vértice, com contagem de influências por vértice.
-- Hierarquia de ossos por nome e por índice de pai.
-- Caixa delimitadora calculada na importação, não no desenho.
-- **Nenhum campo de tamanho fixo herdado de formato de origem.** O BMD usa
-  `u16` para contagens, o que limita uma malha a 65.535 vértices; a
-  representação interna usa contagem de 32 bits para não importar esse teto.
+| Requisito | Estado em código |
+|---|---|
+| Posição e normal por vértice | **implementado** — `std::vector<Vec3> positions, normals` |
+| UV por vértice | **campo existe, nunca populado** — `texcoords` + `has_texcoords = false` |
+| Índice de triângulo separado | **implementado** — `std::vector<uint32_t> indices` |
+| Pesos de skin por vértice | **tipo existe, não populado** — `struct BoneWeight` |
+| Hierarquia de ossos por nome e pai | **tipo existe, não populado** — `struct Bone`, `struct Skeleton` |
+| Caixa delimitadora na importação | **implementado** — `ComputeBounds`, chamado por `MeshFromBmd` |
+| Contagem de 32 bits, não `u16` | **implementado** — `uint32_t`, `std::size_t` |
+
+**Os três campos que existem mas não são populados são a parte importante desta
+tabela.** `texcoords`, `BoneWeight` e `Skeleton` estão declarados para que o
+contrato fique visível e o caminho B (glTF) possa preenchê-los, mas o importador
+BMD não os preenche — e `has_texcoords = false` impede o renderer de texturizar
+com coordenadas ausentes. Declarar o campo sem dizer que está vazio seria a
+mesma omissão que esta seção cometia.
 
 ### 9.2 Caminho A — assets originais (BMD / OZJ / OZT)
 
