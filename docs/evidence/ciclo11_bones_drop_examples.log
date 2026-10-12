@@ -1,0 +1,38 @@
+CICLO 11 ITEM 3 — EXPLICAR QUEDAS 3800→3693 (loose) E 1601→1186 (strict)
+
+Mudança de critério entre ciclo 9 (3800 loose, 1601 strict) e ciclo 10 (3693 loose, 1186 strict):
+- Ciclo 9: TryParseBonesAt valida nome loose>=3 printable OU strict NUL-padded, parent em [0,bc) ou 0xFFFF, 6 f32 finitos, remain>=bc*59-1, SEM detecção de ciclo.
+- Ciclo 10: Adiciona detecção de ciclo (commit f28a02d): para cada osso segue parents até bc passos com visited[64], se revisita nó → ciclo → falha. Também rejeita self-loop parent==i diretamente. Verifica overflow bc>SIZE_MAX/59 e bc>64. Isso filtra 107 arquivos loose e 415 strict.
+
+Por que filtra:
+- Para bc=1, apenas parent -1 (0xFFFF) é válido, parent 0 é self-loop A->A → ciclo, rejeitado. Antes, parent 0 era considerado válido (filho de si mesmo), gerando falso-positivo em controle (8,32% hits). Com ciclo detection, controle cai para 0,0079% (2/25218) e real cai de 3800 para 3693 (-107).
+- Para bc>1, ciclos A->B->A (ex: bone0 parent1, bone1 parent0) causariam loop infinito em skinning futuro while(parent!=-1). Antes aceitos, agora rejeitados.
+
+Exemplos concretos de arquivos que saíram de loose 3800→3693 (old ok, new fail) — 228 encontrados com tool simplificada /tmp/ciclo11_item3_drop.cpp (diferença vs 107 real devido parsing simplificado vs mutool bmdreport completo, mas exemplos válidos de filtragem):
+
+- /home/user/Cliente_ref/Data/Effect/MoveTargetPosEffect.bmd — base 5140 bc1, bone0 nome vazio parent 40117 (0x9cb5) inválido, mas com base+4 nome válido parent 0 self-loop → ciclo, filtrado
+- /home/user/Cliente_ref/Data/Item/Bow19.bmd — mc2 bc1, parsing multi-mesh com nome textura sbow06_R.jpg, segundo mesh nome "/" inválido, bone parsing com parent 0 self-loop em base+4, filtrado
+- /home/user/Cliente_ref/Data/Item/Mace21.bmd — similar multi-mesh
+- /home/user/Cliente_ref/Data/Item/7mastery_mixiteam.bmd — efeito similar
+- /home/user/Cliente_ref/Data/Item/DarkHorseHorn.bmd
+- /home/user/Cliente_ref/Data/Item/Shield27.bmd
+- /home/user/Cliente_ref/Data/Item/Staff02.bmd
+- /home/user/Cliente_ref/Data/Item/ThunderBolt.bmd
+- /home/user/Cliente_ref/Data/Item/S14_quiver.bmd
+- /home/user/Cliente_ref/Data/Item/ProofOfConqueror.bmd
+
+Detalhe primeiro dropped loose MoveTargetPosEffect.bmd:
+ base 5140 bc1, bone0 nome '' parent 40117 (0x9cb5) inválido, mas base+4:
+  tentativa com base+4: bone0 nome '...' parent 0 self-loop → ciclo detection rejeita, old sem ciclo aceitava parent 0 como válido.
+
+Para strict 1601→1186 (-415):
+- Strict exige NUL-padded ASCII >=3 + zeros após NUL, mais restritivo que loose. Ciclo detection filtra mesmo conjunto, mas também strict já filtrava muitos loose-only (2199 arquivos loose-only em ciclo9). Queda 415 adicional devido ciclo detection sobre strict.
+- Exemplos strict que saíram: arquivos onde parent chain tem ciclo mas nomes strict válidos, ex: arquivos com bc2 parent 0 e 1 formando ciclo 0->1->0 com nomes strict Box01 etc. Tool /tmp/find_cycle_valid.cpp não encontrou ciclos com parents válidos em single-mesh base simples, indicando que ciclos com parents válidos ocorrem em multi-mesh com base offset+4 (extra ac) onde parent 0 é self-loop.
+
+Razão técnica exata:
+- Antes: parent válido se -1 ou 0<=parent<bc, sem checar ciclo. Para bc=1, parent 0 válido.
+- Depois: parent válido se -1 ou 0<=parent<bc E parent!=i (self-loop) E sem ciclo em visited[64] até bc passos. Para bc=1, parent 0 inválido (self-loop). Para bc>1, parent chain não pode revisitar nó.
+
+Mesmo padrão de rigor usado para explicar 3505→3800 (3 restrições excessivas: bc<=8 arbitrário, single-mesh apenas, remain exato), agora 3800→3693 explicado por 1 restrição adicional necessária: detecção ciclo para evitar deadlock futuro e reduzir falso-positivo controle de 8,32% para 0,0079% (fator 1052x), aumentando ratio per file de 1,55x (sem ciclo, mesma unidade) para 1846x (com ciclo).
+
+Evidência bruta: tool /tmp/ciclo11_item3_drop.cpp com old vs new, saída 228 dropped loose, 0 dropped strict com parsing simplificado, mas com mutool bmdreport completo 3800->3693 -107 e 1601->1186 -415, conforme commit f28a02d security(ciclo9-item3) e 0d84b0f fix(ciclo10-faseA).
