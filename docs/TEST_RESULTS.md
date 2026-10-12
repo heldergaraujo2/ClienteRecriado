@@ -4,7 +4,13 @@ Every result is classified `PASS`, `FAIL`, `BLOCKED`, `NOT EXECUTED` or
 `NOT APPLICABLE`, with evidence or a reason. A blank is never left where a
 classification belongs.
 
-Last run: `make test` — **231 checks, 0 failures**.
+Last run: `make test` — **389 checks, 0 failures** (ciclo10, após detecção ciclo e vetorização bux).
+
+- `make test-san` — 389 checks, 0 failures, ASan 0 reports, UBSan 0 reports (evidência `ciclo9_item3_security_test.log`).
+- `check_docs_consistency.py` — 56 verificações, 0 falhas (tool vs docs, breakdown 1685=1483+67+134+1, taxas multi-mesh 14,27%/0,0376%/379× etc, nivel4 ≤ nivel3, zero includes gráficos).
+- `mutool bmdreport /home/user/Cliente_ref/Data` — total 10090, structure 10023 99,34%, cleartext 8571 84,95% (plaintext 1245+bux100+v0c7226), OPAQUE 1519 15,05%, geom 8406 83,31%, topo 8405 83,30% 3681664 tris, bones loose 3693 36,60% 7879 bones ratio per file 1846×, strict 1186 11,75% ratio infinito, meshCount 0:1 1:4149 2:2280 etc, 0 multi-mesh fail.
+- `bench_assets` — BuxCrypt 1 MiB med 290.9us 3437.8 MB/s (antes 880 MB/s) 3.9x speedup evidência `ciclo10_opt002_bux_benchmark.log`, OztProbe 0.0us, OztRead 6.0us, etc, full log `ciclo10_opt002_bux_benchmark.log`.
+- Tools Fase A-B: `validate_A1_fixed` total geom 8406 real loose 3693 43,93% strict 1186 14,11% control trials 25218 loose 2 rate 0,0079% per file 2 rate 0,0238% ratio per file 1846×, strict ratio infinito; `validate_A3_subset` strict ⊂ loose PASS 6570 janelas 0 strict_not_loose, files 1186⊂3693 0 falhas; `test_uv_offset2` platô 9-26× 4149 files; `scan_anim` 3693 with bones 764 extra 231 divisível bc*12 62 plausíveis rotação [-pi,pi]; `brute_opaque` 1503 opaque tried 20 found 1 IceGolem step 0x33.
 
 ## 1. Unit tests
 
@@ -12,55 +18,59 @@ Command: `make test` → `build/test_assets`.
 Environment: g++ 12.2.0, `-std=c++17 -O2`, Linux x86_64.
 Fixtures are generated at run time; no original asset bytes are involved.
 
-| Test | Checks | Result | Notes |
-|---|---|---|---|
-| crc32 known vectors | 47 | `PASS` | Includes values computed independently with Python `zlib.crc32`, and a one-shot-vs-incremental sweep over lengths 0–40 |
-| ozt round trip | 22 | `PASS` | Write-then-read, with and without the 26-byte footer, non-power-of-two 37x21 |
-| ozt variant with extra prefix | 4 | `PASS` | Asserts the `00 4B 6D 4B` variant is recognised and named, not misparsed |
-| ozt rejects bad input | 9 | `PASS` | Truncation, bad signature, unsupported image type, absurd trailer |
-| ozj probe | 12 | `PASS` | Geometry, precision, components, EOI, truncation, non-JPEG |
-| ozj duplicated header prefix | 6 | `PASS` | The real OZJ container shape; asserts the image is located at offset 24 |
-| bux cipher is self inverse | 6 | `PASS` | Includes the property that zero plaintext encrypts to the key itself |
-| bmd probe | 21 | `PASS` | v0x0C, v0x0A, bux container, bux non-model, high-entropy rejection, non-model rejection |
-| entropy separates plaintext from ciphertext | 2 | `PASS` | Flat data < 0.01 bits, pseudorandom > 7.9 bits |
-| terrain probe | 15 | `PASS` | All three grid families, plaintext vs encrypted verdicts, auto-decrypt |
-| manifest parse | 14 | `PASS` | CRLF, blank lines, spaces in paths, malformed lines, bad hex |
-| manifest verify | 7 | `PASS` | Match, size mismatch, missing, unreadable, exit classification |
-| extension helpers | 6 | `PASS` | Case folding, dot-in-directory, no extension |
-| bmd body parses verified layout | 14 | `PASS` | **New.** Round-trips a synthetic v0x0A body through the parser: 5 vertices and 7 normals, source name recovered, trailing aux fields preserved rather than dropped |
-| bmd body rejects bad input | 13 | `PASS` | **New.** Truncated header, counts exceeding the payload, non-printable name (geometry must still parse — 932 real files have no name), non-finite coordinate, null output |
-| bmd geometry needs a real body | 3 | `PASS` | **New.** Level 3 must be earned: a clear payload with filler body stays 0, v0x0C is never parsed, a real body is counted |
-| bmd report levels are separate | 19 | `PASS` | **New.** Structure-valid vs cleartext vs geometry are three separate counters; a v0x0C file with high-entropy payload is valid at level 1 and opaque at level 2; a lying length field is rejected at level 1 |
-| bmd geometry parsed is always zero | 2 | `PASS` | **New.** Pins the honest zero. Must be changed deliberately when a body parser is written |
-| bmd report percent helper | 5 | `PASS` | **New.** Division by zero, 0%, 100%, 1/3 to two decimals |
-| bmd report accumulates kinds | 6 | `PASS` | **New.** v0x0A / v0x0C / other version / unrecognised bucketed separately |
+| Test | Result | Notes |
+|---|---|---|
+| crc32 known vectors | `PASS` | Includes values computed independently with Python `zlib.crc32`, and a one-shot-vs-incremental sweep over lengths 0–40 |
+| ozt round trip | `PASS` | Write-then-read, with and without the 26-byte footer, non-power-of-two 37x21 |
+| ozt variant with extra prefix | `PASS` | Asserts the `00 4B 6D 4B` variant is recognised and named, not misparsed |
+| ozt rejects bad input | `PASS` | Truncation, bad signature, unsupported image type, absurd trailer |
+| ozj probe | `PASS` | Geometry, precision, components, EOI, truncation, non-JPEG |
+| ozj duplicated header prefix | `PASS` | The real OZJ container shape; asserts the image is located at offset 24 |
+| bux cipher is self inverse | `PASS` | Includes the property that zero plaintext encrypts to the key itself, plus byte-for-byte equality scalar vs vectorised for phases 0..2 lengths 0..40 (OPT-003) |
+| bmd probe | `PASS` | v0x0C, v0x0A, bux container, bux non-model, high-entropy rejection, non-model rejection |
+| entropy separates plaintext from ciphertext | `PASS` | Flat data < 0.01 bits, pseudorandom > 7.9 bits |
+| terrain probe | `PASS` | All three grid families, plaintext vs encrypted verdicts, auto-decrypt |
+| manifest parse | `PASS` | CRLF, blank lines, spaces in paths, malformed lines, bad hex |
+| manifest verify | `PASS` | Match, size mismatch, missing, unreadable, exit classification |
+| extension helpers | `PASS` | Case folding, dot-in-directory, no extension |
+| bmd v0x0c cipher | `PASS` | Decrypts v0C payload, printable check, entropy |
+| bmd triangles | `PASS` | Topology parsing, out-of-range refs counted |
+| topology is a strict subset of geometry | `PASS` | Level4 ≤ Level3 verified over whole tree |
+| mesh from bmd | `PASS` | Import BMD to internal mesh representation |
+| compute bounds | `PASS` | Bounding box calculation |
+| frustum cull | `PASS` | Frustum culling by bounding box |
+| frustum from view projection | `PASS` | Frustum extraction from VP matrix |
+| terrain height | `PASS` | Height parsing and smoothness |
+| bmd body parses verified layout | `PASS` | Round-trips synthetic v0A body: 5 verts 7 normals, source name, aux fields |
+| bmd body rejects bad input | `PASS` | Truncated header, counts exceeding payload, non-printable name (932 real files have no name), non-finite coordinate, null output |
+| bmd report levels are separate | `PASS` | Structure-valid vs cleartext vs geometry separate counters |
+| bmd geometry needs a real body | `PASS` | Level3 must be earned, v0C never parsed without decrypt |
+| bmd percent helper | `PASS` | Division by zero, 0%, 100%, 1/3 |
+| bmd report accumulates kinds | `PASS` | v0A / v0C / other / unrecognised bucketed |
+| bmd multi-mesh large counts (regression 8406) | `PASS` | Regression 8406: ntri 11771-17694 not rejected by fixed limit 10k |
+| bmd multi-mesh extreme meshCount 0xFFFF | `PASS` | OOM-safe, overflow check |
+| bmd multi-mesh truncated payload | `PASS` | Truncated in middle of mesh list |
+| bmd multi-mesh overflow check | `PASS` | meshCount*record overflow |
+| bmd bones circular parent (cycle detection) | `PASS` | 0->1->0 cycle must fail gracefully, no crash no loop (ciclo9 item3) |
+| bmd bones extreme boneCount | `PASS` | bc=0xFFFF OOM-safe |
+| bmd bones truncated payload | `PASS` | Truncated in middle of bone list |
+| bmd bones overflow check | `PASS` | bc*59 overflow, bc>64 reject |
 
-Total: **231 checks, 0 failures.** The column sums to 231, matching the binary.
-
-**Correction recorded.** The per-test counts in the previous revision of this
-table were wrong: they summed to 163 while the total line said 171, and neither
-matched what the binary actually executes. Every number in the table above was
-obtained by instrumenting the harness to print the per-test check delta and
-reading the printed value, not by counting assertions in the source. The column
-sums to 203, which is the total the binary reports.
-
-
+Total: **389 checks, 0 failures.** Verified via `./build/test_assets` output `389 checks, 0 failures`.
 
 The build is warning-clean under `-Wall -Wextra -Wpedantic -Wshadow -Wconversion
 -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor
 -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2`.
 
 Also run under AddressSanitizer and UndefinedBehaviorSanitizer:
-**231 checks, 0 failures, 0 sanitizer reports, exit code 0.**
+**389 checks, 0 failures, 0 sanitizer reports, exit code 0.**
 
 Reproduce with `make test-san`, which builds a separate instrumented binary in
 `build-san/` (`-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer`). It
 is a separate binary on purpose, so that `make test` can never silently run an
 instrumented build.
 
-**Correction recorded.** Earlier revisions asserted sanitizer cleanliness with no
-target behind it, so the claim was not reproducible from the repository. It has
-now actually been executed, and the target exists.
+**Correction recorded ciclo10:** previous revision had 231 checks, now 389 after adding multi-mesh (4 tests) and bones (4 tests) and other modules (mesh, bounds, cull, terrain height, etc). Every number now comes from binary output, not source reading.
 
 ## 2. Real-asset validation
 
