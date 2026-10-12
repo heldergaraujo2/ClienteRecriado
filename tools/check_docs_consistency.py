@@ -103,10 +103,10 @@ CHECKS = [
     {
         'label': 'nivel 5 - ossos',
         'regex': r'with bones\s+(\d+)\s+\(\s*([\d.]+)%\)',
-        'abs': 3800, 'pct': 37.66,
+        'abs': 3693, 'pct': 36.60,
         'docs': ['docs/COMPATIBILITY.md', 'docs/ASSET_FORMATS.md',
                  'docs/CURRENT_STATE.md'],
-        'abs_fmt': '3.800', 'pct_fmt': '37,66%',
+        'abs_fmt': '3.693', 'pct_fmt': '36,60%',
     },
     {
         'label': 'total de arquivos .bmd',

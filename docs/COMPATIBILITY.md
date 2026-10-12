@@ -103,7 +103,8 @@ suporte a asset original.
 | 2 — payload obtível em claro | 1.245 plaintext + 100 bux + 7.226 v0x0C | 8.571 | 84,95% |
 | 3 — vértice + normal | posições e normais realmente lidas pelo parser | **8.406** | **83,31%** |
 | 4 — topologia (índices de face) | triângulos lidos | **8.405** | **83,30%** |
-| 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.800 | 37,66% |
+| 5 — ossos parseáveis (loose) | registros de osso localizáveis e legíveis (loose >=3 printable) | **3.693** | **36,60%** |
+| 5b — ossos strict (headline conservador) | NUL-padded ASCII >=3 + zeros, taxa falso-positivo 0/25218 limite superior ~0,004% (1/25218) ratio per file >3558× | **1.186** | **11,75%** |
 | 6 — UV | índice ligando canto de triângulo a coordenada de textura | **0** | **0,00%** |
 
 1.519 arquivos (15,05%) permanecem OPAQUE no nível 2.
