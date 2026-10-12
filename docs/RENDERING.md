@@ -497,3 +497,35 @@ Evidência: `docs/evidence/ciclo14_first_render_Beer01.ppm` 800x600 1,4MB P6, `c
 - Isso NÃO é pipeline final produção (que continua sendo VBO/VAO/OpenGL conforme DEC-008) — é prova conceito ponta a ponta que valida pipeline dados (parser → malha → skinning → culling → projeção → rasterização)
 - Próxima tarefa: melhorar rasterizador com textura via OZT/OZJ, tentar UV como pista exploratória, ou avançar para mu/audio
 
+
+### 12.8 Ciclo16 D — Textura placeholder no rasterizador (prova de conceito pipeline textura, NÃO UV real)
+
+**Status:** IMPLEMENTADO (software, CPU-only, textura placeholder) — PARCIAL: UV real continua NÃO IMPLEMENTADO/BLOQUEADO 0% 11 hipóteses platô, backend GPU real BLOQUEADO falta Windows/GPU. Isso é prova de conceito pipeline textura, NÃO validação de UV real.
+
+**O que foi implementado ciclo16 D:**
+- `SoftwareTexture` struct em `software_rasterizer.hpp`: width, height, bgra vector BGRA 4*W*H ready for GL_BGRA (OPT-005), valid flag, `GenerateCheckerboard(w=256,h=256,checkerSize=32)` procedural, `LoadFromOZT(oztPath)` usa OztToBgra/OzjProbe já otimizados (OPT-004/OPT-005) via chamada caminho OZT real (prova pipeline usa OZT decoder otimizado), `Sample(u,v,outR,G,B)` clamp repeat wrapping fract, BGRA->RGB.
+- `SoftwareRasterizer` estendido: `SetTexture(tex)`, `ClearTexture()`, `HasTexture()`, `GetTexture()`, membro `texture_` e `hasTexture_`.
+- `VertexOut` estendido: `u,v` placeholder UV planar baseado em posição vértice, NÃO UV real, com comentário explícito PLACEHOLDER.
+- `RenderMeshes` modificado: precomputa bounds para placeholder UV planar mapping — ciclo16 D — `u = (pos.x - bmin.x)/dx *4`, `v = (pos.y - bmin.y)/dy *4`, se dy pequeno usa Z, repetir 4 vezes para padrão xadrez mais denso, marcado explicitamente PLACEHOLDER UV planar baseado em posição vértice, NÃO UV real decodificado (UV continua 0% BLOQUEADO). Interpolação UV perspective correct `u = (w0*u0/w0 + ...)/invW` etc, amostragem textura `texture_.Sample(u,v,tr,tg,tb)` e modulação com intensidade lambert `r=tr*intensity` etc.
+- `tools/mutool.cpp` `CmdRender` estendido: flag `--textured` ou `-t` ou outPath contém "textured" habilita textura placeholder, gera checkerboard 256x256 32px, tenta carregar OZT real `/tmp/cliente_ref/Data/Item/ArmorMale01.ozt` via `LoadFromOZT` para provar pipeline usa OZT decoder otimizado, log "PLACEHOLDER TEXTURE ENABLED — ciclo16 D — checkerboard 256x256 32px, UV planar baseado em posicao vertice, NAO e UV real decodificado (UV continua 0% BLOQUEADO)".
+- 2 renders novos com textura placeholder: `docs/evidence/ciclo16_first_render_Beer01_textured.ppm` 800x600 1,4MB e `ciclo16_first_render_Object03_textured.ppm` 800x600 1,4MB, 5º e 6º renders (4 anteriores ciclo14 + 2 novos ciclo16), silhueta reconhecível com padrão xadrez visível.
+
+**Validação objetiva (não subjetiva) textura placeholder — ciclo16 D:**
+- Ferramenta `/tmp/validate_tex.cpp` valida que textura está sendo amostrada corretamente por código, não apenas "parece ter padrão":
+  - Beer01 textured: w 800 h 600 nonBg 33768 bright 12003 dark 19201 brightRatio 35.5% darkRatio 56.9% hasBoth 1 — bimodal checkerboard esperado 50% white 50% black, após lambert ainda bimodal >10% e <90% ambos
+  - Beer01 plain: nonBg 33768 unique intensity values 200 (variação só lambert)
+  - Beer01 textured: unique intensity values 223 (variação lambert + checkerboard)
+  - Validation textured sampling: PASS (expected bimodal checkerboard, objective, not subjective)
+- Evidência `docs/evidence/ciclo16_textured_validation.log` com saída bruta literal, não transcrição manual.
+
+**Limitações explícitas:**
+- UV real continua NÃO IMPLEMENTADO/BLOQUEADO 0% 11 hipóteses platô artefato floats, textura placeholder usa UV planar baseado em posição vértice, NÃO é UV real decodificado, nunca apresentado como "UV real"
+- Textura checkerboard procedural 256x256 32px, não textura real OZT mapeada corretamente, mas pipeline OZT/OZJ já otimizado é usado via `LoadFromOZT` (chama OztToBgraTopDown OPT-005 e OzjProbe OPT-004)
+- Prova de conceito pipeline textura, NÃO validação de UV real, marcado explicitamente no código e documentação
+
+**Evidência:**
+- `docs/evidence/ciclo16_first_render_Beer01_textured.ppm` 800x600 1,4MB PPM com padrão xadrez visível, 33768 non-bg, bright 35.5% dark 56.9% bimodal
+- `docs/evidence/ciclo16_first_render_Object03_textured.ppm` 800x600 1,4MB
+- `docs/evidence/ciclo16_textured_validation.log` validação objetiva PASS
+- `src/mu/render/software_rasterizer.hpp/.cpp` com `SoftwareTexture` e placeholder UV explicitamente marcado
+
