@@ -1229,8 +1229,28 @@ Unificar os dois caminhos é uma simplificação pendiente, não uma correção 
 bug — a saída atual já é a mesma, porque em ambos os casos o corpo fica nos
 últimos 65.536 bytes.
 
-**Escala vertical: NÃO DETERMINADA, e não está no prefixo.** Procurar em outro
-arquivo do mundo, ou aceitar que a altura é relativa.
+### Escala vertical da altura — três caminhos fechados
+
+A escala vertical não foi determinada, e três lugares plausíveis foram examinados
+e fechados:
+
+| Caminho | Resultado |
+|---|---|
+| Prefixo dos 29 arquivos de grade crua | **inteiramente zero** em 29 de 29 |
+| `xPixelsPerMeter` / `yPixelsPerMeter` do cabeçalho BMP | **2.834 em 42 de 45** — é o padrão BMP para 72 DPI (2.834 ÷ 25,4 ≈ 111,6 px/cm), valor default e não medição |
+| Paleta BMP de 256 entradas | **identidade**: `palette[i] = (i, i, i)` em tons de cinza |
+
+A paleta identidade é informativa por si: ela diz que o valor do byte **é** a
+altura, sem remapeamento. Não há tabela de conversão escondida na paleta.
+
+**Conclusão:** a escala não está no arquivo de altura. Ou está em outro arquivo do
+mundo, ou é uma constante do motor. **Este projeto não a determinou, e sem ela a
+altura é relativa, não métrica.**
+
+Para renderizar terreno isso pode não ser bloqueante: a escala pode ser um
+parâmetro de renderização ajustado visualmente. Mas afirmar que o terreno está
+"pronto para renderizar" sem essa escala seria errado — as proporções verticais
+ficariam arbitrárias.
 - A escala vertical: se cada unidade vale 1, 0,5 ou outro fator. Sem isso a
   altura é relativa, não métrica.
 - Se os outros mundos seguem o mesmo prefixo.

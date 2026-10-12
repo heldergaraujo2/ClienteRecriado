@@ -22,8 +22,17 @@ renderizável — independentemente de o campo estar legível.
 **O prefixo já foi examinado e está fechado:** os 1.082 bytes são **inteiramente
 zero** em `World1/TerrainHeight.OZB`. Não há escala aí. Não repetir.
 
-**O que resta procurar:** um valor constante em outro arquivo do mundo, ou aceitar
-que a altura é relativa e deixar a escala como parâmetro de renderização.
+**Três caminhos fechados, não repetir:**
+
+1. Prefixo dos 29 arquivos de grade crua — inteiramente zero em 29 de 29
+2. `xPixelsPerMeter`/`yPixelsPerMeter` do BMP — 2.834 em 42 de 45, que é o padrão
+   de 72 DPI, valor default e não medição
+3. Paleta BMP — identidade (`palette[i] = (i,i,i)`), então o byte **é** a altura,
+   sem remapeamento
+
+**O que resta:** procurar em outro arquivo do mundo, ou tratar a escala como
+parâmetro de renderização ajustado visualmente. A segunda opção é provavelmente a
+correta — motores desse período costumavam ter a escala como constante.
 
 **Descoberta lateral que muda a tarefa:** 1.082 = 1.078 + 4, onde 1.078 é
 exatamente cabeçalho BMP (14) + DIB (40) + paleta (1.024). Os 29 arquivos tratados
