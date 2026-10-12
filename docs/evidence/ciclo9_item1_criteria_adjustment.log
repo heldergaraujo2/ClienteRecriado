@@ -1,0 +1,81 @@
+CICLO 9 ITEM 1 — EXPLICAR AJUSTE DE CRITERIO QUE CRUZOU BASELINE 3.505 -> 3.800
+
+Contexto:
+- Baseline ciclo 7: nivel 5 ossos 3.505 arquivos (34,74%) medido por tools/bmd_bones_probe.py
+  Criterio antigo (python probe):
+    - mc == 1 (single mesh apenas)
+    - vc >0 && ntri >0
+    - bc 1..8 (filtro arbitrario da probe, nao limite do formato)
+    - base = 52+vc*16+nc*20+ntc*8+ntri*64+32
+    - remain == bc*59-1 (tamanho exato, sem sobra)
+    - todos os ossos com >=3 chars printable em 32B (loose)
+
+- Novo criterio ciclo 8 (C++ BmdParseBodyV0A / TryParseBonesAt):
+    - bc 1..64 (max observado 51, limite generoso 64)
+    - mc 1..64 (multi-mesh permitido, com busca de offset textura delta -4/0/4/-8/8 e extra 4B ac)
+    - base+bc*59-1 <= size (permite sobra = animacao apos ossos)
+    - todos os ossos com >=3 printable (loose) + 6 f32 finitos + parent em [0,bc) ou 0xFFFF
+
+Medicao comparativa full-scan (tool /tmp/compare_old_new):
+- old_ok (criterio antigo reimplementado em C++ com BmdProbe length_consistent): 2708
+- new_ok (criterio novo): 3800
+- both: 2708
+- only_new: 1092
+- only_old: 0
+- python probe old 3505 vs C++ old 2708 diferenca 797 explicada por:
+  * python probe nao verifica length_consistent (67 arquivos invalidos incluidos)
+  * python probe nao verifica payload printable para v0c (aceita decrypted mesmo se nome nao printable, depois falha no nome mas conta como eligible)
+  * python probe nao verifica floats finitos nem parent valido (nosso C++ old tambem nao, mas novo sim)
+  Para comparacao honesta com baseline publicado 3505, usamos python probe 3505 como referencia.
+  Aumento 3505 -> 3800 = +295 arquivos.
+
+Por que criterio anterior era excessivamente restritivo, com exemplos concretos:
+
+1) Filtro bc <=8 arbitrario
+   - Formato suporta bc ate 64, observado max 51 (custom), 24, 15, 10, 9 etc.
+   - Arquivos validos com mesmo layout 59B rejeitados por bc>8:
+     * /home/user/Cliente_ref/Data/Custom/Item/sword48.bmd mc=8 bc=10
+       Layout: 10*59-1=589 bytes, nomes validos, parent valido, floats finitos. Rejeitado por bc>8, aceito agora.
+     * /home/user/Cliente_ref/Data/Custom/Monster/Statue_Blue.bmd mc=1 bc=15
+       15*59-1=884 bytes, 15 ossos com nomes Box01, etc. Rejeitado por bc>8.
+     * /home/user/Cliente_ref/Data/Effect/newdoor break_01.bmd mc=1 bc=24
+       24 ossos, layout fecha, rejeitado por bc>8.
+     * /home/user/Cliente_ref/Data/Item/380_quiver.bmd mc=1 bc=9
+     * /home/user/Cliente_ref/Data/Item/Arrows01.bmd mc=1 bc=9
+   - Justificativa: limite 8 veio da probe inicial que amostrou 468 arquivos e viu bc tipico 1-8, nao do formato. Medicao full-scan mostra bc ate 51.
+
+2) Filtro single-mesh apenas (mc==1)
+   - Multi-mesh tambem tem ossos, com extra 4B ac antes dos ossos.
+   - Exemplos que eram rejeitados incorretamente:
+     * /home/user/Cliente_ref/Data/Custom/Item/PrickleGlove.bmd mc=4 bc=1 ac=1
+       base 78670 remain 62 = 4+58, extra 1 == ac, bone PrickleGlo parent FFFF floats 0,-5e-06,2e-06,-1.57,1.57,0
+       Rejeitado por mc!=1, aceito agora com base offset+4.
+     * /home/user/Cliente_ref/Data/Custom/Item/Sword37.bmd mc=3 bc=2
+       remain 121 = 4+117 =4+2*59-1, extra 1 == ac
+     * /home/user/Cliente_ref/Data/Custom/Item/Sword42.bmd mc=3 bc=6 remain 357 extra1
+     * /home/user/Cliente_ref/Data/Custom/Item/Sword43.bmd mc=3 bc=5 remain 298
+     * /home/user/Cliente_ref/Data/Custom/Item/Sword45.bmd mc=5 bc=2
+   - Justificativa: layout multi-mesh descoberto ciclo 7, ossos vêm após ultimo nome textura com delta -4. Ignorar multi era conservadorismo inicial, nao limite do formato.
+
+3) Tamanho exato remain == bc*59-1 (sem sobra)
+   - Muitos arquivos tem animacao apos ossos: extra = bc*keyframes*12 bytes
+   - Old rejeitava se remain != expected, mesmo quando primeiros bc*59-1 bytes sao ossos validos.
+   - Exemplos:
+     * /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank01.bmd bc=3 remain=464 exp=176 extra=288
+       288 = 3*8*12 => 8 keyframes por osso, animacao valida apos ossos. Rejeitado por remain!=176, aceito agora permitindo remain>=expected.
+     * /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank04.bmd bc=3 remain=464 exp=176 extra=288
+     * /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank05.bmd bc=3 remain=464 exp=176 extra=288
+     * /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank06.bmd bc=3 remain=464 exp=176 extra=288
+     * /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank07.bmd bc=3 remain=464 exp=176 extra=288
+   - Justificativa: modelo animacao = bc*keyframes*12 medido em 500 arquivos, 385 divisivel 77% (mutool bmdanim). Sobra nao invalida ossos.
+
+Conclusao:
+- Ajuste de criterio NAO foi afrouxamento arbitrario para cruzar baseline.
+- Foi correcao de tres restricoes excessivas que rejeitavam arquivos legitimos com mesmo layout 59B.
+- Numero conservador 2708 (C++ old) < 3505 (python old) < 3800 (novo) — novo inclui multi + bc>8 + animacao.
+- Se nao houvesse justificativa tecnica, reverteriamos para 2708 ou 3505. Com justificativa solida e exemplos concretos, mantemos 3800 como numero honesto, com documentacao completa.
+- Risco de falso-positivo mitigado por validacao estatistica item 2 (controle mesma classe) e seguranca item 3.
+
+Evidencia: /tmp/compare_old_new tool output:
+old_ok 2708 new_ok 3800 both 2708 only_new 1092 only_old 0
+multi examples 5, bc>8 examples 5, anim examples 5 listados acima.
