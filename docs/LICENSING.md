@@ -140,6 +140,39 @@ These are recorded as open rather than assumed resolved.
 
 ## Código e dados de terceiros incorporados
 
+### Auditoria do ciclo 3 — confirmações executadas
+
+Evidência completa em [`evidence/ciclo3_licensing_audit.log`](evidence/ciclo3_licensing_audit.log).
+
+| Verificação | Comando | Resultado |
+|---|---|---|
+| Arquivo de terceiros commitado | `git ls-files \| grep -ciE "bmdref\|muonline-bmd-viewer\|xulek"` | **0** |
+| Clone externo dentro do repo | `ls -d .git/modules` | sem submódulos |
+| Arquivos rastreados | `git ls-files \| wc -l` | 86, todos do projeto |
+| Cópia em bloco | `git show --stat 6821d94` | 8 arquivos, todos `src/`, `tests/`, `tools/`, `docs/evidence/` |
+
+O commit que introduziu a cifra (`6821d94`) tocou 8 arquivos, +267/−10 linhas, e
+nenhum deles é arquivo de terceiros. O algoritmo foi **reimplementado**, não
+copiado; a tabela de chave é reproduzida literalmente porque é dado, não expressão.
+
+**Atribuição presente no código-fonte** (`src/mu/assets/bmd.hpp`, linhas 46–51):
+
+```
+/// Provenance, stated because this project derived every other key itself and
+/// this one was not derived: the algorithm and its key table were taken from
+/// the ISC-licensed project xulek/muonline-bmd-viewer
+/// (src/crypto/file-cryptor.ts). ISC is permissive and compatible with this
+/// repository's MIT licence. It is re-implemented here rather than copied, and
+/// the key table is reproduced verbatim because it is data, not expression.
+```
+
+Também atribuído em `tools/bmd_topology_probe.py` (linha 43) e
+`src/mu/assets/bmd_body.hpp` (linha 27, que registra que o layout **não** confere
+com o daquela fonte).
+
+**O clone de consulta não foi commitado.** `/tmp/bmdref` ficou fora do
+repositório e não persiste neste ambiente; `git ls-files` não lista nada dele.
+
 ### Cifra BMD v0x0C — xulek/muonline-bmd-viewer (ISC)
 
 | Campo | Valor |

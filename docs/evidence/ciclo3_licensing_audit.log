@@ -1,0 +1,70 @@
+=== ITEM 3: auditoria de licenciamento do codigo externo ===
+data: 2026-10-12T14:24:13Z
+HEAD: 3eef28c4450fba68112ebd1e65b0037c81d76d3b
+
+--- 1. algum arquivo de terceiros commitado? ---
+git ls-files | grep -ci 'bmdref|muonline-bmd-viewer|xulek' : 0
+(0 = nenhum)
+
+--- 2. arquivos rastreados que NAO sao deste projeto ---
+scripts/benchmark_windows.ps1
+scripts/validate_windows.ps1
+(vazio = todos os rastreados sao do projeto)
+
+--- 3. total de arquivos rastreados ---
+86
+
+--- 4. o clone externo existe dentro do repo? ---
+sem submodulos
+/tmp/bmdref nao existe neste ambiente
+
+--- 5. git show --stat do commit que introduziu a cifra ---
+commit 6821d94ed4307203ab1c61d1ee0aea36a407ad6f
+Author: heldergaraujo2 <323230170+heldergaraujo2@users.noreply.github.com>
+Date:   Sun Oct 11 23:29:21 2026 +0000
+
+    feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,31%
+    
+    O bloqueio nº 1 do projeto está resolvido. A cifra do payload BMD v0x0C, que
+    tornava 8.594 de 10.090 arquivos opacos e impedia qualquer leitura de geometria
+    de mundo ou de entidades, foi quebrada.
+    
+    ALGORITMO — XOR rolante sobre uma tabela de 16 bytes, combinado com uma chave
+    corrente derivada do byte de TEXTO CIFRADO anterior:
+    
+      plain[i] = (cipher[i] ^ key[i & 15]) - running
+--- 5b. stat do commit da cifra (arquivos tocados) ---
+ docs/evidence/ciclo2_bmdreport_v0c.log | 66 ++++++++++++++++++++++++++++++++++
+ docs/evidence/ciclo2_test.log          | 44 +++++++++++++++++++++++
+ src/mu/assets/bmd.cpp                  | 16 +++++++++
+ src/mu/assets/bmd.hpp                  | 24 +++++++++++++
+ src/mu/assets/bmd_report.cpp           | 58 ++++++++++++++++++++++++++----
+ src/mu/assets/bmd_report.hpp           |  2 ++
+ tests/test_assets.cpp                  | 61 +++++++++++++++++++++++++++++++
+ tools/mutool.cpp                       |  6 ++--
+ 8 files changed, 267 insertions(+), 10 deletions(-)
+
+--- 6. trecho de atribuicao presente no codigo-fonte ---
+/// with a running key derived from the previous *ciphertext* byte.
+///
+/// Provenance, stated because this project derived every other key itself and
+/// this one was not derived: the algorithm and its key table were taken from
+/// the ISC-licensed project xulek/muonline-bmd-viewer
+/// (src/crypto/file-cryptor.ts). ISC is permissive and compatible with this
+/// repository's MIT licence. It is re-implemented here rather than copied, and
+/// the key table is reproduced verbatim because it is data, not expression.
+///
+/// This resolves the project's number-one blocker. Before it, 8,594 of 10,090
+/// BMD files were opaque and no geometry could be read from them.
+constexpr uint8_t kBmdV0CKey[16] = {
+    0xD1, 0x73, 0x52, 0xF6, 0xD2, 0x9A, 0xCB, 0x27,
+    0x3E, 0xAF, 0x59, 0x31, 0x37, 0xB3, 0xE7, 0xA2,
+};
+
+--- 7. atribuicao no probe python ---
+# Tabela da cifra v0x0C. Proveniência: xulek/muonline-bmd-viewer (ISC),
+# reimplementada em src/mu/assets/bmd.cpp. Ver docs/LICENSING.md.
+V0C_KEY = bytes([0xD1, 0x73, 0x52, 0xF6, 0xD2, 0x9A, 0xCB, 0x27,
+                 0x3E, 0xAF, 0x59, 0x31, 0x37, 0xB3, 0xE7, 0xA2])
+
+PAYLOAD_BASE = {0x0A: 4, 0x0C: 8}
