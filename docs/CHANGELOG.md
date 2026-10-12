@@ -123,6 +123,26 @@ refinement.
   arquivo de terceiros, sem submódulos, 86 arquivos rastreados todos do projeto,
   atribuição transcrita do código-fonte
 
+### Adicionado — segunda parte do ciclo
+
+- **Nona hipótese de UV testada e rejeitada.** Genuinamente diferente das oito
+  anteriores: procurava as **coordenadas** UV dentro do registro de triângulo, não
+  um índice para o array. Deu 79,42% em [0,1] — contra controle de bytes aleatórios
+  (24,82%) pareceria forte, razão 3,2×. **Esse controle é inválido**: a pergunta é
+  "estes `f32` são UV", então o controle correto é outro `f32` que não seja UV. O
+  array de normais dá **70,34%**, razão de apenas **1,13×**. Rejeitada
+- **`docs/ARCHITECTURE.md` §10 e §11** — limites reais do BMD medidos (nove tetos
+  com valor, método e consequência) e requisitos de escalabilidade de renderização
+  com o que está e o que não está medido
+- **Seção 9.1 corrigida** — dizia "a definir em código; ainda não implementado", e
+  `mesh.hpp` existe com testes. A tabela nova separa o que está implementado do que
+  está apenas declarado e nunca populado
+
+### Regra nova
+
+**O controle tem que ser da mesma classe do que se testa.** Registrada em
+`ASSET_FORMATS.md`. Sem ela, a nona hipótese teria sido publicada como descoberta.
+
 ### Evidência
 
 - `docs/evidence/ciclo3_test_final.log` — `make clean && make test`, 344/0, 0 warnings

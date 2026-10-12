@@ -181,6 +181,27 @@ everywhere it appears.
 
 **Testes:** 344 checks, 0 failures · ASan+UBSan 344/0 · zero warnings sob 12 flags `-W`
 
+**Tabela final de níveis de parsing BMD** (full-scan, `ciclo3_scan_final.log`):
+
+| Nível | Arquivos | % de 10.090 |
+|---|---|---|
+| 1 — estrutura válida | 10.023 | 99,34% |
+| 2 — decifrado | 8.571 | 84,95% |
+| 3 — vértice + normal | 8.406 | 83,31% |
+| 4 — faces | 4.149 | 41,12% |
+| 5 — ossos | 3.505 | 34,74% |
+| 6 — UV | **0** | **0,00%** |
+
+Os níveis **não** são cumulativos na mesma população: o nível 4 conta só malha
+única; o nível 5 é 3.505 de 4.119 elegíveis (85,09%), que sobre a árvore é 34,74%.
+
+**Nenhum nível é modelo renderizável.** Nível 6 é zero — sem índice de UV por canto
+não há textura. Nove hipóteses descartadas; investigação encerrada.
+
+**Bloqueio atual: `DEC-008` incompleta.** Sem a comparação de custo/risco, nenhum
+código de backend pode ser escrito (`DEC-010`), e sem backend não há como medir
+desempenho — que é o objetivo declarado do projeto.
+
 ---
 
 # Atualização do ciclo 2 — bloqueio nº 1 resolvido
