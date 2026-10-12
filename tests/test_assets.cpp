@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,7 @@
 
 #include "mu/assets/bmd.hpp"
 #include "mu/assets/bmd_body.hpp"
+#include "mu/assets/mesh.hpp"
 #include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
@@ -576,6 +578,8 @@ void TestBmdBodyRejectsBadInput();
 void TestBmdReportLevelsAreSeparate();
 void TestBmdV0CCipher();
 void TestBmdTriangles();
+void TestMeshFromBmd();
+void TestComputeBounds();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -600,6 +604,8 @@ const Test kTests[] = {
     {"extension helpers", TestExtensionHelpers},
     {"bmd v0x0c cipher", TestBmdV0CCipher},
     {"bmd triangles", TestBmdTriangles},
+    {"mesh from bmd", TestMeshFromBmd},
+    {"compute bounds", TestComputeBounds},
     {"bmd body parses verified layout", TestBmdBodyParsesVerifiedLayout},
     {"bmd body rejects bad input", TestBmdBodyRejectsBadInput},
     {"bmd report levels are separate", TestBmdReportLevelsAreSeparate},
@@ -1110,6 +1116,120 @@ void TestBmdTriangles() {
   mu::BmdBody multi;
   CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &multi).ok());
   CHECK(multi.triangles.empty());
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// The internal mesh representation and the BMD importer (path A). The point of
+// these tests is the reported gaps, not the happy path: a converter that quietly
+// produced a wrong mesh would pass a test that only checked positions.
+// ---------------------------------------------------------------------------
+namespace {
+
+void TestMeshFromBmd() {
+  mu::BmdBody body;
+  body.source_name = "Test.SMD";
+  for (int i = 0; i < 4; ++i) {
+    mu::BmdVertex v;
+    v.x = static_cast<float>(i);
+    v.y = static_cast<float>(-i);
+    v.z = 2.0f;
+    body.vertices.push_back(v);
+  }
+  for (int i = 0; i < 4; ++i) {
+    mu::BmdNormal n;
+    n.ny = 1.0f;
+    body.normals.push_back(n);
+  }
+  mu::BmdTriangle t;
+  t.corners[0].vertex = 0; t.corners[0].normal = 0;
+  t.corners[1].vertex = 1; t.corners[1].normal = 1;
+  t.corners[2].vertex = 2; t.corners[2].normal = 2;
+  body.triangles.push_back(t);
+  body.complete = true;
+
+  const mu::MeshImportResult r = mu::MeshFromBmd(body, "");
+  CHECK(r.ok);
+  CHECK(r.problem.empty());
+  CHECK_EQ(4u, r.mesh.positions.size());
+  CHECK_EQ(4u, r.mesh.normals.size());
+  CHECK_EQ(3u, r.mesh.indices.size());
+  CHECK_EQ(0u, r.mesh.skipped_vertices);
+  CHECK_EQ(0u, r.mesh.bad_indices);
+  CHECK(r.mesh.name == "Test.SMD");
+
+  // Bounding box must be computed at import, and must be the real extent.
+  CHECK(r.mesh.bounds.valid);
+  CHECK(r.mesh.bounds.min.x == 0.0f);
+  CHECK(r.mesh.bounds.max.x == 3.0f);
+  CHECK(r.mesh.bounds.min.y == -3.0f);
+  CHECK(r.mesh.bounds.max.y == 0.0f);
+
+  // The gap that matters: texcoords must stay off, because the BMD corner-to-UV
+  // binding was never located. A true here would let the renderer texturise
+  // with coordinates belonging to some other corner.
+  CHECK(!r.mesh.has_texcoords);
+  CHECK(r.mesh.texcoords.empty());
+
+  // An out-of-range corner must drop the triangle and count it, not clamp it.
+  // Clamping moves a vertex and deforms the mesh with no signal.
+  mu::BmdBody bad = body;
+  mu::BmdTriangle bt;
+  bt.corners[0].vertex = 0;
+  bt.corners[1].vertex = 99;  // beyond the four vertices
+  bt.corners[2].vertex = 2;
+  bad.triangles.push_back(bt);
+  const mu::MeshImportResult rb = mu::MeshFromBmd(bad, "x");
+  CHECK(rb.ok);
+  CHECK_EQ(3u, rb.mesh.indices.size());  // only the good triangle survived
+  CHECK_EQ(1u, rb.mesh.bad_indices);
+
+  // A non-finite position must be skipped and counted, and skipping shifts
+  // indices, so indices must be withheld rather than silently misaligned.
+  mu::BmdBody nanbody = body;
+  nanbody.vertices[1].y = std::numeric_limits<float>::quiet_NaN();
+  const mu::MeshImportResult rn = mu::MeshFromBmd(nanbody, "x");
+  CHECK(rn.ok);
+  CHECK_EQ(3u, rn.mesh.positions.size());
+  CHECK_EQ(1u, rn.mesh.skipped_vertices);
+  CHECK(rn.mesh.indices.empty());
+  CHECK(rn.mesh.bounds.valid);
+
+  // An empty body is a failure, not an empty success.
+  mu::BmdBody empty;
+  const mu::MeshImportResult re = mu::MeshFromBmd(empty, "x");
+  CHECK(!re.ok);
+  CHECK(!re.problem.empty());
+  CHECK(!re.mesh.bounds.valid);
+}
+
+void TestComputeBounds() {
+  // Empty list: no box, and specifically not a zero box at the origin.
+  const mu::Bounds e = mu::ComputeBounds({});
+  CHECK(!e.valid);
+
+  std::vector<mu::Vec3> pts{{-1.0f, 0.0f, 5.0f}, {3.0f, -2.0f, 1.0f}};
+  const mu::Bounds b = mu::ComputeBounds(pts);
+  CHECK(b.valid);
+  CHECK(b.min.x == -1.0f);
+  CHECK(b.max.x == 3.0f);
+  CHECK(b.min.y == -2.0f);
+  CHECK(b.max.y == 0.0f);
+  CHECK(b.min.z == 1.0f);
+  CHECK(b.max.z == 5.0f);
+
+  // One NaN must not poison the whole box.
+  pts.push_back({std::numeric_limits<float>::quiet_NaN(), 0.0f, 0.0f});
+  const mu::Bounds bn = mu::ComputeBounds(pts);
+  CHECK(bn.valid);
+  CHECK(bn.min.x == -1.0f);
+  CHECK(bn.max.x == 3.0f);
+
+  // All non-finite: still no usable box, even though the list was not empty.
+  const std::vector<mu::Vec3> allnan{
+      {std::numeric_limits<float>::quiet_NaN(), 0.0f, 0.0f}};
+  CHECK(!mu::ComputeBounds(allnan).valid);
 }
 
 }  // namespace
