@@ -48,6 +48,31 @@ No GPU. No Windows. The CPU numbers below are valid for this machine and are
 useful as *relative* measurements between code versions, which is how they are
 used in [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md).
 
+### 2.1a Submission-path measurement (DEC-008) — sample size
+
+> **Amostra pequena (N=5), indicativa, não definitiva — sujeita a nova medição
+> quando ambiente gráfico real estiver disponível.**
+
+The DEC-008 submission-path numbers are the median of **5 complete runs of
+`build/bench_assets`**. Five is enough to show that the spread between runs
+(4.95×–6.18× on the load-time ratio) is not negligible, and not enough to call
+any single figure settled. The amplitude between runs is reported alongside
+every median in [`DECISIONS.md`](DECISIONS.md) DEC-008-A §3.2 and in
+[`evidence/ciclo4_dec008_submission_cost.log`](evidence/ciclo4_dec008_submission_cost.log).
+
+Two limits that matter more than the sample size:
+
+- **Load-time cost is what was measured on CPU.** The per-frame cost is *not*
+  measured here at all: it is driver marshalling, bus transfer and per-vertex
+  call overhead, all of which need a GL context. What is stated per frame is a
+  **volume** (an exact quantity derived from the absent imports), not a cost.
+  See DEC-008-A §3.1 for why an earlier revision got this wrong.
+- **Buffers are resident between repetitions**, which is the case *favourable*
+  to the expanded path. Non-resident memory would widen the gap.
+
+Re-measure with a larger N, on the target hardware, with the real visible-set
+vertex count of a scene rather than the whole asset tree.
+
 ### 2.2 Asset tree composition — the real bottleneck candidate
 
 From `build/mutool scan`:

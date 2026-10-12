@@ -374,6 +374,42 @@ renderização da reconstrução, dentro da mesma stack OpenGL. Concretamente:
 Isso é **mudança de backend dentro da mesma stack**, permitida pelo comando
 mestre quando justificada: continua sendo OpenGL, não é troca de API.
 
+### Texto da decisão, sem ambiguidade
+
+> **Decisão: VBO + VAO com buffers indexados (`GL_ARRAY_BUFFER` +
+> `GL_ELEMENT_ARRAY_BUFFER` + `glDrawElements`) é o piso mínimo do pipeline de
+> renderização da reconstrução.** Immediate mode e submissão não indexada estão
+> excluídos como caminho de produção. Permanecem OpenGL; não há troca de API.
+
+**Justificativa baseada na medição.** No carregamento, expandir índice → flat
+custa **5,16×** mais que subir o buffer indexado (18.760,4 µs contra 3.632,5 µs,
+N=5). Por quadro, o modelo sem índice submete **1,29×** mais volume e faz
+**63,9%** de envios de vértice redundantes (2.936.559 envios de canto contra
+1.792.108 vértices únicos). A segunda parte é uma **quantidade exata** derivada
+das importações ausentes do binário original, não uma medição de desempenho. O
+**custo** por quadro está `BLOCKED`: exige contexto GL que este ambiente não tem.
+
+**Condições sob as quais esta decisão será revista.** Não é definitiva, e as
+condições são objetivas:
+
+1. **Se a Parte B (medição em contexto real) mostrar diferença de tempo de
+   quadro menor que a diferença de volume já estabelecida**, a decisão é
+   **revisada, não defendida**. O critério está em DEC-008-A §3.3.
+2. **Se o requisito de conteúdo pesado for retirado do escopo**, o teto
+   estrutural de fixed-function deixa de ser impeditivo e a opção de menor
+   complexidade volta a ser candidata.
+3. **Se o alvo mínimo de hardware subir** a ponto de GL 2.0 deixar de ser
+   relevante, a comparação entre "VBO/VAO em OpenGL" e "trocar de API" muda,
+   porque o custo que rejeitou a troca era a perda de compatibilidade com
+   hardware antigo.
+4. **Se `glDrawElements` vier a ser encontrado no binário original** (a ausência
+   foi verificada por import table no ciclo 1), a premissa de que o original
+   reenvia vértice compartilhado cai, e a justificativa de capacidade precisa
+   ser refeita.
+
+Fora dessas quatro condições, a decisão permanece e não será reaberta por
+preferência.
+
 ### Custo e risco
 
 | Opção | Custo | Risco | Veredicto |
