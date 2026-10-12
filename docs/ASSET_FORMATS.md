@@ -679,7 +679,7 @@ com as distribuições medidas, mas não foram verificados um a um.
 |---|---|---|
 | Vértice | 16 B | `f32 x` + `f32 y` + `f32 z` + `i16 node` + `i16 bindVertex` |
 | Normal | 20 B | `f32 nx` + `f32 ny` + `f32 nz` + `f32 aux0` + `f32 aux1` |
-| Triângulo | 64 B | **localização confirmada**, conteúdo interno **não determinado** |
+| Triângulo | 64 B | 3 referências de 8 B em +0/+8/+16: `u16 vértice` + `u16 normal` + `u16 opcional` + `u8 flag` + `u8 pad` |
 | Osso | não verificado neste projeto | — |
 
 **As coordenadas vêm primeiro nos dois registros.** Evidência, medida sobre os
@@ -743,17 +743,46 @@ depende de interpretar índice nenhum.
 ancorando em `uv_end` derivado da hipótese `nc*8` sem confirmá-la, e testavam
 stride 8/10/12/14/16 bytes. O stride é 64, muito maior que qualquer um testado.
 
-**O que continua NÃO DETERMINADO.** O conteúdo interno do registro de 64 bytes.
-O primeiro byte **não** é o tamanho do polígono: medido em 35.902 registros, os
-valores 3 e 4 somam apenas **3,01%**, indistinguível de aleatório. As tabelas do
-projeto ISC para esse registro não se aplicam, como já ocorreu com as de vértice
-e normal.
+### Registro de triângulo — DECODIFICADO em sua parte essencial
 
-Consequência prática: **este projeto sabe onde estão os triângulos e lê índices
-de vértice plausíveis, mas ainda não sabe ler um triângulo com confiança.** Os
-outros 58 bytes do registro não estão decodificados. Extrair topologia
-parcialmente e renderizar com ela produziria malha silenciosamente errada, que é
-pior que não renderizar.
+Avanço posterior à localização. A varredura dos 64 bytes por deslocamento, com o
+mesmo controle limpo, mostrou que os campos `u16` reais estão em deslocamentos
+**pares** — os ímpares (~67%) são leituras sobrepostas dos mesmos valores. Isso
+revelou a estrutura: **três referências de 8 bytes** no início do registro.
+
+```
++0   u16 índice de vértice      < numVertices  em 97,66% dos casos
++2   u16 índice de normal       < numNormals   em 97,20%
++4   u16 campo opcional         mediana 0, máximo 65535 — NÃO é índice de UV
++6   u8  flag
++7   u8  padding
+     (repete em +8 e +16: são os três vértices do triângulo)
++60  u16 não decodificado       valor 3 em 53,3% dos registros
++62  u16 não decodificado       mediana 24
+```
+
+**Isto é topologia utilizável.** Um triângulo é lido como três pares
+(vértice, normal), que é o suficiente para montar a malha.
+
+**O que continua não decodificado, sem eufemismo:**
+
+- O campo em +4. Medido contra os três limites disponíveis, dá 68,51% contra
+  `numVertices`, 68,56% contra `numNormals` e 68,35% contra `numTexCoords` —
+  indistinguível entre os três, o que significa que **nenhum** deles é o limite
+  certo. Mediana 0 e máximo 65535 sugerem campo opcional com sentinela `-1`, mas
+  isso é inferência, não confirmação.
+- **Coordenadas UV por vértice do triângulo continuam não localizadas.** O
+  campo que parecia candidato não é. UV segue **BLOQUEADO**.
+- Os bytes 24..59. Todos zero em apenas 40,9% dos registros, então há conteúdo
+  ali que não foi identificado.
+- Os `u16` em +60 e +62.
+- O primeiro byte **não** é tamanho do polígono: valores 3 e 4 somam 3,01%,
+  indistinguível de aleatório. As tabelas do projeto ISC não se aplicam.
+
+**Restrição de confiança.** Os 97,66% e 97,20% são medidos sobre 58.836
+referências em 319 arquivos de malha única. Não é 100%, então ~2,4% das
+referências apontam fora da faixa — causa não determinada. Renderizar sem tratar
+esse caso produziria leitura fora dos limites.
 
 **Restrição do levantamento.** Tudo acima vale para **arquivos de malha única**
 (586 dos 1.500 examinados). Para malhas múltiplas o corpo se repete por malha e
@@ -838,7 +867,9 @@ para modelos novos — ver `docs/ARCHITECTURE.md`.
 | **Número de materiais/texturas por modelo** | Exige percorrer a tabela de nomes de textura, que só foi localizada em arquivos de malha única. Não foi contada nem validada |
 | **Máximo de ossos por modelo** | Nenhum registro de osso foi localizado nem validado. O campo `boneCount` existe no cabeçalho, mas seu significado não foi confirmado um a um |
 | **Máximo de frames de animação** | Depende de ossos e da seção de ações, ambas bloqueadas |
-| **Conteúdo do registro de triângulo** | 64 bytes localizados; apenas os índices de vértice em +2/+6/+10 têm evidência. Os demais 58 bytes não estão decodificados. O byte de polígono esperado **não** está lá (3,01%, aleatório) |
+| **Campo em +4 da referência de triângulo** | Mediana 0, máximo 65535. Indistinguível entre os três limites testados (68,35–68,56%), então nenhum é o correto. Provável campo opcional com sentinela, não confirmado |
+| **UV por vértice do triângulo** | O candidato em +4 foi descartado. UV segue sem localização |
+| **Bytes 24..59 do registro de triângulo** | Todos zero em só 40,9% dos registros; conteúdo não identificado |
 | **Limite de malhas por modelo** | Máximo observado 18, mas sem confirmação de que o campo é contagem de malhas, 18 é observação, não limite do formato |
 | **Semântica dos `u16` em 32/34/36** | Coerentes com contagem de malha/osso/ação, não verificados |
 

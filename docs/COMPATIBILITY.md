@@ -15,8 +15,13 @@ official scale:
 
 ## BLOQUEIO Nº 1 DO PROJETO — geometria BMD
 
-> ## **Sem índices de face, nenhum modelo BMD pode ser renderizado como malha
-> ## neste momento — apenas dados de vértice/normal foram extraídos.**
+> ## **Índices de face foram decodificados no ciclo 2, mas ainda não estão
+> ## implementados no parser C++ — nenhum modelo BMD é renderizável ainda.**
+>
+> A topologia passou de "não determinada" para "decodificada com 97,66% de
+> índices válidos". O que falta para renderizar é portar isso para C++ e tratar
+> os ~2,4% de referências fora de faixa. **UV continua bloqueado**, então mesmo
+> com a malha montada não há como texturizar corretamente.
 
 O bloqueio mudou de natureza no ciclo 2: a cifra foi quebrada, mas a topologia
 não foi recuperada. Declarar o bloqueio "resolvido" seria falso. O estado real é
@@ -33,8 +38,8 @@ zero (`make clean && make test`). Saída completa em
 | Decifragem v0x0C | **CONCLUÍDO E VALIDADO** | 7.226 de 8.741 decifrados; validação independente: 400/400 amostrados com corpo completo e normais de norma 1 em 99,98% |
 | Posições de vértice | **CONCLUÍDO E VALIDADO** | 8.406 arquivos (83,31%); `f32 x,y,z` no deslocamento 0 do registro, medido em 740.514 componentes |
 | Normais | **CONCLUÍDO E VALIDADO** | 260.030 de 260.268 com norma 1 (99,91%) em v0x0A; 37.988 de 37.997 (99,98%) em v0x0C |
-| **Índices de face (topologia)** | **BLOQUEADO — não determinado** | Nenhum layout de face foi confirmado contra os dados. Ver `ASSET_FORMATS.md` |
-| **Coordenadas UV** | **BLOQUEADO — hipótese refutada por controle estatístico** | 95,5% em [0,1] contra 87,2% num controle uniforme: razão 1,10×, insuficiente para concluir |
+| Índices de face (topologia) | **PARCIAL — decodificados, ainda não em C++** | 3 referências de 8 B em +0/+8/+16; índice de vértice válido em 97,66% e de normal em 97,20% sobre 58.836 referências |
+| **Coordenadas UV** | **BLOQUEADO — sem localização** | O candidato em +4 da referência foi descartado (indistinguível entre os três limites, 68,35–68,56%). A hipótese (u,v) na normal foi refutada por controle (razão 1,10×) |
 | **Contagem de malhas** | **BLOQUEADO** | `u16@32` tem mediana 1 e máximo 18, coerente com contagem de malhas, mas não foi verificado um a um |
 | **Estrutura de ossos** | **BLOQUEADO** | Nenhum registro de osso foi localizado nem validado |
 | **Animação** | **BLOQUEADO** | Depende de ossos, que estão bloqueados |
@@ -42,12 +47,20 @@ zero (`make clean && make test`). Saída completa em
 
 ### O que isso impede, concretamente
 
-Com vértices e normais mas sem topologia, é possível saber **onde** estão os
-pontos de um modelo e **para onde** cada um aponta. Não é possível saber **quais
-pontos formam cada triângulo**. Portanto:
+Com vértices, normais e agora índices de face, é possível montar a malha. O que
+ainda impede renderizar:
+
+- A leitura de topologia **não está implementada em C++** — foi medida em Python
+  como prova de conceito, não portada ao parser.
+- **~2,4% das referências apontam fora da faixa**, causa não determinada.
+  Renderizar sem tratar isso leria fora dos limites.
+- **UV está bloqueado**, então a malha não pode ser texturizada corretamente.
+- Ossos e animação estão bloqueados, então não há skinning.
+
+Portanto:
 
 - Renderização de personagens, monstros, itens, asas e objetos de mundo:
-  **BLOQUEADA** — exige topologia.
+  **BLOQUEADA** — falta portar a topologia e resolver UV.
 - Animação esquelética: **BLOQUEADA** — exige ossos.
 - Terreno decorado com modelos: **BLOQUEADO**.
 - Cálculo de caixa delimitadora, nuvem de pontos e análise de footprint:
