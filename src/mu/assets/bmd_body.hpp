@@ -130,6 +130,14 @@ enum class BmdTopologySkip : uint8_t {
 
 const char* BmdTopologySkipName(BmdTopologySkip s);
 
+struct BmdBone {
+  std::string name;          ///< 32-byte NUL-padded ASCII, may be truncated
+  int parent = -1;           ///< -1 for root (65535 sentinel), else 0..boneCount-1
+  float raw[6] = {0};        ///< 6 floats: inferred as position xyz + rotation xyz, not confirmed
+  bool has_name = false;
+  bool floats_finite = false;
+};
+
 struct BmdBody {
   std::string source_name;      ///< From the 32-byte field; may be empty.
   bool has_source_name = false;
@@ -147,10 +155,22 @@ struct BmdBody {
   std::size_t declared_mesh_count = 0;
   /// `numTriangles` as declared, for the same reason.
   std::size_t declared_triangle_count = 0;
+  /// `boneCount` as declared (payload offset 34)
+  std::size_t declared_bone_count = 0;
+  /// `actionCount` as declared (payload offset 36)
+  std::size_t declared_action_count = 0;
   /// Texture coordinates per vertex of a triangle are NOT located. The u16 at
   /// corner offset 4 was the natural candidate and was ruled out. A mesh
   /// therefore cannot be textured correctly from this parser yet.
   bool has_texcoords = false;
+
+  /// Bones parsed after triangles. Layout verified: each bone except last is
+  /// 32 B name + 2 B parent (65535=root) + 24 B (6×f32) + 1 B pad 0 =59 B,
+  /// last bone is 32+2+24=58 B, total bc*59-1. For multi-mesh, an extra u32
+  /// (actionCount) precedes the bone block: total 4+bc*59-1. See
+  /// docs/ASSET_FORMATS.md and evidence ciclo8_bones_*.log.
+  std::vector<BmdBone> bones;
+  bool has_bones = false;
 
   /// Corner indices that fall outside the vertex or normal array. Measured at
   /// roughly 2.4% of all references, cause not established. Reported rather than
@@ -178,6 +198,8 @@ constexpr std::size_t kBmdCornerRecordSize = 8;
 constexpr std::size_t kBmdTexCoordCountOffset = 42;
 constexpr std::size_t kBmdTriangleCountOffset = 44;
 constexpr std::size_t kBmdMeshCountOffset = 32;
+constexpr std::size_t kBmdBoneCountOffset = 34;
+constexpr std::size_t kBmdActionCountOffset = 36;
 
 
 /// Parses the body of a v0x0A BMD payload. The caller passes the payload only
