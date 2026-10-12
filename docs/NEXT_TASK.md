@@ -11,10 +11,15 @@
 backend **deixou de valer por ausência de decisão** — mas continua valendo por
 ausência de ambiente, e esse é um motivo diferente que precisa ficar separado.
 
-A parte A do critério de validação foi medida: a expansão indexado → flat custa
-**20.502,7 µs** de marshalling de CPU por quadro, **123,0% do orçamento inteiro
-de um quadro a 60 FPS**, contra **935,7 µs** da submissão indexada (**21,91×**).
-A parte B (contexto real) está `BLOQUEADA`.
+> **Correção do ciclo 5.** Uma versão anterior comparava a expansão com o
+> orçamento de um quadro. **Era inválido**: a expansão é custo de
+> **carregamento**. O que se repete por quadro é o **volume** de submissão, e o
+> custo dele está `BLOCKED`.
+
+O critério de validação tem três partes: **A** (carregamento, medido — expandir
+custa **5,16×** mais que subir o buffer indexado), **A'** (volume por quadro,
+quantidade exata — **1,29×** e **63,9%** de envios redundantes) e **B** (custo
+por quadro, `BLOQUEADA` — sem contexto GL).
 
 ## Próxima tarefa: estender o parser BMD para multi-mesh
 

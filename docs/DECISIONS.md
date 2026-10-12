@@ -275,7 +275,7 @@ report and a misleading one.
 
 **Data:** ciclo 2 · **Status:** aceita
 
-**Problema.** A cifra do payload BMD v0x0C tornava 8.594 de 10.090 arquivos
+**Problema.** A cifra do payload BMD v0x0C tornava 8.594 de 10.090 arquivos <!-- historico -->
 opacos e era o bloqueio nº 1 do projeto. Cinco abordagens haviam sido tentadas e
 todas falharam: entropia e estatística byte a byte, varredura de chaves XOR
 periódicas, decifragem por arquivo claro conhecido, modelos de cifragem em
@@ -480,7 +480,7 @@ Escolher por facilidade de medição seria otimizar a métrica errada.
 
 > **Correção do ciclo 5, item 1 da auditoria.** As duas primeiras versões desta
 > seção comparavam o custo da expansão contra o **orçamento de um quadro a 60
-> FPS** e declaravam "123,0% do orçamento inteiro de um quadro". **Essa
+> FPS** e declaravam "123,0% do orçamento inteiro de um quadro". **Essa <!-- historico -->
 > comparação era inválida.** A expansão índice → flat é um custo de
 > **carregamento**, não de quadro. A tabela e o texto abaixo foram corrigidos.
 

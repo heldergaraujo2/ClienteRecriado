@@ -229,13 +229,19 @@ contagens reais da árvore — 1.792.108 vértices, 978.853 triângulos:
 
 | Medida | Valor | Desvio |
 |---|---|---|
-| Expansão indexado → flat, por quadro | 20.502,7 µs | 6,40% (entre execuções) |
-| Submissão indexada, por quadro | 935,7 µs | 10,23% (entre execuções) |
-| Upload único do vertex buffer | 3.647,9 µs | 5,59% (entre execuções) |
-| Razão expandido/indexado | **21,91×** | — |
+| **Carregamento:** expansão índice → flat, árvore inteira | 18.760,4 µs | 4,95×–6,18× na razão |
+| **Carregamento:** upload VBO, só vértices únicos | 3.632,5 µs | — |
+| Razão expansão/upload | **5,16×** | 4,95× a 6,18× |
+| **Por quadro:** volume expandido (quantidade, custo `BLOCKED`) | 67,21 MiB/draw | — |
+| **Por quadro:** razão de volume expandido/indexado | **1,29×** | — |
+| **Por quadro:** envios de canto, dos quais 63,9% redundantes | 2.936.559 | — |
 
-**20.502,7 µs = 123,0% do orçamento inteiro de um quadro a 60 FPS**, e é CPU
-apenas — sem driver, sem GPU, sem barramento. O upload único se paga em 0,18
+> **Correção do ciclo 5.** Uma versão anterior dizia "123,0% do orçamento <!-- historico -->
+> inteiro de um quadro a 60 FPS". **Essa comparação era inválida**: a expansão é
+> custo de **carregamento**, não de quadro. O que se repete por quadro é o
+> **volume** de submissão (1,29×, 63,9% de envios redundantes), e o **custo**
+> desse volume é driver/barramento — `BLOCKED`, sem contexto GL. Ver
+> `DECISIONS.md` DEC-008-A §3.1. O upload único se paga em 0,18
 quadro.
 
 **Critério de validação em duas partes:** parte A (CPU, sem contexto)
@@ -283,9 +289,9 @@ bux e o layout v0x0A.
 | Nível | Ciclo 1 | Ciclo 2 |
 |---|---|---|
 | 1 — estrutura válida | 10.023 (99,34%) | 10.023 (99,34%) |
-| 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** |
-| 3 — geometria parseada | 1.191 (11,80%) | **8.406 (83,31%)** |
-| OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** |
+| 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** | <!-- historico -->
+| 3 — geometria parseada | 1.191 (11,80%) | **8.406 (83,31%)** | <!-- historico -->
+| OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** | <!-- historico -->
 
 O teto teórico de 11,83% que constava no relatório do ciclo 1 deixa de existir.
 
@@ -331,7 +337,7 @@ sob 12 flags `-W`. Evidência em `docs/evidence/ciclo2_test.log` e
 
 ## ESTADO DO GIT NESTE CICLO
 
-- `6821d94` feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,31%
+- `6821d94` feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,31% <!-- historico -->
 - push: **sim**, `git push origin arena/519f8fc9-clienterecriado` → sucesso
 - commits deste segmento: 1 código + 1 documentação
 - referência `Cliente_ref` intacta: `88edfc73` (inalterado)
@@ -347,9 +353,9 @@ Substitui todas as seções anteriores deste arquivo para o ciclo 2.
 | Nível | Ciclo 1 | **Ciclo 2** |
 |---|---|---|
 | 1 — estrutura válida | 10.023 (99,34%) | 10.023 (99,34%) |
-| 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** |
-| 3 — geometria parseável | 1.191 (11,80%) | **8.406 (83,31%)** |
-| OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** |
+| 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** | <!-- historico -->
+| 3 — geometria parseável | 1.191 (11,80%) | **8.406 (83,31%)** | <!-- historico -->
+| OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** | <!-- historico -->
 | Checks de teste | 231 | **236** |
 
 Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),

@@ -185,8 +185,8 @@ produzidas por ferramenta em vez de afirmadas em prosa.
 
 ### Uma tabela antiga deste documento foi removida
 
-Uma versão anterior trazia "payload em claro 1.496 (14,83%)" e "geometria
-extraída 1.191 (11,80%)". Esses números são do ciclo 1, **anteriores à
+Uma versão anterior trazia "payload em claro 1.496 (14,83%)" e "geometria <!-- historico -->
+extraída 1.191 (11,80%)". Esses números são do ciclo 1, **anteriores à <!-- historico -->
 recuperação da cifra v0x0C** (DEC-007), e contradiziam a tabela de seis níveis
 acima. Foram removidos em vez de mantidos lado a lado: duas tabelas com
 denominadores iguais e valores diferentes é exatamente a ambiguidade que a

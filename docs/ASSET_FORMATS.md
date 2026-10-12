@@ -229,11 +229,11 @@ misread again. Measured over the whole tree (full output in
 [`evidence/ciclo1_bmdreport.log`](evidence/ciclo1_bmdreport.log)):
 
 > **Correção do ciclo 3.** A tabela que estava aqui mostrava "payload em claro
-> 1.496 (14,83%)" e "geometria extraída 1.191 (11,80%)". Esses números são do
+> 1.496 (14,83%)" e "geometria extraída 1.191 (11,80%)". Esses números são do <!-- historico -->
 > ciclo 1, **anteriores à recuperação da cifra v0x0C** (DEC-007). Mantê-los ao
 > lado dos atuais produziria duas tabelas com o mesmo denominador e valores
 > diferentes — exatamente a ambiguidade que a auditoria do ciclo 3 pediu para
-> eliminar. Foram substituídos. O salto entre 11,80% e 83,31% é a decifragem.
+> eliminar. Foram substituídos. O salto entre 11,80% e 83,31% é a decifragem. <!-- historico -->
 
 | Nível | O que mede | Arquivos | % de 10.090 |
 |---|---|---|---|

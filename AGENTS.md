@@ -67,6 +67,38 @@ make bench      # optional, builds the micro-benchmark
 -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion
 -Wformat=2`. Do not silence a warning by narrowing the flags; fix the code.
 
+**Se o commit toca `docs/` com números, rode também — sem exceção:**
+
+```sh
+python3 tools/check_docs_consistency.py    # exit 0 = docs batem com a ferramenta
+```
+
+Ele roda `mutool bmdreport` na árvore real e confere cada número citado em
+`docs/` contra a saída. Falha se:
+
+- um número dentro de uma linha da tabela divergir da ferramenta;
+- um número já corrigido reaparecer sem o marcador `<!-- historico -->`;
+- aparecer um include gráfico em `src/` (trava de DEC-010);
+- o nível 4 deixar de ser subconjunto do nível 3.
+
+**Por que isso é obrigatório e não opcional.** Este projeto publicou número
+errado em documento **cinco vezes**, e em todas o código estava certo e os
+testes passavam. Nada obrigava o commit que muda o código a mudar o documento. A
+ausência desta verificação foi registrada como "o que continua não construído"
+em dois relatórios de ciclo seguidos — registrar sem construir é o mesmo que não
+registrar.
+
+Para citar um número obsoleto de propósito (numa nota de correção, por exemplo),
+marque a linha:
+
+```markdown
+Uma versão anterior dizia 1.496 arquivos. <!-- historico -->
+```
+
+Sem o marcador, a verificação falha. O marcador é explícito de propósito:
+deduzir do contexto (blockquote, título de seção) é frágil e quebraria em
+silêncio.
+
 When you have the reference client available, also run:
 
 ```sh

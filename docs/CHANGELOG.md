@@ -118,14 +118,14 @@ refinement.
 - **Causa da queda de 50,6% entre nível 3 e nível 4: `meshCount != 1` em
   100,00%** dos 4.257 arquivos. Zero falham por tamanho, versão ou campo
   ausente. É limite do parser, não do formato
-- **Expansão indexado → flat: 20.502,7 µs por quadro** contra **935,7 µs** da
-  submissão indexada — razão **21,91×** (entre execuções: 21,82× a 22,78×). A
-  expansão sozinha é **123,0% do orçamento inteiro de um quadro a 60 FPS**, e é
+- **Expansão indexado → flat: 20.502,7 µs por quadro** contra **935,7 µs** da <!-- historico -->
+  submissão indexada — razão **21,91×** (entre execuções: 21,82× a 22,78×). A <!-- historico -->
+  expansão sozinha é **123,0% do orçamento inteiro de um quadro a 60 FPS**, e é <!-- historico -->
   CPU apenas
 - Upload único do vertex buffer: 3.647,9 µs, pago em **0,19 quadro**
 
-> **Correção registrada.** A primeira versão destes números (21.459,9 / 837,3 /
-> 25,63×) veio de uma execução do benchmark cujos valores foram **digitados** na
+> **Correção registrada.** A primeira versão destes números (21.459,9 / 837,3 / <!-- historico -->
+> 25,63×) veio de uma execução do benchmark cujos valores foram **digitados** na <!-- historico -->
 > seção de contas da evidência, enquanto a seção de resultado veio de outra
 > execução. As duas discordavam dentro do mesmo arquivo. Os números acima saem
 > de `tools/gen_dec008_evidence.py`, que deriva tudo da saída do benchmark e
@@ -140,7 +140,7 @@ refinement.
   `COMPATIBILITY.md`. Relatórios de ciclo fechado ficaram como estavam: eram
   verdadeiros quando escritos
 - **Tabela do ciclo 1 removida de `COMPATIBILITY.md` e `ASSET_FORMATS.md`.**
-  Dizia "payload em claro 1.496 (14,83%)" e "geometria 1.191 (11,80%)",
+  Dizia "payload em claro 1.496 (14,83%)" e "geometria 1.191 (11,80%)", <!-- historico -->
   anteriores a DEC-007. Manter as duas tabelas lado a lado era a própria
   ambiguidade que a auditoria pediu para eliminar
 - Prefixo dos arquivos de evidência novos: `ciclo3_` → `ciclo4_`. A convenção é
@@ -227,9 +227,9 @@ adotada: **`NOT EXECUTED`**, não "preservada".
 
 ### Quebrado
 - **Cifra BMD v0x0C** — XOR rolante sobre tabela de 16 B com chave corrente
-  derivada do texto cifrado anterior. Nível 2 (payload em claro) de 1.496
-  (14,83%) para **8.571 (84,95%)**; nível 3 (geometria parseada) de 1.191
-  (11,80%) para **8.406 (83,31%)**. OPAQUE de 8.594 para 1.519. Proveniência:
+  derivada do texto cifrado anterior. Nível 2 (payload em claro) de 1.496 <!-- historico -->
+  (14,83%) para **8.571 (84,95%)**; nível 3 (geometria parseada) de 1.191 <!-- historico -->
+  (11,80%) para **8.406 (83,31%)**. OPAQUE de 8.594 para 1.519. Proveniência: <!-- historico -->
   `xulek/muonline-bmd-viewer` (ISC), reimplementado; ver DEC-007.
 - **Layout do corpo BMD** — campos `meshCount/boneCount/actionCount` em
   32/34/36 e estrutura por malha (`numVertices/numNormals/numTexCoords/`
