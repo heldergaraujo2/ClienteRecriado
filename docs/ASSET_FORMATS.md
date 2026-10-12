@@ -881,11 +881,22 @@ com o platô gradual e incompatível com um array de índices.
 | Relação implícita por posição | refutada (93% dos arquivos diferem) |
 | Bytes 24..59 | platô sem pico; provavelmente `f32`, não índices |
 
-**O que não foi tentado:** que o índice de UV esteja **fora** do registro de
-triângulo — por exemplo, num array paralelo de `ntri` entradas em outra parte do
-corpo, ou nos 4 bytes não identificados do cabeçalho (offsets 48..51). Também não
-foi testado se os bytes 24..59 são de fato `f32`, o que confirmaria ou eliminaria
-a explicação acima.
+**A explicação foi confirmada: os bytes 24..59 são ponto flutuante.** Lidos como
+`f32`, dão **0,055%** de não-finitos (68 em 122.706 leituras) contra **0,39%**
+esperado por acaso — seriam ~478. Bytes arbitrários não produzem esse resultado.
+O controle (bytes 0..23, sabidamente índices inteiros) dá 0,027%, também abaixo
+do acaso, porque inteiro pequeno interpretado como `f32` é finito.
+
+Isso fecha a questão: **não há índice de UV nos bytes 24..59 porque ali não há
+índices.** O que são esses floats — vetor de luz, coordenada de lightmap,
+atributo por face — não foi determinado.
+
+**O que resta tentar**, e está em `NEXT_TASK.md`:
+
+1. Que o índice de UV esteja **fora** do registro de triângulo, num array
+   paralelo de `ntri` entradas em outra parte do corpo.
+2. Os **4 bytes não identificados do cabeçalho** (offsets de payload 48..51),
+   entre o cabeçalho e o array de vértices, nunca examinados.
 
 ### Verificação independente da decifragem v0x0C
 
