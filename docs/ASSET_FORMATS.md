@@ -1131,6 +1131,43 @@ em payload 36 vale 1 nestes arquivos, mas seu significado não foi verificado.
 
 **Estado: animação BLOQUEADA.** É o último bloco do formato BMD não decodificado.
 
+### Altura de terreno — decodificada
+
+Os dados de altura **não estão** nos arquivos `.att`, que este projeto vinha
+tratando como terreno. Estão em `TerrainHeight.OZB`, um por mundo:
+
+```
+Data/World<N>/TerrainHeight.OZB    66.618 bytes = 1.082 de prefixo + 65.536 de corpo
+corpo = 256 × 256 bytes, um u8 de altura por célula da grade
+```
+
+**Evidência de que o corpo é altura e não bytes arbitrários.** A diferença média
+entre células vizinhas:
+
+| Direção | Medida | Aleatório `u8` |
+|---|---|---|
+| horizontal | 4,400 | ~85,3 |
+| vertical | 4,455 | ~85,3 |
+
+Uma razão de cerca de 19× abaixo do aleatório. Superfície de terreno é um campo
+suave; bytes arbitrários não são. Valores medidos: mínimo 0, mediana 110, máximo
+255.
+
+**Também medido: o arquivo NÃO é cifrado bux.** Começa com zeros, e aplicar a
+chave XOR-3 transforma esses zeros em `FC CF AB` — o que seria altura espúria.
+A extensão `.OZB` induz ao erro: nem todo `.OZB` deste cliente usa bux.
+
+**O que não foi determinado:**
+
+- O que são os 1.082 bytes de prefixo.
+- A escala vertical: se cada unidade vale 1, 0,5 ou outro fator. Sem isso a
+  altura é relativa, não métrica.
+- Se os outros mundos seguem o mesmo prefixo.
+
+**Consequência:** terreno renderizável passa a depender de textura, não de
+geometria — a grade 256×256 com altura por célula já está legível. Isso é
+independente do bloqueio de UV dos modelos `.bmd`.
+
 ### Verificação independente da decifragem v0x0C
 
 A decifragem foi confirmada por uma via que não depende do campo de nome: sobre
