@@ -230,7 +230,7 @@ caixa delimitadora, com testes. **Não produz UV nem ossos**, e `has_texcoords`
 fica `false` de propósito.
 
 **Contra a tabela corrigida de seis níveis** (`COMPATIBILITY.md`, evidência em
-`evidence/ciclo3_scan_final.log` e `evidence/ciclo3_topology_subset.log`):
+`evidence/ciclo3_scan_final.log` e `evidence/ciclo4_topology_subset.log`):
 
 | Nível | Arquivos | % de 10.090 |
 |---|---|---|

@@ -193,7 +193,7 @@ force-push, nunca reescrever histórico. O remoto não é o problema; o branch
 local é que está desalinhado.
 
 Evidência completa do incidente, com reflog e diffs de verificação:
-[`evidence/ciclo3_git_incident.log`](evidence/ciclo3_git_incident.log).
+[`evidence/ciclo4_git_incident.log`](evidence/ciclo4_git_incident.log).
 
 ### 9.2 O que o incidente custou, e o que não custou
 

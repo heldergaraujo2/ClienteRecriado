@@ -246,7 +246,7 @@ misread again. Measured over the whole tree (full output in
 
 1.519 arquivos (15,05%) permanecem OPAQUE. Evidência bruta:
 [`evidence/ciclo3_scan_final.log`](evidence/ciclo3_scan_final.log) e
-[`evidence/ciclo3_topology_subset.log`](evidence/ciclo3_topology_subset.log).
+[`evidence/ciclo4_topology_subset.log`](evidence/ciclo4_topology_subset.log).
 
 #### Os níveis NÃO são cumulativos na mesma população
 

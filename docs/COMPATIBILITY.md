@@ -95,7 +95,7 @@ suporte a asset original.
 ### Tabela final de compatibilidade — seis níveis
 
 Árvore completa, 10.090 arquivos `.bmd`, `mutool bmdreport`. Evidência bruta em
-`docs/evidence/ciclo3_scan_final.log` e `docs/evidence/ciclo3_topology_subset.log`.
+`docs/evidence/ciclo3_scan_final.log` e `docs/evidence/ciclo4_topology_subset.log`.
 
 | Nível | O que mede | Arquivos | % de 10.090 |
 |---|---|---|---|
