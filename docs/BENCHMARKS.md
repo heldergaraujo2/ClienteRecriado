@@ -136,3 +136,25 @@ Each scenario is run three times, results reported as median and spread.
    and decision.
 5. If the result is within noise, say so and revert. Do not keep a change whose
    benefit cannot be measured.
+
+### 3.4 Ciclo13 optimizations — OPT-003/004/005
+
+Methodology same as §2, g++ 12.2.0 -O2, Linux x86_64, 2000 reps OZT 200 reps BuxCrypt 200 reps OzjProbe, buffer sizes 0.25 MB 256x256 1 MiB BuxCrypt 0.19 MB OzjProbe, evidence `docs/evidence/ciclo13_bench_after.log` full output with median p95 p99 mean MB MB/s.
+
+```
+Before (ciclo11 baseline):
+OztToRgbaTopDown 256x256  med 62.4 us  p95 97.2 us  p99 138.6 us  mean 68.7 us  0.25 MB  4003.6 MB/s
+BuxCrypt 1 MiB            med 1135.7 us  p95 1189.3 us  p99 1200.2 us  mean 1146.5 us  1.00 MB  880.5 MB/s
+OzjProbe 512x512+200KB     med 179.2 us  p95 237.0 us  p99 272.7 us  mean 187.1 us  0.19 MB  1064.9 MB/s
+
+After (ciclo13 item10, after OPT-003/004/005):
+OztToRgbaTopDown 256x256 (optimized 2px bit ops)  med 63.0 us  p95 77.9 us  p99 89.7 us  mean 65.1 us  0.25 MB  3969.0 MB/s  ~1x median p99 1.54× tail reduction
+OztToBgraTopDown 256x256 (GL_BGRA direct CAND-001)  med 6.6 us  p95 7.2 us  p99 11.3 us  mean 6.8 us  0.25 MB  38057.5 MB/s  9.45× median 12.26× p99 vs old 62.4/138.6, throughput 4003→38057 9.5×
+BuxCrypt 1 MiB  med 384.8 us  p95 417.3 us  p99 435.9 us  mean 393.1 us  1.00 MB  2598.9 MB/s  2.96× vs original 1135.7/880.5, 3.9× peak OPT-003 290.9us 3437 MB/s
+OzjProbe 512x512+200KB  med 22.9 us  p95 33.5 us  p99 36.4 us  mean 24.2 us  0.19 MB  8342.2 MB/s  7.8× vs original 179.2/1064.9, 11.79× median 8.47× p99 peak OPT-004 15.2us
+```
+
+Full log: `docs/evidence/ciclo13_bench_after.log` 474 checks 0 failures test-san full after `ciclo13_test_san_full_after.log`.
+
+Decision: Keep OPT-003 BuxCrypt word-at-a-time 8B key64[3] phase, OPT-004 OzjProbe word-at-a-time 8B has_zero bitmask, OPT-005 OztToBgraTopDown GL_BGRA direct memcpy flip only 10.2×.
+

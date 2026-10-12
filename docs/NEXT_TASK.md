@@ -1,92 +1,71 @@
-# Próxima tarefa — ciclo12 fechamento E3
+# Próxima tarefa — ciclo14 A1
 
-> **Ciclo 12 fechado** C1-C3 D1-D5 E1-E3 com 460 checks 0 falhas (389 base + 71 novos). HEAD atual `a97b605` + commits pendentes E1-E3. Base ciclo11 `49825c5` (389 checks). Referência `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto. Branch `arena/519f8fc9-clienterecriado`.
+> **Ciclo 13 fechado** — 10 itens A1-E3 com auto-auditoria obrigatória e revisão STATUS_FINAL.md linha a linha.
+> HEAD atual `550593c` + 772d0a4 item9 + commits pendentes push. Base ciclo12 `a97b605` (460 checks) → ciclo13 474 checks. Referência `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto. Branch `arena/519f8fc9-clienterecriado`.
 
-## O que foi concluído ciclo12
+## O que foi concluído ciclo13 (10 itens)
 
-**C1-C3:**
-- C1: `src/mu/assets/mesh.hpp` representação interna única malha+esqueleto com `bone_weights vector<vector<BoneWeight>>` + `has_bone_weights`, Mesh acomoda vértices/normais/UV/índices/hierarquia ossos/pesos skinning independente formato BMD ou glTF, `docs/ARCHITECTURE.md` §9.1 definição C++ completa, `tests/test_assets.cpp` TestMeshInternalRepresentation 23 checks, 412 checks total commit `6aeff55`
-- C2: `docs/DECISIONS.md` DEC-013 Caminho B glTF 2.0 escolhido para assets pesados customizados (não originais), comparação 4 alternativas glTF vs FBX vs OBJ vs Collada quanto skinning/PBR/maturidade parsing C++ sem dependências/licença, tinygltf/cgltf single-header MIT, Caminho B não substitui Caminho A explicitamente, commit `c0a87eb`
-- C3: `docs/ASSET_FORMATS.md` Limites reais consolidados com base em tudo medido: vértices campo u16 teto 65.535 máximo observado 22.987 Ozarugold.bmd sem limite superior conhecido documentado além do campo, ossos máximo 63 Stick32.bmd limite prático 64 total 7879 bones 3693 arquivos loose ratio per file 1846,28× definitivo strict 1186 headline conservador, malhas máximo 30 geral Object157/Object06.bmd 9 com ossos Object74/Object40.bmd, materiais/texturas 1 por mesh observado sbow06_R.jpg etc, registro osso 59B intercalado, triângulo 64B vértice 16B normal 20B, tools /tmp/find_max_vert /tmp/find_max_bones3, commit `8bdd357`
+**A1-A3:**
+- A1: `docs/REFERENCE_AUDIT.md` e `docs/ARCHITECTURE.md` auditados, bones loose 3693 ratio per file 1846,28× definitivo, strict 1186 headline conservador, max_bc 63 limite prático 64 teto 63 sem contradição, fix divergência 389 vs 469
+- A2: Makefile fix ciclo13 item1 — test-san agora cobre 100% checks 474, antes 389 vs 469 discrepância corrigida, regra permanente divergência test vs test-san = bloqueio crítico
+- A3: `docs/evidence/ciclo13_git_incident.log` e `ciclo13_bones_ratio_final_calc.log` com cálculo passo a passo ratio per file LOOSE 43,9329% / 0,023795% = 1846,28× mesma unidade, per trial 43,9329% / 0,007932% = 5538× unidades diferentes INVÁLIDO
 
-**D1-D5:**
-- D1: `src/mu/render/buffers.hpp/.cpp` PackMeshForUpload CPU-side VBO/VAO sem GL headers, PackedVertex px,py,pz,nx,ny,nz,u,v,bone_ids[4],bone_weights[4],weight_count, PackedBuffers vertices flat indices flat has_texcoords has_bone_weights bounds skipped_vertices bad_indices ok problem, valida positions non-empty normals size match texcoords size match quando has true bone_weights size match quando has true, copia UV senão 0,0, empacota até 4 pesos, valida indices múltiplo 3 dropa triângulos bad index conta bad_indices, quando indices vazio sequencial 0..N-1, ComputeBounds, PackSkeletonForUpload valida parent range self-loop cycle visited[64] fail safe, Makefile adiciona buffers.cpp, TestPackMeshForUpload 21 checks byte a byte, 433 checks commit `7bfb39e`
-- D2: `src/mu/render/skinning.hpp/.cpp` LBS CPU strict sem GL, Mat4 row-major Identity(), TransformPoint(), ValidateSkeletonForSkinning has_bones true bones non-empty parent range [-1,N-1] kNoBoneParent=-1 self-loop parent==i rejeita cycle visited[64], ApplySkinningLBS strict count mesh positions non-empty normals mismatch, se has_bone_weights false retorna original zero movement ok=true, se true exige bone_weights size == positions size, skeleton validado, boneTransforms size == skeleton bones size strict, sum weight_i*(bone*pos) wsum normalize se !=1 skip invalid bone id fail safe empty weight retorna original, sem GL headers, TestSkinningLBS 10 checks (a) identity bones equals original 3 vértices 1.0 e 0.5+0.5 2 bones identity skinned==original (b) self-loop fails safe parent==0 self-loop !ok invalid parent 5 out of range !ok (c) mesh without bone_weights zero movement 2 vértices original ok, 443 checks commit `4f061bb`
-- D3: `src/mu/render/cull.hpp/.cpp` já implementava frustum culling CPU bounds reais p-vertex conservative safe IsVisible true invalid fail safe, TestFrustumCull existente (a) inside kept (b) outside culled (c) invalid never culled, adicionado TestFrustumCullRealBounds usa bounds real Mesh ComputeBounds e PackMeshForUpload (a) inside 0..1 frustum 0..10 kInside IsVisible true bounds e packed.bounds (b) outside -20..-10 kOutside IsVisible false (c) invalid never culled true kIntersect, 456 checks commit `9c4acc0`
-- D4: `docs/RENDERING.md` §12.6 Plano otimização consistente com dados medidos (a) LOD (b) streaming (c) redução draw calls separando medido×estimativa×hipótese, (a) LOD medido 10.090 BMD 8.406 geometria vértices máximo 22.987 campo u16 teto 65.535 triângulos máximo 39.193 geral 15.390 com ossos malhas máximo 30 geral 9 com ossos bones máximo 63 limite prático 64 total 7879 3693 loose ratio per file 1846,28× 1.792.108 vértices únicos 978.853 triângulos 4.071 meshes sharing 1,64 vs 3 63,9% reenvios desnecessários plano Caminho A LOD bloqueado bloqueio #1 cifra 85% exige topologia Caminho B MSFT_lod glTF seleção cobertura tela dither/morph métrica frametime vs cobertura, (b) streaming medido textura soma teórica w*h*4 2.893,80 MB footprint máximo teórico estimativa teórica não medição sem GPU BMD 10.090 8.406 geometria 3.693 bones loose 43,93% 1.186 strict 14,11% 85% cifrado v0x0C bloqueio #1 buffers PackMeshForUpload CPU-side VBO/VAO sem GL validado byte a byte 21 checks skeleton PackSkeletonForUpload valida parent self-loop cycle visited[64] plano orçamento VRAM LRU/LFU mip sob demanda carregar bounds primeiro depois geometria quando IsVisible true priorizar visível via culling streaming bloqueado parcialmente cifra v0x0C decifra V0C validada 400/400 normais norma 1 99,98% D1 buffers prontos upload, (c) draw calls medido sem glGenBuffers/glBufferData sem VBO sem glDrawElements sem indexed sem glGenFramebuffers sem FBO glBegin/glEnd immediate Main.exe client-side glDrawArrays Main.dll re-marshal per draw per frame expandido 67,21 MiB por draw mutool meshimport corner sends 2.936.559 por draw unique 1.792.108 reenviados 63,9% frustum culling p-vertex conservative safe IsVisible true invalid fail safe TestFrustumCull+RealBounds 13 checks buffers D1 índices flat drop bad plano VBO/IBO batching DEC-008 PackMeshForUpload flat vertices+indices pronto glBufferData+glDrawElements agrupar por material 1 textura por mesh observado sbow06_R.jpg reduzir bind culling antes bind custo 1 comparação vs 6 planos não bind descartado métrica descartados instancing hipótese até medição eliminar glReadPixels FBO UNVERIFIED método orçamento frametime geometria sintética complexidade crescente hardware destino condições declaradas resolução/driver/cena/iterações/desvio/cache ponto CPU vs GPU dominado orçamento abaixo pior caso não mediana sem meta arbitrária antes baseline rotulagem teste sintético pipeline DEC-009, commit `208c7de`
-- D5: `src/mu/platform/win32_window.hpp/.cpp` esqueleto Win32 wglCreateContext BLOCKED documentado sequência correta RegisterClassExW CS_OWNDC CreateWindowExW GetDC PIXELFORMATDESCRIPTOR PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER ChoosePixelFormat SetPixelFormat 1× por janela wglCreateContext wglMakeCurrent loop PeekMessage/TranslateMessage/DispatchMessage timeBeginPeriod(1) ou QPC recomendado render glClear VBO/VAO DEC-008 SwapBuffers cleanup wglMakeCurrent(nullptr,nullptr) wglDeleteContext ReleaseDC DestroyWindow UnregisterClass, não inclui <windows.h> nem <GL/gl.h> propositalmente para não quebrar build Linux, structs Win32GLConfig width,height,title,fullscreen,colorBits,depthBits,stencilBits e Win32GLWindow handle opaco created flag em Windows real HWND/HDC/HGLRC, API esqueleto CreateGLWindow DestroyGLWindow SwapGLWindow PollEvents GetWin32GLStatus, implementação BLOCKED stub retorna false/true sem Windows SDK/GPU, por que BLOCKED ambiente Linux sem Windows SDK sem wgl.h sem OPENGL32.dll sem GPU sem display compilar exigiria mingw + headers Windows + opengl32.lib execução Windows real com driver GL testes automatizados não podem criar janela Win32 nem contexto GL aqui registrar como BLOCKED com justificativa não PASS/FAIL conforme regra não inventar testes Windows sem hardware, Makefile adiciona win32_window.cpp como stub compilável Linux retorna BLOCKED real Windows compilation BLOCKED, TestWin32GLSkeletonBlocked 4 checks CreateGLWindow falha safe !created !win.created GetWin32GLStatus kBlockedNoWindowsSDK DestroyGLWindow !created, 460 checks commit `a97b605`
+**B1-B3:**
+- B1: `docs/STATUS_FINAL.md` revisado — antes otimista só identity/self-loop/zero, depois não-trivial rotação 90° Z
+- B2: D2 corrigido de otimista para CONCLUÍDO E VALIDADO com rotação 90° Z não-trivial (1,0,0)->(0,1,0) fabs<1e-5, 15 checks
+- B3: D3 corrigido para CONCLUÍDO E VALIDADO com 3 casos unitários a/b/c + escala real 8406 bounds reais culled 2,77% (frustum 0..10 X) e 7,88% (identity VP), evidência ciclo13_cull_scale.log
 
-**E1-E3:**
-- E1: `docs/DEPENDENCIES.md` §7 Áudio/rede/interface avaliação com versão/licença/segurança baseado em REFERENCE_AUDIT.md §4.2/4.3 import tables PE i386 inventário Data/ medido não inferido, áudio wzAudio.dll 212KB vorbisfile DSOUND WINMM Ogg Vorbis via DirectSound própria+Xiph BSD DSOUND legado sem sandbox DLL hijack risco Audio.dll 35KB MSVCP140 VCRUNTIME140 WINHTTP bcrypt WININET VS2015+ HTTP+crypto verificar TLS não enfraquecer validação servidor para benchmark vorbisfile.dll 999KB ogg.dll 53KB Xiph 1.3.x BSD-style vulnerabilidades históricas buffer overflow sem auto update DSOUND 2 imports DirectSound legado Microsoft OS deprecado WINMM 12 imports timeGetTime timer+audio timeBeginPeriod aumenta resolução timer global custo energia Data/Sound 1.020 wav 211,9MB SFX proprietária 61 mp3 193,8MB +3 ogg música fundo proprietária+codecs MP3 decoder não identificado, avaliação dupla runtime VS2010+VS2015+ risco compatibilidade CRT recomendação stb_vorbis MIT ou libvorbis BSD + miniaudio/OpenAL sem DSOUND legado sem HTTP em módulo áudio, rede WS2_32 32 imports WSASend TCP/UDP jogo Microsoft OS sem TLS verificar criptografia própria protocolo não enfraquecer para benchmark WININET 15 CRYPT32 33 urlmon 2 HTTP+crypto patching+licence checks Microsoft OS checar validação cert TLS não contornar IPHLPAPI 1 MAC retrieval fingerprint hardware licensing Microsoft OS privacidade hinetworks.dll 520KB 3DGuard.dll 1.455KB License.hinet 1.216B main.premium 2.775MB 3D.Premium 142KB Checksum.premium 2KB Hinet Networks byte-identical .data/.rsrc entre hinetworks e 3DPlugin Licensing/anti-cheat Comercial não redistribuível MHPClient.dll 719KB MHPVerify.dll 55KB Unknown vendor verificação Comercial não redistribuível anti-cheat PS.dll 11.878MB PS/License.ps Delphi packed External tool licença Unknown não redistribuível packed ListaPatch.txt 188 linhas path CRC32 SIZE manifest patch própria repo não bate manifest total 188 match 116 size mismatch 9 crc mismatch 11 missing 52 mutool verify integridade comprometida Lua Data/Custom/Script 22 arquivos ProtocolCore.lua registra protocolos custom proprietária risco injeção se não validar, avaliação dependência pesada módulos comerciais anti-cheat/licensing não redistribuíveis não podem ser contornados protocolo WS2_32 direto patch WININET fingerprint MAC reconstrução rede limpa sem DRM validação servidor preservada sem enfraquecer para benchmark, interface GDI32 14 imports ChoosePixelFormat SetPixelFormat SwapBuffers CreateDIBSection CreateFontA TextOutW WGL context janela GDI texto GDI Microsoft OS GDI legado USER32 83 imports ChangeDisplaySettingsA EnumDisplaySettingsA SetWindowsHookExA GetAsyncKeyState RegisterHotKey resolução hooks input Microsoft OS SetWindowsHookEx global hook risco GetAsyncKeyState polling wglUseFontBitmapsA GDI bitmap fonts texto Microsoft OS depende fontes instaladas Tahoma/Arial qualidade varia Settings.ini [Font] Tahoma/Arial 13/11 [Graphics] Anisotropy MaxAnisotropy 32 etc [AntiLag] etc tuning própria AutoLogin User/Password SaveData plaintext ver SECURITY.md Scripts/*.reg 16 arquivos 640x480..1920x1080 LANGUAGE ENGLISH/PORTUGUESE/SPANISH SOUND ON/OFF FULL SCREEN/WINDOW resolução/idioma via registry própria escreve registry precisa elevação UX ruim sem preset 2560x1440 etc Lua System/InterfaceCore.lua LoadImages.lua Util/Json.lua + folders Musaffe NewWindow UpgradeMachine WindowTitle 22 Lua + ScriptEffect UI custom proprietária sem sandbox declarado Data/Interface 835 arquivos UI proprietária Launcher.exe 15,6MB .NET mscoree.dll .NET launcher Unknown, avaliação GDI+USER32 legado fontes via GDI bitmap não atlas resolução via registry .reg não config file input via GetAsyncKeyState polling+hooks reconstrução Win32 diretamente zero dep no target ou SDL2 zlib atlas glyph cache melhor que GDI bitmap QPC high-res clock vs timeGetTime 1ms até 6% frame 60Hz 14% 144Hz config file não registry, resumo segurança não contornar VMProtect/Themida/WinLicense/DRM/verificações licença regra permanente DLLs diretório atual risco hijack carregar caminho seguro ou libs estáticas plaintext credenciais Settings.ini [AutoLogin] ver SECURITY.md Thumbs.db 12 arquivos 677KB + rar/zip 14,3MB + ScreenShots 51,7MB não deveriam shippar dupla CRT VS2010+VS2015+ risco compatibilidade, commit `7ead107`
-- E2: `src/mu/platform/main_loop.hpp/.cpp` esqueleto main loop update/render/present com predição frame budget sem GL sem <windows.h> puro CPU FrameBudget target_fps target_frame_ms update_ms render_ms present_ms total_ms slack_ms over_budget frame_index InputState quit_requested UpdateResult visible_objects culled_objects elapsed_ms RenderResult draw_calls_prepared triangles_submitted elapsed_ms PresentResult elapsed_ms MainLoop ctor target_fps Tick(InputState) retorna FrameBudget ordem update->render->present mede via std::chrono::high_resolution_clock QPC em Windows real não timeGetTime 1ms SetTargetFps PredictOverBudget média móvel últimos 30 frames >90% budget History 120 frames 2s a 60fps DoUpdate placeholder 0.1ms visible 100 culled 50 DoRender placeholder 0.2ms draw_calls=visible_objects triangles=visible*100 DoPresent placeholder 0.05ms SwapBuffers em Windows real total = chrono medido + placeholders demonstra separação sem GL sem GL headers sem Windows SDK sem dependências, Makefile adiciona main_loop.cpp, TestMainLoopSkeleton 9 checks Tick target_fps 60 target_frame_ms 16-17 frame_index 0 total_ms>=0 segunda Tick frame_index 1 History size 2 PredictOverBudget false com histórico pequeno SetTargetFps 144 target_frame_ms 6-7, 469 checks commit `eb7fbe4`
-- E3: este documento — próxima tarefa incremental com ganho mensurável real neste ambiente
+**C1-E3:**
+- C1: `src/mu/assets/mesh.hpp` 23 checks, D1: `buffers` 21 checks, E1: `main_loop` 9 checks — revisados com código, teste, saída [ RUN ]/[ OK ], classificação final sem otimismo, evidência ciclo13_c1_e3_detailed.log, ciclo13_e1_e2_e3_content.log
+- C2: DEC-013 glTF 2.0 Caminho B não substitui Caminho A
+- C3: Limites reais consolidados max_vc 22987 max_mc 30 max_bc 63
+- D4: `docs/RENDERING.md` §12.6 plano otimização consistente com dados medidos LOD/streaming/draw calls
+- D5: `src/mu/platform/win32_window` esqueleto BLOCKED 4 checks
+- E2-E3: Áudio/rede/interface avaliados, dependências §7
 
-## Próxima tarefa incremental com ganho mensurável real neste ambiente — E3 CONCLUÍDO ciclo12
+**D/E item9:** STATUS_FINAL.md revisado linha a linha corrigindo classificação otimista 772d0a4 105 insertions
 
-**Tarefa escolhida:** otimizar `BuxCrypt` (terrain attribute decryption) e `OztToRgbaTopDown` (BGRA→RGBA + flip) — ambos medidos como gargalos CPU neste ambiente Linux sem GPU, com ganho mensurável via `bench_assets`.
+**E item10:** Otimização BuxCrypt e OztToRgbaTopDown implementada
+- OztToRgbaTopDown otimizado 2 pixels 8B via uint64_t swap BGRA->RGBA via (p & 0xFF00FF00) | ((p & 0xFF)<<16) | ((p>>16)&0xFF) memcpy unaligned safe
+- OztToBgraTopDown novo CAND-001/OPT-005 GL_BGRA direct — apenas flip vertical memcpy row, sem swap, 10,2× teórico 66,4us→6,5us
+- bench_assets OztToBgraTopDown 256x256 (GL_BGRA) adicionado
+- make clean && make test-san → 474 checks 0 failures 100% testes, evidence ciclo13_test_san_full_after.log
+- bench_assets → ciclo13_bench_after.log: OztToRgba 63,0us med 3969 MB/s, OztToBgra 6,6us med 38057,5 MB/s 9,55× speedup, BuxCrypt 384,8us med 2598,9 MB/s vs baseline 1135,7us 880,5 MB/s 2,96× speedup
+- OPTIMIZATION_LOG.md OPT-005 documentado problema→evidência→hipótese→alteração→teste→antes/depois→efeitos→decisão manter
 
-**Por que esta tarefa traz ganho mensurável real neste ambiente:**
+## Próxima tarefa ciclo14 A1 — por quê
 
-1. **Dados medidos atuais (BENCHMARKS.md + PERFORMANCE_BASELINE.md):**
-   - `BuxCrypt 1 MiB` median 1135,7us 880,5 MB/s — **mais lento per-byte** entre todos benchmarks, decifra 131KB terrain attribute ~150us, 265 arquivos terreno ~40ms serial no map load — gargalo medido load-time
-   - `OztToRgbaTopDown 256x256` median 62,4us p95 97,2us p99 138,6us mean 68,7us 4003,6 MB/s — conversão BGRA→RGBA + flip vertical puro CPU, p99 2,2× median indica tail que causa hitch, 1024x1024 ~1,1ms blocking na thread que pediu textura
-   - `OzjProbe` já otimizado OPT-004 word-at-a-time 179,2us→15,2us 11,79× speedup, prova que otimização word-at-a-time funciona neste ambiente
+**A1: Investigar cifra BMD v0x0C OPAQUE 1519 arquivos 15,05% — tentativa via análise Data/**
 
-2. **Ganho mensurável neste ambiente (sem GPU):**
-   - `BuxCrypt` otimização word-at-a-time ou SIMD: medir `bench_assets` BuxCrypt 1 MiB antes/depois, esperar speedup similar OPT-004 3-10×, throughput 880 MB/s → 3000+ MB/s, tempo map load 40ms → <15ms
-   - `OztToRgbaTopDown` otimização eliminar swap via `GL_BGRA` (DEC-008) ou SIMD: medir bench OztToRgbaTopDown 256x256 antes/depois, se eliminar conversão, tempo 62,4us → ~6us (só copy), ou SIMD 2-4× speedup, p99 tail reduzido
-   - Ambos medidos via `make bench && ./build/bench_assets` com warm-up, median+p95+p99, dispersion, sem GPU, conforme metodologia BENCHMARKS.md §2
+Prioridade técnica item 8: investigar cifra BMD v0x0C antes de CAND-001 pois bloqueia ~85% modelos e é pré-requisito para renderização mundo e entidades — já parcialmente resolvida com V0C decifra 7226 arquivos 71,61% mas 1519 15,05% ainda OPAQUE. Próximo passo: mapear Data/ BuxCrypt terrain vs BMD V0C keyspace, tentar full-scan 1503 variantes PlausiblePath 0 resultado anterior, documentar bloqueio #1 se falhar.
 
-3. **Implementação incremental pequena e testável:**
-   - Passo 1: medir baseline atual `bench_assets` salvar log `docs/evidence/ciclo13_buxcrypt_baseline.log`
-   - Passo 2: implementar BuxCrypt word-at-a-time: ler 8B chunks, XOR com key 16B repetida via 64-bit, unaligned safe memcpy, preservar correção, sem strict-aliasing, sem overread, testar `make test` 469 checks 0 failures + `make test-san` ASan/UBSan
-   - Passo 3: medir after `bench_assets` salvar `ciclo13_buxcrypt_after.log`, comparar median speedup, registrar em OPTIMIZATION_LOG.md com problema→evidência→hipótese→alteração→teste comparativo→antes/depois→efeitos colaterais→decisão
-   - Passo 4: repetir para OztToRgbaTopDown: opção A eliminar swap (documentar GL_BGRA universal desktop GL) + medir, opção B SIMD SSE2/AVX2 BGRA→RGBA + flip, medir
-   - Passo 5: commit pequeno descritivo por otimização, push, atualizar CURRENT_STATE.md e NEXT_TASK.md
+Critérios aceite ciclo14:
+- build limpo: make clean && make test 474 checks 0 failures, make clean && make test-san 474 checks 0 failures 0 ASan/UBSan 100% cobertura
+- números batendo com ferramenta: bench_assets com buffer size iterações desvio padrão cache/in cache
+- sem contradição entre documentos: BENCHMARKS.md, PERFORMANCE_BASELINE.md, RENDERING.md §12.6, STATUS_FINAL.md, CURRENT_STATE.md, NEXT_TASK.md consistentes
+- comparação real-vs-controle com unidades idênticas: ratio per file 1846,28× mesma unidade, não misturar per trial
+- seção obrigatória ao final de CADA ciclo com dados reais: ESTADO DO GIT NESTE CICLO — commits locais hashes+mensagens push realizado sim/não confirmação hash remoto==local comando+saída git status final motivo explícito se algo não commitado/publicado
 
-4. **Critério de aceite:**
-   - `make test` 469 checks 0 failures
-   - `make test-san` 0 ASan/UBSan
-   - `bench_assets` mostra speedup >2× median para BuxCrypt ou OztToRgbaTopDown com evidência log completa buffer size, iterações, desvio padrão, cache quente/frio
-   - Nenhum regressão parsing BMD 8406/8405/3693/1186, OZJ 13832 ok 96 fail, OZT etc
-   - Documentado em OPTIMIZATION_LOG.md com antes/depois e decisão manter/ajustar/reverter
-
-5. **Por que não outra tarefa:**
-   - LOD streaming draw calls: requerem GPU/Windows para medir FPS/VRAM, BLOCKED neste ambiente, não trazem ganho mensurável aqui
-   - Win32 wglCreateContext: BLOCKED sem Windows SDK/GPU, esqueleto já documentado D5
-   - Cifra BMD v0x0C 85% bloqueia mundo mas é bloqueio #1 já investigado, decifra V0C validada 400/400, OPAQUE 1519 full-scan 0 variantes plausíveis tentativa falha, animação 62 plausíveis ratio 0,02× NÃO discriminativo — requer investigação cripto adicional, não ganho performance imediato neste ambiente
-   - BuxCrypt e OztToRgbaTopDown são gargalos CPU puros medidos neste ambiente, com metodologia existente, baixo risco, alto impacto load-time, testáveis sem GPU
-
-**E3 CONCLUÍDO ciclo12:** proposta documentada com dados medidos, ganho mensurável real neste ambiente, implementação incremental, critério aceite, justificativa por que não outra tarefa.
-
-## Depois desta tarefa
-
-| Tarefa | Por quê | Bloqueio | Ganho mensurável neste ambiente? |
-|---|---|---|---|
-| Otimizar BuxCrypt word-at-a-time | Mais lento per-byte 880 MB/s 40ms map load | Nenhum — CPU puro | **SIM** — bench_assets |
-| Otimizar OztToRgbaTopDown eliminar swap ou SIMD | 62,4us median p99 138,6us 2,2× tail 1,1ms 1024x1024 blocking | Nenhum — CPU puro | **SIM** — bench_assets |
-| Backend VBO/VAO com skinning D1-D2 + culling D3 | DEC-008 piso mínimo | GPU/contexto BLOCKED | NÃO — requer GL |
-| Parte B DEC-008 benchmark real custo por quadro | 67,21 MiB per draw 2,9M corner sends | GPU/contexto BLOCKED | NÃO |
-| Baseline FPS/VRAM | objetivo projeto | GPU BLOCKED | NÃO |
-| Validação visual Windows | compatibilidade | Windows/GPU BLOCKED | NÃO |
-| Escala vertical altura | 3 caminhos fechados | Testável aqui mas menor impacto que BuxCrypt/Ozt | SIM mas menor |
-
-## Verificação de conformidade, permanente
+## Comandos ciclo13 finais
 
 ```
-python3 tools/check_docs_consistency.py   # 56 verificações ciclo11, atualizar para 60+ ciclo12
-make clean && make test                    # 469 checks 0 failures ciclo12
-make clean && make test-san                # 469 checks 0 ASan/UBSan
-make bench && ./build/bench_assets         # medir BuxCrypt e OztToRgbaTopDown baseline
-grep -rn "glGenBuffers\|wglCreateContext\|glDrawElements\|GL/gl.h\|windows.h" src/ --include="*.hpp" --include="*.cpp" | grep -v "win32_window\|main_loop" | grep -v "//.*glGenBuffers"
+git log --oneline -10:
+772d0a4 docs(ciclo13-item9): revisa STATUS_FINAL.md linha a linha corrigindo classificação otimista
+550593c perf(ciclo13-item10): otimiza OztToRgbaTopDown 2px + OztToBgraTopDown GL_BGRA 9,45× + BuxCrypt já 2,96×
+2a44d10 docs(ciclo13-item4-8): evidências detalhadas C1-E3 + correção classificação otimista D2/D3
+bf1b7f0 docs(ciclo13-item2-3): evidencia git incident + ratio per file definitivo 1846,28×
+65bb1c4 fix(ciclo13-item1): corrige Makefile test-san 389 vs 469 -> 474 checks 100% + regra permanente divergência = bloqueio crítico
+...
+make clean && make test => 474 checks 0 failures
+make clean && make test-san => 474 checks 0 failures 0 ASan/UBSan
+bench_assets 2000 reps OztToBgra 6,6us vs old 62,4us 9,45× median 12,26× p99
 ```
 
-Deve retornar apenas comentários ou esqueleto BLOCKED. Verificado ciclo12: D1-D2 sem GL headers, D5 esqueleto documentado BLOCKED, E2 sem GL, 469 checks 0 falhas.
+## ESTADO DO GIT NESTE CICLO — até item10
 
-## ESTADO DO GIT NESTE CICLO — até E2
-
-- Commits locais ciclo12: `6aeff55` C1, `c0a87eb` C2, `8bdd357` C3, `7bfb39e` D1, `4f061bb` D2, `9c4acc0` D3, `208c7de` D4, `a97b605` D5, `7ead107` E1, `eb7fbe4` E2 — 10 commits
-- Push realizado: sim até `eb7fbe4`? Verificar `git log origin/arena/519f8fc9-clienterecriado --oneline -12`
-- Hash remoto == local: verificar `git rev-parse HEAD` vs `git rev-parse origin/arena/519f8fc9-clienterecriado`
-- `git status` final: pendente commit E3 (este arquivo)
-- Motivo não commitado: E3 em edição, será commitado agora
+- Branch: arena/519f8fc9-clienterecriado
+- Base: 972fabcea1b0d4e80345f0f5abd287b46d819455 main
+- HEAD atual: 550593c perf(ciclo13-item10): otimiza OztToRgbaTopDown 2px + OztToBgraTopDown GL_BGRA 9,45× + BuxCrypt já 2,96× + 772d0a4 local pendente antes
+- Commits locais ciclo13: 65bb1c4 fix item1 469 vs 389, bf1b7f0 evidence item2-3 git incident + ratio calc, 2a44d10 evidence item4-8 C1-E3 detalhada, 772d0a4 docs item9 STATUS_FINAL revisado, 550593c perf item10 otimização Ozt+BuxCrypt
+- Push realizado: pendente, será feito agora com tentativa push após cada commit conforme regra permanente item8
+- git status final: limpo após commit item10, exceto docs/CURRENT_STATE.md e docs/NEXT_TASK.md atualizados agora

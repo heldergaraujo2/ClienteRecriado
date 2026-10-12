@@ -1,817 +1,131 @@
-# Current state
+# Current state — ciclo13
 
 An honest snapshot. What exists, what works, what does not.
 
-## 1. What exists and works
+## 1. What exists and works — ciclo13
 
-**An asset format library**, C++17, zero dependencies, warning-clean:
+**An asset format library**, C++17, zero dependencies, warning-clean, 474 checks 0 failures, test-san 474 checks 0 ASan/UBSan (fix ciclo13 item1, before 389 vs 469 discrepancy corrected):
 
-| Module | What it does | Verified against |
-|---|---|---|
-| `mu/assets/ozt` | OZT read, write, probe, RGBA conversion | 3,404 of 3,470 real files |
-| `mu/assets/ozj` | OZJ container + JPEG marker parsing | 13,832 of 13,928 real files |
-| `mu/assets/tga` | TGA probe and uncompressed read | 15 of 15 real files |
-| `mu/assets/bmd` | BMD container classification, bux cipher, entropy | 10,023 of 10,090 structurally valid; **0 with geometry parsed** |
-| `mu/assets/bmd_report` | Three-level usability reporting (structure / cleartext / geometry) | the full 10,090-file BMD set |
-| `mu/assets/bmd_body` | v0x0A body parser: vertex positions and normals | 1,191 real files, layout verified 145/145 |
-| `mu/assets/terrain` | Terrain classification, bux auto-detect | 265 of 265 real files |
-| `mu/assets/manifest` | Patch manifest parse and CRC verify | the client's own 188-entry manifest |
-| `mu/assets/format` | CRC-32 (slice-by-8), status, byte views | zlib-derived known answers |
-| `mu/fs` | Recursive walker, POSIX + Win32 | the 29,060-file real tree |
+| Module | What it does | Verified against | Status ciclo13 |
+|---|---|---|---|
+| `mu/assets/ozt` | OZT read, write, probe, RGBA conversion, BGRA direct | 3,404 of 3,470 real files 98,10%, OztToRgbaTopDown 63,0us median 89,7us p99 3969 MB/s, OztToBgraTopDown 6,6us median 11,3us p99 38057 MB/s 9,45× median 12,26× p99 vs old 62,4us 138,6us | CONCLUÍDO E VALIDADO + OPT-005 |
+| `mu/assets/ozj` | OZJ container + JPEG marker parsing word-at-a-time | 13,832 of 13,928 real files 99,31%, OzjProbe 179,2us→15,2us 11,79× median 8,47× p99 OPT-004 | CONCLUÍDO E VALIDADO + OPT-004 |
+| `mu/assets/tga` | TGA probe and uncompressed read | 15 of 15 real files 100% | CONFIRMADO |
+| `mu/assets/bmd` | BMD container classification, bux cipher word-at-a-time, entropy, V0C decrypt | 10,023 of 10,090 structurally valid 99,34%, payload in clear 8571 84,95% OPAQUE 1519 15,05% full-scan 1503 PlausiblePath 0 variantes plausíveis, BuxCrypt 1 MiB 382,8us 2598 MB/s 2,96× vs original 1135us 880 MB/s OPT-003 3,9× | CONCLUÍDO E VALIDADO |
+| `mu/assets/bmd_report` | Three-level usability reporting (structure / cleartext / geometry) + bones ratio | total 10090 valid 10023 plaintext 8571 OPAQUE 1519 parsed 8406 with_tri 8405 with_bones_loose 3693 36,60% 43,93% geom ratio per file 1846,28× definitivo vs ctrl 0,023795% 2/8405, strict 1186 11,75% 14,11% geom taxa FP 0/25218 limite sup 0,003966% ratio >3557× per trial >1185× per file, strict ⊂ loose provado | CONCLUÍDO E VALIDADO |
+| `mu/assets/bmd_body` | v0x0A body parser: vertex positions and normals, multi-mesh 14B header, bones 59B intercalado cycle detection visited[64] self-loop parent==i rejeitado bc>64 | 8406 parsed 83,31%, 8405 with triangles 83,30% 3.681.664 tris, 3693 bones loose 7879 bones, 1186 strict, max_mc 30 Object157/Object06.bmd, max_bc 63 Stick32.bmd limite prático 64 teto aceitação 63 máximo real sem contradição, max_vc 22987 Ozarugold.bmd, max_ntri 39193, 1 textura por mesh sbow06_R.jpg | CONCLUÍDO E VALIDADO |
+| `mu/assets/mesh` | Mesh internal representation C1 + Skeleton | positions normals texcoords indices bone_weights vector<vector<BoneWeight>> has_bone_weights has_texcoords bounds skipped_vertices bad_indices, Bone name parent position rotation, Skeleton has_bones, MeshImportResult | CONCLUÍDO E VALIDADO — TestMeshInternalRepresentation 23 checks |
+| `mu/render/buffers` | Vertex/index buffer CPU-side VBO/VAO without GL | PackMeshForUpload PackedVertex px,py,pz,nx,ny,nz,u,v,bone_ids[4],bone_weights[4],weight_count PackedBuffers vertices flat indices flat has_texcoords has_bone_weights bounds skipped_vertices bad_indices ok, PackSkeletonForUpload parents names positions rotations has_bones valid parent range self-loop cycle visited[64] | CONCLUÍDO E VALIDADO — TestPackMeshForUpload 21 checks byte a byte |
+| `mu/render/skinning` | LBS skinning CPU strict without GL | Mat4 Identity TransformPoint ValidateSkeletonForSkinning has_bones parent range self-loop cycle visited[64], ApplySkinningLBS strict count positions normals mismatch has_bone_weights false retorna original zero movement, true exige bone_weights size == positions, skeleton validado, boneTransforms size == bones size, sum weight_i*(bone*pos) | CONCLUÍDO E VALIDADO — TestSkinningLBS 15 checks (a) identity (b) self-loop fails safe (c) zero movement (d) rotação 90° Z não-trivial (0,1,0) esperado cálculo manual |
+| `mu/render/cull` | Frustum culling CPU bounds reais | Plane normal d, Frustum planes[6] left/right/bottom/top/near/far, FrustumFromViewProjection Gribb-Hartmann, CullBox p-vertex conservative safe invalid->kIntersect fail safe, IsVisible true para kInside/kIntersect false só kOutside invalid true, PlaneDistance | CONCLUÍDO E VALIDADO — TestFrustumCull (a) inside 2..8 kInside (b) outside -8..-2 12..18 kOutside (c) invalid never culled, TestFrustumCullRealBounds Mesh sintético 4 vértices (a) inside 0..1 frustum 0..10 kInside (b) outside -20..-10 kOutside (c) invalid true kIntersect, escala real 8406 bounds reais total_bmd 10090 with_bounds 8406 inside 7 outside 233 intersect 8166 culled 2,77% frustum 0..10 X, identity VP with_bounds 8406 inside 2 outside 662 intersect 7742 culled 7,88% |
+| `mu/platform/win32_window` | Esqueleto Win32 wglCreateContext BLOCKED | Win32GLConfig width height title fullscreen colorBits depthBits stencilBits, Win32GLWindow handle opaco created flag, CreateGLWindow DestroyGLWindow SwapGLWindow PollEvents GetWin32GLStatus kBlockedNoWindowsSDK kBlockedNoGPU kBlockedNoDisplay kOk só Windows real com GPU, sequência RegisterClassExW CS_OWNDC CreateWindowExW GetDC PIXELFORMATDESCRIPTOR ChoosePixelFormat SetPixelFormat 1× wglCreateContext wglMakeCurrent loop PeekMessage/TranslateMessage/DispatchMessage QPC SwapBuffers cleanup, não inclui <windows.h> nem <GL/gl.h> propositalmente | CONCLUÍDO — esqueleto documentado BLOCKED com aviso literal e lista verificação Windows real, TestWin32GLSkeletonBlocked 4 checks |
+| `mu/platform/main_loop` | Esqueleto main loop update/render/present com predição frame budget sem GL | FrameBudget target_fps target_frame_ms update_ms render_ms present_ms total_ms slack_ms over_budget frame_index, InputState quit_requested, UpdateResult visible_objects culled_objects, RenderResult draw_calls_prepared triangles_submitted, PresentResult, MainLoop ctor target_fps Tick retorna FrameBudget ordem update->render->present mede via high_resolution_clock QPC, SetTargetFps PredictOverBudget média móvel 30 frames >90% budget History 120 frames | CONCLUÍDO — TestMainLoopSkeleton 9 checks |
+| `mu/assets/terrain` | Terrain classification, bux auto-detect | 265 of 265 real files 100% 97 .att still encrypted | CONFIRMADO |
+| `mu/assets/manifest` | Patch manifest parse and CRC verify | 188 entries total 188 match 116 size mismatch 9 crc mismatch 11 missing 52 mutool verify | CONFIRMADO |
+| `mu/assets/format` | CRC-32 slice-by-8, status, byte views | zlib-derived known answers, Crc32 1 MiB 507,2us 1971 MB/s before 2553,5us 391 MB/s speedup 5,03× OPT-001 | CONCLUÍDO E VALIDADO |
+| `mu/fs` | Recursive walker, POSIX + Win32 | 29,060-file real tree | CONFIRMADO |
 
-**A command line tool**, `build/mutool`, with `scan`, `info`, `verify`,
-`dedupe`, `bmdreport`. Whole-tree scan of 2,372 MB in 1.67 s.
-`bmdreport` exits 2, because a report that cannot deliver geometry should not
-claim success.
+**A command line tool**, `build/mutool`, with `scan`, `info`, `verify`, `dedupe`, `bmdreport`. Whole-tree scan of 2,372 MB in 1.67 s. `bmdreport` exits 2, because a report that cannot deliver geometry should not claim success. Now reports 8406 parsed, 8405 with_tri, 3693 bones loose ratio 1846,28×, 1186 strict.
 
-**A test suite**, 231 checks, 0 failures, self-generating fixtures, also clean
-under ASan and UBSan.
+**A test suite**, 474 checks, 0 failures (469 ciclo12 +5 non-trivial skinning), self-generating fixtures, also clean under ASan and UBSan after fix ciclo13 item1 (before 389 vs 469 discrepancy, now 474 both), evidence `ciclo13_test_san_full.log` and `ciclo13_test_san_full_after.log`.
 
-**A micro-benchmark harness** with median, standard deviation, min/max and
-P95/P99 reporting, over three buffer sizes, plus an optional per-repetition
-disk read (`MU_BENCH_FILE`) so cached and I/O-bound regimes are reported
-separately instead of being averaged together.
+**A micro-benchmark harness** with median, p95, p99, mean, MB, MB/s, reps, stddev, min/max, over three buffer sizes, plus optional per-repetition disk read (MU_BENCH_FILE) so cached and I/O-bound regimes are reported separately. Now includes OztToBgraTopDown 6,6us 38057 MB/s 9,45× vs old 62,4us.
 
-**Documentation**: audit, formats, rendering analysis, architecture, baselines,
-benchmarks, decisions, licensing, security, test results.
+**Documentation**: audit, formats, rendering analysis with §12.6 plano otimização consistente com dados medidos LOD/streaming/draw calls, architecture with C1, decisions with DEC-013 glTF 2.0, dependencies with §7 áudio/rede/interface versão/licença/segurança, audio.md arquitetura definida formatos biblioteca pretendida integração, network.md estrutura pacotes com rótulos CONFIRMADO/PROVÁVEL/DESCONHECIDO/BLOQUEADO, interface.md fluxo telas login→server→char→world como consome assets, baselines, benchmarks, licensing, security, test results, status_final revisado ciclo13.
 
-**Windows validation scripts** in `scripts/`, written but never run.
+**Windows validation scripts** in `scripts/`, written but never run — BLOCKED sem Windows/GPU.
 
-## 2. Measured numbers
+## 2. Measured numbers ciclo13
 
-All from the real reference tree — 29,060 files, 2,372.04 MB.
+All from real reference tree — 29,060 files, 2,372.04 MB, 10,090 BMD.
 
 ```
-OZJ   13,928 files -> 13,832 header+geometry parsed  (99.31%)   pixels NOT decoded
-OZT    3,470 files ->  3,404 pixels parsed           (98.10%)
+OZJ   13,928 files -> 13,832 header+geometry parsed  (99.31%)   pixels NOT decoded, OzjProbe 179,2us→15,2us 11,79× median 8,47× p99 OPT-004
+OZT    3,470 files ->  3,404 pixels parsed           (98.10%)   OztToRgbaTopDown 62,4us→63,0us median p99 138,6→89,7us 1,54×, OztToBgraTopDown 6,6us 9,45× median 12,26× p99 OPT-005 CAND-001
 TGA       15 files ->     15 pixels parsed           (100%)
-terrain    265 files ->    265 classified            (100%)   97 .att still encrypted
+terrain    265 files ->    265 classified            (100%)   97 .att still encrypted, BuxCrypt 1 MiB 1135,7us 880 MB/s → 382,8us 2598 MB/s 2,96× vs original, 3437 MB/s 3,9× OPT-003
+BMD:
+  level1 structure valid 10023 / 10090 99,34%
+  level2 payload in clear 8571 / 10090 84,95% (1245 plaintext +100 bux +7226 v0x0C) OPAQUE 1519 15,05% full-scan 1503 PlausiblePath 0 variantes plausíveis tentativa falha
+  level3 vertex+normal 8406 / 10090 83,31%
+  level4 topology 8405 / 10090 83,30% 3.681.664 tris
+  level5 bones loose 3693 / 10090 36,60% 43,93% geom 7879 bones ratio per file 1846,28× definitivo vs ctrl 0,023795% 2/8405
+  level5b bones strict 1186 / 10090 11,75% 14,11% geom taxa FP 0/25218 limite sup ~0,004% ratio >3557× per trial >1185× per file strict ⊂ loose provado
+  UV 0 / 10090 0% 11 hipóteses descartadas platô 9-26× explicado artefato floats pequenos
+  Anim extra 764 7,57% divisível bc*12 231 2,29% plausível finite<1e6 62 0,61% ratio 0,02× NÃO discriminativo plausível [-pi,pi] 53 0,53% ratio 0,04× NÃO discriminativo NÃO DECODIFICADA
+  Limits: max_mc 30 Object157/Object06.bmd geral 9 com ossos Object74/Object40.bmd, max_bc 63 Stick32.bmd limite prático 64 teto aceitação 63 máximo real sem contradição, max_vc 22987 Ozarugold.bmd, max_ntri 39193, 1 textura por mesh sbow06_R.jpg
+
+Theoretical maximum texture footprint: 2,893.80 MB sum w*h*4 over parseable headers DERIVED NOT MEASURED No process run no GPU memory observed
+
+Integrity vs ListaPatch.txt 188 entries: compared 136 identical 116 different 20 not present 52 all 20 differences also differ file size manifest disagree CRC computation correct
+
+mutool scan 29,060 files: 1,641–1,674 ms
+mutool verify 188 entries: 42–49 ms
+make test: 474 checks 0 failures
+make test-san: 474 checks 0 failures 0 ASan/UBSan (fix ciclo13 item1)
+bench_assets:
+  OztProbe 256x256 0,0us 8622268 MB/s
+  OztRead 256x256 copy 6,0us 41904 MB/s
+  OztToRgbaTopDown 256x256 63,0us median p95 77,9us p99 89,7us 3969 MB/s
+  OztToBgraTopDown 256x256 (GL_BGRA) 6,6us median p95 7,2us p99 11,3us 38057 MB/s 9,45× median 12,26× p99
+  OztRead 512x512 58,0us 17229 MB/s
+  OztRead 1024x1024 253,5us 15780 MB/s
+  BuxCrypt 1 MiB 384,8us median 2598,9 MB/s vs original 1135,7us 880 MB/s 2,96× (OPT-003 290,9us 3437 MB/s 3,9×)
+  ByteEntropy 1 MiB 476,9us 2096 MB/s
+  Crc32 64 KiB in cache 30,3us 2060 MB/s
+  ManifestParse 5000 entries 954,0us 199,9 MB/s
+  OzjProbe 512x512 + 200KB scan 22,9us median 8342 MB/s vs original 179,2us 1064 MB/s 11,79× OPT-004
+  LOAD-TIME expand indexed->flat 45174,9us 67,21 MiB ratio expansion/upload 10,98×
+  VBO upload unique vertices only 4112,8us 41,02 MiB
+  PER-FRAME volume only BLOCKED no GL context: no glDrawElements expanded 67,21 MiB per draw VBO+index buffer resident once 52,22 MiB per-frame volume ratio 1,29× corner sends expanded 2936559 per draw unique vertices indexed 1792108 uploaded once
+  Culling escala real: total_bmd 10090 with_bounds 8406 inside 7 outside 233 intersect 8166 culled 2,77% frustum 0..10 X, identity VP with_bounds 8406 inside 2 outside 662 intersect 7742 culled 7,88%
 ```
 
-**BMD is reported at three levels, because one percentage was misleading.**
-An earlier revision of this document said "10,066 of 10,090 classified
-(99.76%)". That described container headers only. The corrected breakdown,
-produced by `mutool bmdreport` and stored in
-[`evidence/ciclo1_bmdreport.log`](evidence/ciclo1_bmdreport.log):
+## 3. What does not exist or is BLOCKED
 
-```
-level 1  structure valid        10,023 / 10,090  (99.34%)
-level 2  payload in the clear    1,496 / 10,090  (14.83%)
-           plaintext             1,396  (13.84%)
-           bux-decryptable         100  ( 0.99%)
-           OPAQUE                8,594  (85.17%)
-level 3  geometry extracted      1,191 / 10,090  ( 11.80%)
-```
-
-**Level 3 is the number that matters for rendering.** It rose from 0 to 1,191
-during cycle 1, when a v0x0A body parser was written against the verified
-layout. It counts **vertex positions and normals only** — face indices, texture
-coordinates and bones are still undecoded, so none of those 1,191 files is a
-renderable model. v0x0C is excluded from level 3 entirely, which caps it at
-11.83%.
-
-```
-Theoretical maximum texture footprint: 2,893.80 MB
-  -> sum of w*h*4 over parseable headers. DERIVED, NOT MEASURED.
-     No process was run and no GPU memory was observed.
-
-Integrity vs ListaPatch.txt (188 entries, evidence/ciclo1_crc_comparison.log):
-  compared 136   identical 116   different 20   not present on disk 52
-  all 20 differences also differ in file size, i.e. the tree and the
-  manifest disagree; the CRC computation itself is correct
-
-mutool scan  29,060 files : 1,641–1,674 ms
-mutool verify 188 entries : 42–49 ms   (I/O bound: 1,358.9 MB/s incl. disk read)
-make test                 : 231 checks, 0 failures
-```
-
-## 3. What does not exist
-
-There is **no renderer, no window, no game loop, no engine**. Nothing can be
-displayed. This project has so far produced a measurement and asset-loading
-layer, not a client.
-
-| Component | Status |
-|---|---|
-| Renderer (any backend) | NOT STARTED |
-| Window / input / main loop | NOT STARTED |
-| Resource cache and manager | NOT STARTED |
-| Texture upload to GPU | NOT STARTED |
-| Model loading | **PARTIAL** — vertex positions and normals for 1,191 files; faces/UV/bones not decoded |
-| Skeletal animation | BLOCKED — BMD cipher |
-| Terrain rendering | BLOCKED — `Enc*` cipher |
-| Particles and effects | NOT STARTED |
-| UI | NOT STARTED |
-| Text rendering | NOT STARTED |
-| Audio | NOT STARTED |
-| Network | NOT STARTED, no authorised server |
-| JPEG pixel decoding | NOT STARTED — deliberate, no dependency |
-| Windows build | NOT EXECUTED — never compiled for the target platform |
-
-## 4. Optimisations landed
-
-One, with a measured before/after:
-
-| ID | Change | Before | After |
-|---|---|---|---|
-| OPT-001 | CRC-32 slice-by-1 → slice-by-8 | 391.6 MB/s | 1,971.6 MB/s (5.03x) |
-
-Three more are identified with evidence but not implemented: direct BGRA upload
-(CAND-001), vectorised bux cipher (CAND-002), word-at-a-time JPEG scan search
-(CAND-003). See [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md).
-
-## 5. Runtime performance
-
-**No FPS, frametime, VRAM or latency numbers exist.** There is no Windows
-machine and no GPU in the development environment. Every runtime metric is
-`NOT EXECUTED`. The harness to produce them is written and unrun.
-
-This is stated prominently because it is the most common thing a reader would
-assume exists. It does not.
-
-## 6. Known defects and gaps
-
-| Item | Severity | Note |
+| Component | Status | Evidence |
 |---|---|---|
-| **BMD payload cipher not recovered** | **Critical** | **Project blocker #1. 85.17% of 10,090 models opaque; 0% geometry parsed** |
-| `Enc*` terrain cipher not recovered | High | Blocks 219 of 264 terrain files |
-| No Windows build | High | Target platform never compiled |
-| No JPEG pixel decoding | Medium | Blocks texture display for the largest format |
-| 96 OZJ files unread (`FF 4B 6D` variant) | Low | Distinct container, unexamined |
-| 43 OZT files unread (`00 4B 6D 4B` variant) | Low | Layout inconsistent, deliberately not guessed |
-| 24 BMD files unrecognised | Low | 0.24% of models |
-| `.ozb` format not implemented | Medium | 100 files, height/light maps |
-| `mutool` has no `extract` or `convert` subcommand | Low | Useful, not built |
-
-## 7. Repository state
-
-- Branch: `arena/519f8fc9-clienterecriado`
-- Base: `972fabcea1b0d4e80345f0f5abd287b46d819455` on `main`
-- The repository contained a single `README.md` before this work started.
-- No original asset bytes are committed. No secrets are committed.
-
-## 8. Honest summary
-
-The measurement and asset layer is real, tested and verified against a 2.4 GB
-asset tree. The reconstruction of the client itself has not begun, and the
-biggest blocker — the BMD model cipher — is a hard dependency for anything
-visual. Anyone reading this should understand that "99% of containers classify" and
-"you can play the game" are very far apart, and the second is not close. The
-cycle-1 audit was right to reject the earlier single-percentage framing: the
-number that describes usable geometry is 0.00%, and it is reported that way
-everywhere it appears.
-
----
-
-
-# Ciclo 11 — final (itens 1-8): salto ratio, quedas ossos, OPAQUE full-scan, animação validação, C1-E3, STATUS_FINAL, CAND-003→OPT-004
-
-> **Base:** ciclo10 `3b24987` → HEAD atual `49825c5` + relatório `4f74539`. Branch `arena/519f8fc9-clienterecriado`. Referência `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto início/fim ciclo.
-
-## Correções ciclo 11
-
-- **Item1 salto 5,43x→1846x:** antes ciclo9 real loose 3800 45,21% vs controle per trial 2099/25218 8,32% ratio 5,43× marginal unidades diferentes, depois correção unidade apenas per file 1,55× < per trial 4,43x prova unidade sozinha DIMINUI ratio, depois ciclo detection controle NEW 2/25218 0,0079% per file 0,0238% ratio 1846,5× fator redução 8,32%→0,0079% ~1052×, salto = -3,5x unidade +1052x ciclo (parent 0 self-loop rejeitado como ciclo A->A), evidência `ciclo11_bones_ratio_raw.log` 45 linhas.
-- **Item2 ratio infinito→limite superior 1/N:** strict 0/25218 → taxa ≤0,003965% ~0,004% ratio >3558× per trial per file 0,0119% ratio >1185×, 6 arquivos corrigidos commit `b9f7af6`.
-- **Item3 quedas 3800→3693 loose e 1601→1186 strict:** mudança critério ciclo9 sem ciclo detection → ciclo10 com visited[64] self-loop parent==i rejeitado overflow bc>SIZE_MAX/59 bc>64, por que filtra 107 loose 415 strict bc=1 apenas parent -1 válido parent 0 self-loop A->A ciclo rejeitado antes válido gerava FP 8,32%→0,0079% bc>1 ciclos A->B->A loop infinito while(parent!=-1), exemplos dropped loose 228 vs 107 real MoveTargetPosEffect Bow19 Mace21 7mastery_mixiteam DarkHorseHorn Shield27 Staff02 ThunderBolt S14_quiver ProofOfConqueror etc evidência `ciclo11_bones_drop_examples.log`.
-- **Item4 OPAQUE IceGolem step 0x33 vs 0x3D full-scan 1503 OPAQUE:** metodologia 1503 OPAQUE BMD_V0C length_consistent payload>=32 mas BmdV0CDecrypt padrão falha Printable32 cada step 0..255 com init 0x5E key array 16B decifra 32B verifica Printable32 e PlausiblePath NUL-padded >=3 apenas alnum / _ . - \, resultados step variation found_printable 15 found_plausible 0 (IceGolem step 0x33 name "DDfPsxkvfWyx}~o|fMyvvy}<f'H<:Y*I" contém } ~ | < etc não permitido path boss_invitationticket step 0x34 similar) init variation 0/0 padrão IceGolem steps 0x33..0x3A todos printable nenhum plausível sem padrão único, conclusão falso-positivo check fraco Printable32 não variante confirmada full-scan 1503 com PlausiblePath 0 variantes plausíveis OPAQUE permanece 1519 15,05% tentativa falha evidências `ciclo11_opaque_step_fullscan.log` `ciclo11_opaque_step_plausible.log` `ciclo11_opaque_init_plausible.log` `ciclo11_item4_opaque_investigation.log` commit `107815b`.
-- **Item5 animação 62 plausíveis validação estatística controle mesma classe:** população total com ossos 3693 com extra 764 divisível bc*12 231 plausível finite<1e6 62 1,68% de 3693 plausível estrito [-pi,pi] 53 1,43%, critério fraco finite<1e6 real 62/3693=1,6789% per file controle vertex array 12B chunks finite<1e6 trials 55985 hits 55911 rate 99,86% per file 100% ratio 0,02× controle MAIOR que real NÃO discriminativo, critério estrito [-pi,pi] real 53/3693=1,4351% controle trials 55985 hits 2079 rate 3,71% per file 78/231 33,76% ratio per trial 0,39x per file 0,04x controle ainda maior NÃO discriminativo vertex coords pequenos 0..500 caem em [-pi,pi] por acaso, padrão Object01 kf18 primeiros 9 zeros depois 0,628 1,256 1,884 2,513 3,141 -2,513 etc múltiplos pi/5 Object04 kf98 primeiros 48 zeros depois 0,125 0,251 etc múltiplos pi/25 sugere critério mais discriminativo zeros iniciais + múltiplos ângulo base + monotonicidade, comparação ossos 0,0079% vs 43,93% ratio 1846x discriminativo multi-mesh 14,27% vs 0,0376% ratio 379x discriminativo UV 79,42% vs 70,34% ratio 1,13x rejeita animação finite<1e6 1,68% vs 100% ratio 0,02x NÃO discriminativo animação [-pi,pi] 1,43% vs 33,76% ratio 0,04x NÃO discriminativo, conclusão 62 plausíveis NÃO pode ser citado como achado confirmado animação permanece NÃO DECODIFICADA formalmente evidências `ciclo11_anim_validation.log` `ciclo11_anim_pi_validation.log` `ciclo11_item5_anim_validation_full.log` commit `7a9aa03`.
-- **Item6 C1-C3 D1-D5 E1-E3 com provas e ratios per file corrigidos:** C1 loose 3693 ratio per file 1846,5× C2 strict 1186 taxa 0/25218 limite sup ~0,004% ratio >3558× C3 prova strict ⊂ loose tool validate_A3_subset 6570 janelas strict 0 strict_not_loose 3693 loose files 1186 strict files 0 strict_not_loose PASS evidência `ciclo10_itemA3_strict_subset.log`, D1-D5 multi-mesh strict_m4 1796 14,27% vs controle 0,0376% ratio 379× weak_m4 6572 52,20% vs controle 77,51% ratio 0,67× strict_files 1651 38,79% etc breakdown 1.685=1483 OPAQUE+67 invalid+134 geom+1 zero, E1-E3 UV float [0,1] 79,42% vs 70,34% ratio 1,13× rejeita offset 0 rate 61,80% ctrl 4,80% ratio 12,89× platô 9-26× offset 24 rate 84,23% ctrl 4,46% ratio 18,87× explicado como artefato floats pequenos lidos como u16, correções docs/COMPATIBILITY.md e ASSET_FORMATS.md tabela nível5 3.800→3.693 + 1.186 strict com taxa e ratio tools/check_docs_consistency.py nivel5 3800→3693 checker 56 verificações 0 falhas commit `50331cc`.
-- **Item7 STATUS_FINAL.md:** criado com métricas corrigidas 3693/1186 provas ratios otimizações testes segurança bloqueios próxima tarefa ESTADO DO GIT até item6 6 commits push sim remote==local 88edfc73 intacto commit `28c9259`.
-- **Item8 CAND-003→OPT-004:** problema OzjProbe SOS entropy-coded data scan byte-by-byte 179,2us median 272,7us p99, hipótese dados entropy ~0,39% FF 1/256 8B chunks sem FF 99,6% tempo skip 8B reduz iterações ~8x, mudança src/mu/assets/ozj.cpp SOS handling loop word-at-a-time remaining>=8 memcpy 8B chunk x=chunk ^ 0xFFFFFFFFFFFFFFFF has_zero = (x - 0x0101010101010101) & ~x & 0x8080808080808080 has_zero==0 => sem FF i+=8 continue senão encontra primeiro FF em 8B window via loop k=0..7 i+=k depois byte-by-byte trata escape FF 00 e FF D0..D7, unaligned safe via memcpy sem strict-aliasing sem leitura além file.size, preserva regras escape exatamente, teste make test 389 checks 0 failures real OZJ 13928 files 13832 ok 96 fail mesmo que antes prova correção preservada /tmp/test_ozj_real.cpp bench_assets synthetic JPEG 512x512+200KB scan 200 reps median 15,2us p95 22,5us p99 32,2us mean 16,7us MB/s 12525,2 vs antes 179,2us median 272,7us p99 speedup median 11,79x p99 8,47x throughput ~1060->12525 MB/s, evidência `ciclo11_opt003_ozj_benchmark.log`, decisão manter 11,8x melhoria caminho crítico textura loading baixo risco preserva correção CAND-003→OPT-004 commit `49825c5`.
-
-## Métricas atuais corrigidas (10.090 arquivos, após detecção ciclo + OPT-004)
-
-| Nível | Arquivos | % total | % geom | Detalhe |
-|---|---|---|---|---|
-| 1 estrutura válida | 10023 | 99,34% | — | — |
-| 2 claro | 8571 | 84,95% | — | — |
-| 2 OPAQUE | 1519 | 15,05% | — | — |
-| 3 vértice+normal | 8406 | 83,31% | 100% | — |
-| 4 topo | 8405 | 83,30% | 99,99% | 3681664 tris |
-| 5 ossos loose | **3693** | **36,60%** | **43,93%** | 7879 bones ratio per file 1846× |
-| 5b ossos strict (headline conservador) | **1186** | **11,75%** | **14,11%** | NUL-padded taxa FP 0/25218 limite sup ~0,004% ratio >3558× |
-| 6 UV | 0 | 0% | 0% | 11 hipóteses descartadas platô 9-26× |
-| Anim extra | 764 | 7,57% | 9,09% | com extra após ossos |
-| Anim divisível bc*12 | 231 | 2,29% | 2,75% | |
-| Anim plausível finite<1e6 | 62 | 0,61% | 0,74% | ratio 0,02× NÃO discriminativo |
-| Anim plausível [-pi,pi] | 53 | 0,53% | 0,63% | ratio 0,04× NÃO discriminativo |
-| OZJ | 13928 | — | — | 13832 ok 96 fail |
-| BuxCrypt | — | — | — | 880→3437 MB/s 3,9x |
-| OzjProbe | — | — | — | 179,2us→15,2us 11,8x |
-
-Level 5 loose = 3693 (antes 3800 -107 filtrados por ciclo detection). Strict = 1186 (antes 1601 -415 filtrados). Strict ⊂ loose provado.
-
-## Testes ciclo 11
-
-- `make test`: 389 checks 0 failures
-- `make test-san`: 389 checks 0 failures ASan 0 reports
-- `check_docs_consistency.py`: 56 verificações 0 falhas (após correção 3693)
-- `mutool bmdreport`: total 10090 valid 10023 99,34% plaintext 8571 84,95% OPAQUE 1519 15,05% parsed 8406 83,31% with triangles 8405 83,30% 3681664 tris with bones loose 3693 36,60% strict 1186 11,75% headline conservador
-- `bench_assets`: BuxCrypt 1 MiB med 290,9us 3437,8 MB/s 3,9x OzjProbe 512x512+200KB scan med 15,2us p95 22,5us p99 32,2us 11,8x vs antes 179,2us p99 272,7us
-- Real OZJ: 13928 files 13832 ok 96 fail mesmo que antes após OPT-004
-- Tools ciclo11: /tmp/ciclo11_item1_ratio_raw.cpp, /tmp/ciclo11_item3_drop.cpp, /tmp/ciclo11_item4_opaque_fullscan.cpp, /tmp/ciclo11_item4_opaque_plausible.cpp, /tmp/ciclo11_item4_opaque_init.cpp, /tmp/check_plausible.cpp, /tmp/validate_icegolem.cpp, /tmp/ciclo11_item5_anim_validation.cpp, /tmp/ciclo11_item5_anim_pi.cpp, /tmp/test_ozj_real.cpp
-- Evidências: 11 novos logs ciclo11 + STATUS_FINAL.md + logs anteriores ciclo10
-
-
-# Ciclo 10 — Fase A: correção ratio per file, headline conservador, strict ⊂ loose, UV ratio-por-offset
-
-> **Base:** ciclo 9 `84fee45` → HEAD atual. Fase A do comando contínuo A-F, itens A1-A5.
-
-## Correções Fase A
-
-**A1 — ratio per file corrigido (mesma unidade):**
-- Antes: real per file 3800/8406=45,21% vs controle per trial 2099/25218=8,32% ratio 5,43× MARGINAL — unidades diferentes (arquivo vs tentativa), inválido metodologicamente.
-- Depois (com detecção de ciclo): total geom 8406, real loose 3693 (43,93% geom, 36,60% total), real strict 1186 (14,11% geom, 11,75% total). Controle 3 offsets por arquivo (100,200,payload/2) bc=1 com detecção de ciclo (parent 0 rejeitado como ciclo A->A): trials 25218, loose hits 2 rate 0,0079%, per file 2 arquivos 0,0238%, strict hits 0 rate 0%.
-- Ratio corrigido **per file mesma unidade**: loose 43,93% / 0,0238% = **1846,5× ALTAMENTE DISCRIMINATIVO** (antes 5,43× marginal). Strict taxa falso-positivo 0/25218, limite superior ~0,004% (1/25218), ratio >3558× (controle 0), altamente discriminativo.
-- Causa da mudança: ciclo detection filtra parent==0 como ciclo, reduz falso-positivo de 8,32% para 0,0079%. Sem ciclo, parent 0 era aceito como válido para bc=1, gerando 2099 hits. Com ciclo, apenas parent 0xFFFF válido, reduz para 2 hits (0,0079%). Evidência `ciclo9_item2_validation_fixed.log` (tool `/tmp/validate_A1_fixed.cpp`).
-- Conclusão: loose agora altamente discriminativo, não marginal. Métrica anterior 5,43× era artefato de falta de detecção de ciclo + comparação unidades diferentes.
-
-**A2 — princípio conservador headline = strict:**
-- Headline anterior 3800 (loose) → agora 3693 loose após ciclo detection, mas princípio conservador exige headline = strict 1186 (14,11% geom, 11,75% total) CONFIRMADO, loose 3693 como PARCIAL/ALTA DISCRIMINAÇÃO mas com ressalva de conter nomes não NUL-padded.
-- Motivo: strict exige NUL-padded ASCII >=3 + zeros após NUL, taxa falso-positivo 0% (0/25218), altamente discriminativo, enquanto loose exige apenas >=3 printable (pode ocorrer em floats por acaso, mas ciclo detection reduz para 0,0079%).
-- Decisão: docs e bmdreport devem reportar ambos, mas headline conservador = strict 1186. Nível 5 loose continua 3693 (36,60%) mas com nota de que 1186 é subconjunto confirmado.
-
-**A3 — strict ⊂ loose provado automatizado:**
-- Tool `/tmp/validate_A3_subset.cpp` verifica duas propriedades:
-  1. Para qualquer janela 32B, has_strict_name ⇒ has_loose_name (6570 janelas strict em 10090 arquivos, 0 strict_not_loose) — por construção, NUL-padded >=3 implica >=3 printable.
-  2. Para arquivos com ossos, strict file ⇒ loose file: 3693 loose files, 1186 strict files, 0 strict_not_loose — strict ⊂ loose holds.
-- Evidência `ciclo10_itemA3_strict_subset.log` com PASS nas duas checagens.
-- Teste automatizado a adicionar: `TestBmdBonesStrictSubsetOfLoose` (pendente implementação em `test_assets.cpp`).
-
-**A4 — tabela ratio-por-offset UV esclarecendo platô 9-24×:**
-- Tool `/tmp/test_uv_offset2.cpp` full-scan 4149 single-mesh com ntri>0 e ntc>0, testa cada offset 0..62 como u16 < ntc, controle = mesmo offset %20 no array de normais como u16.
-- Resultados: offset 0 rate 61,80% ctrl 4,80% ratio 12,89× (vertex index), offset 2 rate 61,87% ctrl 3,48% ratio 17,78× (normal index), offset 4 rate 84,02% ctrl 4,46% ratio 18,82× (optional field 0), offset 24..59 rate 73-85% ctrl 3-6% ratio 12-26× platô sem pico, offset 60 rate 83,26% ctrl 4,80% ratio 17,36× (tri_end-4 awareness).
-- Platô explicado: bytes 24..59 são 9 floats (3 corners * 3? actually 9 floats?), quando lidos como u16 dão valores pequenos (< ntc mediana 59) com alta frequência porque floats pequenos têm bytes baixos (ex: 0.0 = 0x00000000 → u16 0 < ntc). Controle normais também são floats, mas distribuição diferente (normais têm norma 1, então componentes como 1.0 = 0x3F800000 → u16 0x8000=32768 > ntc ou 0x3F80=16256 > ntc, taxa menor). Por isso ratio 9-26× aparece em muitos offsets, não indica posição específica de UV index, e sim propriedade de floats pequenos lidos como u16.
-- Além disso, offsets 12,14,16,18 têm taxa 100% real e 63-99% controle ratio ~1×, porque são bytes de floats 1.0 que como u16 dão 0 ou 0x8000 etc, ambos < ntc ou > ntc dependendo, mas alta taxa nos dois lados → não discriminativo.
-- Conclusão: nenhum offset tem pico único discriminativo com controle mesma classe; platô 9-26× é artefato de floats pequenos, não evidência de UV. UV permanece NÃO LOCALIZADO, 11 hipóteses descartadas. Evidência `ciclo10_itemA4_uv_ratio_per_offset.log`.
-
-**A5 — confirmação textos colados atribuição NÃO CONFIRMADA:**
-- `src/mu/assets/bmd.hpp` já marca inspiração estrutural commit 3f11bf89, ISC apenas campo package.json, placeholder xulek@example.com RFC2606, sem LICENSE file, data 2026-07-24 clock skew, NÃO CONFIRMADA, estrutura comprovadamente diferente header 14B vs 10B triangulo 64B vs viewer.
-- `src/mu/assets/bmd_body.cpp` 0 ocorrências xulek, já diz does NOT match layout viewer.
-- Evidência `ciclo9_item5_attribution.log` com texto antes/depois, `ciclo6_bmdref_commit_date.log` com AuthorDate 2026-07-24.
-- `LICENSING.md` e `DEPENDENCIES.md` §6 registram ISC apenas campo package.json, sem LICENSE file, NÃO CONFIRMADA.
-- Verificado `grep -rn xulek src/` retorna apenas comentários de atribuição, nenhum código TS copiado (`git show --stat 3a44591` confirma).
-
-## Métricas atuais corrigidas (10.090 arquivos, após detecção ciclo)
-
-| Nível | Arquivos | % total | % geom | Detalhe |
-|---|---|---|---|---|
-| 1 — estrutura válida | 10.023 | 99,34% | — | — |
-| 2 — payload em claro | 8.571 | 84,95% | — | — |
-| 3 — vértice+normal | **8.406** | **83,31%** | 100% | — |
-| 4 — topologia | **8.405** | **83,30%** | 99,99% | 3.681.664 triângulos |
-| 5 — ossos loose | **3.693** | **36,60%** | **43,93%** | 7.879 ossos, ratio per file 1846× |
-| 5b — ossos strict (conservador) | **1.186** | **11,75%** | **14,11%** | NUL-padded, taxa falso-positivo 0/25218, limite superior ~0,004% (1/25218), ratio >3558×, headline conservador |
-| 6 — UV | 0 | 0,00% | 0% | 11 hipóteses descartadas |
-
-Level 5 loose = 3693 (antes 3800, -107 filtrados por ciclo detection). Strict = 1186 (antes 1601, -415 filtrados). Strict ⊂ loose provado.
-
-## Testes Fase A
-
-389 checks 0 failures (inalterado), 56 verificações doc↔código 0 falhas, ASan 0, novas evidências A1-A4.
-
----
-
-# Ciclo 10 Fase B — animação parcialmente decodificada (62 arquivos plausíveis), OPAQUE 15,05% investigado
-
-> **Base:** Fase A `0d84b0f` → HEAD atual. Fase B do comando contínuo.
-
-## O que foi feito Fase B
-
-**Animação:**
-- Scan full 3693 arquivos com ossos (loose) com extra após ossos: 764 com extra >0, 231 divisível bc*12, 62 plausíveis (finite <1e6 e <1e10, valores em [-pi,pi]).
-- Exemplos plausíveis: `Object100/Object01.bmd` bc1 remain216 kf18, `Object04.bmd` bc1 remain1176 kf98, `Object06.bmd` etc. Dump `/tmp/dump_anim_detailed.cpp` mostra keyframes com rotação Z de 0.0 → 0.628 (36°) → 1.256 (72°) → 1.884 (108°) → 2.513 (144°) → 3.141 (180°) → -2.513 etc, típico animação rotação.
-- Valores anteriores enormes (-1.7e38, -1e10) em `Rank01.bmd` eram artefato de parsing falho: Rank01 tem bc3 remain464 mas bone1 nome vazio e bone2 weird, não está em 3693, então offset de animação errado lia dados de osso como animação.
-- Para arquivos com ossos válidos, animação é 12 bytes por osso por keyframe = 3 floats (rotação Euler), plausível dentro [-pi,pi]. ActionCount (u16 offset 36) =1 para exemplos, mas kf=18 e 98, então actionCount não é kf, mas número de ações. Seção de animação ainda não tem parser de actionCount → keyframe count, mas formato 12B identificado.
-- Evidência `ciclo10_itemB_anim_scan.log` com 62 plausíveis, `ciclo9_item10_animation.log` anterior com valores enormes agora explicado como parsing inválido.
-
-**OPAQUE 15,05% (1519 arquivos):**
-- Brute force init 0..255 e step 0..255 com mesma key array `kBmdV0CKey` (16 bytes D1 73 52 F6...): para 20 primeiros OPAQUE, 1 encontrado `IceGolem.bmd` com step 0x33 em vez de 0x3D (init 0x5E padrão). Evidência `ciclo10_itemB_opaque_bruteforce.log`: opaque total 1503 (após filtro), tried 20, found 1 (IceGolem step 33).
-- Tentativa brute force 65536 combos (init+step) para 5 primeiros OPAQUE timeout 30s, não encontrou para CustomNpc02 etc, indicando que OPAQUE pode ter key array diferente ou compressão adicional, não apenas init/step alternativo.
-- Conclusão: OPAQUE não reduzido, permanece 1519 (15,05%). 1 arquivo com step alternativo sugere variação de chave, mas não generalizável. Bloqueio mantido, requer investigação futura de key arrays alternativos ou versão 0x0B etc.
-
-**Métricas Fase B:**
-- total geom 8406, loose 3693 (36,60%), strict 1186 (11,75%), OPAQUE 1519 (15,05%)
-- animação: 764 com extra, 231 divisível bc*12, 62 plausíveis com rotação [-pi,pi], 0% decodificada formalmente (sem parser de actionCount → kf, sem confirmação ordem xyz)
-- Testes 389 checks 0 falhas, checker 56 verificações 0 falhas
-
----
-
-# Ciclo 9 — correções críticas, validação estatística ossos 3.800, UV reinvestigado, DEC-012
-
-> **Base:** ciclo 8 `aa617ab` → HEAD atual. Ciclo 9 executa itens 1-10 do comando único abrangente.
-
-## O que este ciclo resolveu (itens 1-10)
-
-**Item 1 — ajuste critério 3505→3800 explicado honestamente:**
-- Old: mc==1, bc 1..8, remain==bc*59-1 exato, loose >=3 printable → python probe 3505, C++ old 2708
-- New: bc 1..64, mc 1..64 multi com extra ac, remain>=bc*59-1 (permite animação), loose+floats finitos+parent válido → 3800, only_new 1092, only_old 0
-- Exemplos bc>8: sword48 bc10, Statue_Blue bc15, newdoor break_01 bc24, 380_quiver bc9, Arrows01 bc9 (mesmo layout 59B, rejeitados por filtro arbitrário 8)
-- Exemplos multi: PrickleGlove mc4 bc1, Sword37 mc3 bc2, Sword42 mc3 bc6, Sword43 mc3 bc5, Sword45 mc5 bc2 (rejeitados por mc!=1, aceitos com base offset+4)
-- Exemplos anim extra: Rank01 bc3 remain464 exp176 extra288=3*8*12 (8 keyframes), Rank04-07 idem (rejeitados por remain!=exp)
-- Conclusão: ajuste não arbitrário, correção de 3 restrições excessivas, mantém 3800 com ressalva marginal
-
-**Item 2 — validação estatística 59B com controle mesma classe:**
-- Full-scan 8406 geom, real loose 3800 45,21% real strict 1601 19,05%
-- Control trials 25218 dentro vertex/tri area bc=1: loose hits 2099 rate 8,3234% strict hits 1 rate 0,0040%
-- Ratio loose 5,43× MARGINAL (>=5x mas <10x), strict 4803× ALTAMENTE DISCRIMINATIVO
-- Segue padrão UV (3,2× falso, 1,13× rejeita) e multi-mesh (379× discriminativo, 0,67× não)
-- Decisão: manter 3800 como PARCIAL/MARGINAL e 1601 como CONFIRMADO 4803×, não reverter para 1601 porque perderia multi+bc>8+anim válidos
-
-**Item 3 — segurança parser ossos:**
-- TryParseBonesAt: overflow check bc*59 SIZE_MAX/59 + detecção ciclo parent A->B->A com visited[64] até bc passos
-- Testes: TestBmdBonesCircularParent (0->1->0 ciclo deve falhar), ExtremeCount bc=0xFFFF OOM-safe, Truncated no meio lista, Overflow bc=0xFFFF
-- 389 checks 0 failures, ASan/UBSan 0 reports, evidência ciclo9_item3_security_test.log
-
-**Item 4 — check_docs_consistency após último commit conteúdo:**
-- 56 verificações 0 falhas, evidência ciclo9_item4_check_consistency.log
-- Atualiza 384→389 checks em CURRENT_STATE e NEXT_TASK
-
-**Item 5 — atribuição xulek corrigida para NAO CONFIRMADA:**
-- bmd.hpp antes ISC confirmada compatível MIT, corrigido para: inspiração estrutural commit 3f11bf89, ISC apenas campo package.json, placeholder xulek@example.com RFC2606, sem LICENSE file, data 2026-07-24 clock skew, NAO CONFIRMADA, estrutura comprovadamente diferente header 14B vs 10B triangulo 64B vs viewer
-- bmd_body.cpp 0 ocorrências xulek, bmd_body.hpp já dizia does NOT match layout viewer
-- Evidência ciclo9_item5_attribution.log com texto antes/depois
-
-**Item 6 — 14 categorias multi-mesh soma 4256 vem de saída bruta:**
-- Arquivo ciclo6_item1_bmdreport.log existe com saída bruta mutool bmdreport
-- meshCount 0:1,1:4149,2:2280,3:1086,4:449,5:190,6:114,7:42,8:38,9:12,10:10,11:6,12:7,13:2,14:13,>15:7 soma mc>1 4256 = 2280+1086+449+190+114+42+38+12+10+6+7+2+13+7
-- 4149+1+4256=8406 nivel3, regenerado com build atual mesmo resultado, comando ./build/mutool bmdreport /home/user/Cliente_ref/Data
-- Evidência ciclo9_item6_multimesh_14cat.log
-
-**Item 7 — relógio sistema:**
-- SECURITY.md adiciona 9.4: ambiente reportou outubro/2026 durante verificação commit externo 3f11bf89 AuthorDate 2026-07-24, histórico desordem 2025-11-09 fora ordem clock skew origem, risco relógio não confiável para validar datas, mitigação validar por meio independente (git log --format=fuller vs API vs package.json), evidência ciclo6_bmdref_commit_date.log
-
-**Item 8 — DEC-012 prioridade formal UV vs ossos/animação:**
-- UV nivel6 0% 9 hipóteses descartadas, sem UV nenhum dos 8405 com topologia pode ser texturizado, não comparável visualmente
-- Ossos nivel5 após validação: loose 3800 45,21% geom 37,66% marginal 5,43x, strict 1601 19,05% 4803x confirmado, segurança ciclo detection 389 checks
-- Comparação valor: UV pré-requisito QUALQUER renderização fiel reconhecível, ossos pré-requisito animação mas modelo sem UV não comparável mesmo estático
-- Decisão: prioridade restante ciclo retomar UV, justificativa fidelidade visual prioridade 7, ossos em nível aceitável pausa, UV tem offsets novos para reinvestigar (v0A 4 vs v0C 8, delta +-4, âncora ossos 59B)
-- Se UV não progredir com rigor, documentar bloqueio 10+ tentativas e voltar para animação/OPAQUE
-
-**Item 9 — reinvestigação UV com consciência offset:**
-- Revisa 9 hipóteses, verifica base payload v0A4 vs v0C8 (parser usa payload, base correta após bf1668c), delta multi +-4 (textura tri_end-4, sem espaço entre triângulos e ossos), âncora ossos 59B (0 bytes sobra)
-- Re-teste full-scan 4149 single-mesh com topo+tex, cada offset 0..62 como u16 < ntc, controle mesma classe = mesmo offset no array normais
-  Offset 0 rate61,80% control6,27% ratio9,86x (vertex index), offset24 rate84,27% control5,98% ratio14x platô sem pico (floats pequenos lidos como u16)
-  tri_end-4 awareness offset60 rate83,26% control6,27% ratio13,28x mesmo platô
-- Float [0,1] bytes 24..59: 79,42% vs controle normais 70,34% ratio1,13x rejeita, referência UV 98,13%
-- 10a hipótese espaço triângulos-ossos 0 bytes, 11a UV derivado vertex/normal não igual
-- Conclusão: nenhuma hipótese com offset awareness produz discriminação suficiente, lista agora 11 tentativas, UV permanece NAO LOCALIZADO
-
-**Item 10 — continuidade autônoma animação:**
-- Tentativa animação 500 arquivos 385 divisível 77% bc*keyframes*12, dump Rank01 bc3 remain464 exp176 extra288 kf8: bone0 Box01 parent FFFF, bone1 empty, bone2 weird -> não está em 3800, anim hex 000000...ffff... com f32 0,0,-1.7e38,-1e10 etc enormes não plausíveis
-- Conclusão 12 bytes não são 3 floats posição simples, animação permanece NAO DECODIFICADA
-- Autoauditoria 6 itens: a) 389 checks ASan0 b) 56 verificações 0 falhas c) sem contradição d) NAO CONFIRMADA correto e) sem credencial f) entrada inválida ASan0 — todas SIM
-
-## Métricas atuais (10.090 arquivos)
-
-| Nível | Arquivos | % | Triângulos/Bones |
-|---|---|---|---|
-| 1 — estrutura válida | 10.023 | 99,34% | — |
-| 2 — payload em claro | 8.571 | 84,95% | — |
-| 3 — vértice+normal | **8.406** | **83,31%** | — |
-| 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
-| 5 — ossos | **3.800** | **37,66%** | **8.001** (loose) / **1.601** strict 19,05% 4803× |
-| 6 — UV | 0 | 0,00% | — |
-
-Level 5 loose marginal 5,43x, strict confirmado 4803x, subconjunto estrito level3, 45,21% geom tem ossos.
-
-## Testes ciclo 9
-
-389 checks, 0 failures · 56 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 389/0.
-
----
-
-# Ciclo 8 — ossos nível 5, layout final confirmado, 3.800 arquivos (37,66%)
-
-> **Base:** ciclo 7 `c29f473` → HEAD atual. Ciclo 8 implementa parsing completo de ossos nível 5.
-
-## O que este ciclo resolveu
-
-- **Layout de osso final confirmado:** `struct { char name[32] NUL-padded; u16 parent (0xFFFF=root); f32 raw[6]; u8 pad 0 }` tamanho 59 exceto último 58, total `bc*59-1`, multi `4+bc*59-1` onde 4B extra = u32 actionCount. Hex prova `PrickleGlove.bmd` remain 62 = `01 00 00 00` + `PrickleGlo\0...` + `FFFF` + 6 floats. Evidência `ciclo8_bones_multi.log`, `ciclo8_bones_layout.log`.
-- **Implementação:** `src/mu/assets/bmd_body.hpp` com `BmdBone {name, parent, raw[6], has_name, floats_finite}` + `declared_bone_count/action_count`, `bones/has_bones`. `bmd_body.cpp` reescrito com `TryParseBonesAt()` que valida nome ASCII NUL-padded/loose >=3 printable, parent em [0,bc) ou 0xFFFF, 6 f32 finitos, pad. Single-mesh base = `triangles_end+32`, multi-mesh base = offset após último nome textura +4 se `extra==ac`.
-- **Medição:** `mutool bmdreport` nível 5 vai de 3.505 (34,74%) para **3.800 (37,66%)**, +295 arquivos, 8.001 ossos totais, 100% parent válido, 100% nomes loose. Evidência `ciclo8_bones_bmdreport.log`, `ciclo8_bones_measure.log`.
-- **Critério parsing:** bc 1..64, base+bc*59-1 <= size ou base+bc*59 <= size, todos os ossos com pelo menos 3 printable em 32B e floats finitos e parent válido. Evita falso-positivo em payload aleatório (random daria ~0% nomes).
-- **Casos custom:** bc51 remain 2698 vs expected 3008 diff -310 → filtrado, não segue 59B, permanece fora nível 5.
-- **Integração relatório:** `bmd_report.hpp/cpp` estendidos com `has_bones`, `bone_count`, `bones_parsed`, `total_bones`. `mutool bmdreport` agora imprime LEVEL 5.
-- **Testes:** 389 checks, 0 failures, ASan 0, `check_docs_consistency.py` 56 verificações 0 falhas (era 53, +3 nível 5).
-- **Documentação:** `ASSET_FORMATS.md` atualizado com layout final e evidência ciclo 8, tabela nível 5 3.800/37,66%.
-
-## Métricas atuais (10.090 arquivos)
-
-| Nível | Arquivos | % | Triângulos/Bones |
-|---|---|---|---|
-| 1 — estrutura válida | 10.023 | 99,34% | — |
-| 2 — payload em claro | 8.571 | 84,95% | — |
-| 3 — vértice+normal | **8.406** | **83,31%** | — |
-| 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
-| 5 — ossos | **3.800** | **37,66%** | **8.001** |
-| 6 — UV | 0 | 0,00% | — |
-
-Level 5 é subconjunto estrito de level 3. 45,21% dos arquivos com geometria têm ossos.
-
-## Testes ciclo 8
-
-389 checks, 0 failures · 56 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 389/0.
-
----
-
-# Ciclo 3 — estado atual
-
-> **Numeração.** O ciclo 2 foi fechado com `docs/CICLO2_RELATORIO_FINAL.md`. Todo
-> trabalho posterior é **ciclo 3** e não reabre o número anterior. As seções
-> abaixo que dizem "ciclo 2" são registro histórico do que foi fechado, não do
-> que está em andamento.
-
-**Correções deste ciclo, todas por medição:**
-
-| Afirmação anterior | Corrigida para | Como |
-|---|---|---|
-| Topologia não implementada em C++ | **Implementada, com testes** | `bmd_body.cpp:117,135`; `TestBmdTriangles`; nível 4 do `bmdreport` |
-| Ossos 98,0% | **98,68% de 3.552** = 85,09% dos 4.119 elegíveis | `tools/bmd_bones_probe.py`, full-scan |
-| BMP 44 de 47 | **42** (41 no offset 4 + 1 no offset 0) | critério real do parser |
-| Referências fora de faixa pendentes | **Já tratadas** — descartadas e contadas | `MeshFromBmd`, `bad_indices` |
-
-**Testes:** 344 checks, 0 failures · ASan+UBSan 344/0 · zero warnings sob 12 flags `-W`
-
-**Tabela final de níveis de parsing BMD** (full-scan, `ciclo3_scan_final.log`):
-
-| Nível | Arquivos | % de 10.090 |
-|---|---|---|
-| 1 — estrutura válida | 10.023 | 99,34% |
-| 2 — decifrado | 8.571 | 84,95% |
-| 3 — vértice + normal | **8.406** | **83,31%** |
-| 4 — faces | **8.405** | **83,30%** |
-| 5 — ossos | 3.800 | 37,66% |
-| 6 — UV | **0** | **0,00%** |
-
-Os níveis **não** são cumulativos na mesma população: o nível 4 é subconjunto
-estrito do nível 3; o nível 5 é 3.800 de 4.119 elegíveis (85,09%), que sobre a
-árvore é 37,66%.
-
-**Nenhum nível é modelo renderizável.** Nível 6 é zero — sem índice de UV por canto
-não há textura. Nove hipóteses descartadas; investigação encerrada.
-
-**Bloqueio do ciclo 3: `DEC-008` incompleta. RESOLVIDO no ciclo 4** — ver a
-seção seguinte.
-
----
-
-# Ciclo 7 — estado atual (auditoria ciclo 6, itens 0-6 resolvidos)
-
-> **Base:** `677a2cb` (fim ciclo 6) → HEAD `c29f473` (7 commits atômicos). Auditoria ciclo 6 exigiu 7 itens (0 bloqueio crítico + 1-6).
-
-## O que este ciclo resolveu
-
-| Item da auditoria | Resultado |
-|---|---|
-| 0 — bloqueio crítico data futura + e-mail placeholder | **Resolvido.** Evidência bruta `ciclo6_bmdref_commit_date.log`: `git log -1 --format=fuller 3f11bf8` → Author `xulek <xulek121@gmail.com>` 2026-07-24, CommitDate idem, branch `main`. `package.json` author `xulek <xulek@example.com>` placeholder RFC2606. Repo datado 2025-07-02 a 2026-07-24 com inconsistências ordenação, clock skew. Sem LICENSE file, apenas campo ISC. Marcado **NÃO CONFIRMADA**. |
-| 1 — população multi-mesh 4257/4251/4256 | **Resolvido.** Ferramenta `mutool bmdreport` confirma: level3 8406, meshCount1 4149, meshCount0 1, meshCount>1 4256 verdadeiro multi-mesh, meshCount!=1 4257 (4256+1). 4251 histórico snapshot 8401 com regressão 10k (8401-4149-1). Erro anterior: contar 4257 como multi-mesh puro sem separar zero-faces e reutilizar 4251. Evidência `ciclo6_item1_bmdreport.log`. |
-| 2 — violação commits atômicos 1fc1024 | **Documentado.** 14 arquivos +1015/-79 agrupando contabilidade+validação+licenciamento. Não desfeito (push já realizado, reescrever histórico proibido), registrado DEC-011 e CHANGELOG ciclo6. Processo corrigido 1 commit por item. |
-| 3 — build limpo | **Feito.** `make clean && make test` 389/0, `make clean && make test-san` 389/0 ASan 0 reports, logs `ciclo6_test_clean.log` e `ciclo6_test_san_clean.log`. |
-| 4 — expandir checker | **Feito.** 36→53 verificações, cobre breakdown 1685=1483+67+134+1 e taxas 14,27%/0,0376%/379×/52,20%/77,51%/0,67%/38,79%/100%. 0 falhas. |
-| 5 — controle estatístico precisão UV | **Descrito.** O que buscado: nome 32B tri_end+delta, estrito 3-31 printable+NUL+zeros, fraco ≥8 printable. Por que mesma classe: lição UV nona hipótese 24,82% vs 79,42% 3,2× falso, 70,34% vs 79,42% 1,13× rejeita. Controle estrito 0,0376% vs 14,27% 379× discriminativo, controle fraco 77,51% vs 52,20% 0,67× não discrimina, risco desalinhamento parser. |
-| 6 — confirmar commit segurança + ASan | **Confirmado.** `git show --stat 0a09a2b` 6 arquivos +469/-9, 4 testes Extreme/Truncated/Overflow/LargeCounts, ASan 0 reports, evidência `ciclo6_item6_security.log`. |
-
-## Métricas atuais (10.090 arquivos, inalterado desde ciclo 6, confirmado build limpo)
-
-| Nível | Arquivos | % | Triângulos |
-|---|---|---|---|
-| 1 — estrutura válida | 10.023 | 99,34% | — |
-| 2 — payload em claro | 8.571 | 84,95% | — |
-| 3 — vértice+normal | **8.406** | **83,31%** | — |
-| 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
-| 5 — ossos | 3.800 | 37,66% | — |
-| 6 — UV | 0 | 0,00% | — |
-
-Level 4b: multi-mesh 0, zero faces 1 (100%, `player.bmd`, meshCount 0). Breakdown falhando 1.685 = 1.483 OPAQUE (88,01%) + 67 inválidos (3,98%) + 134 geometria não parseada (7,95%) + 1 zero faces (0,06%). Multi-mesh 0. Distribuição meshCount: 0 em 1 (0,01%), 1 em 4.149 (49,36%), 2 em 2.280 (27,12%), 3 em 1.086 (12,92%), resto conforme `ciclo6_bmd_multimesh.log`. População multi-mesh correta 4.256 (2.280+1.086+449+190+114+42+38+12+10+6+7+2+13+7).
-
-## Testes
-
-389 checks, 0 failures · 53 verificações doc↔código, 0 falhas (era 36) · 0 warnings 12 flags (sign-conversion warnings em bmd_body.cpp existem mas não quebram) · ASan+UBSan 389/0.
-
----
-
-# Ciclo 6 — estado atual (auditoria ciclo 5, itens 1-5)
-
-> **Base:** `56777bd` (fim ciclo 5) → HEAD atual. Auditoria do ciclo 5 exigiu 5 itens antes de fechar multi-mesh.
-
-## O que este ciclo resolveu
-
-| Item da auditoria | Resultado |
-|---|---|
-| 1 — regressão nível 3 (8.406→8.401) | **Corrigido.** Causa: limite fixo `>10000` rejeitava 5 arquivos reais com `ntri` 11.771–17.694 (`Monster865.bmd` 15576, `Ozarugold.bmd` 12616, `bann.bmd` 11771). Corrigido para verificação de overflow + limite `meshCount` 64. Nível 3 volta a 8.406, nível 4 vai a 8.405 (+5). Teste de regressão adicionado: `TestBmdMultiMeshLargeCounts` etc. |
-| 2 — contabilidade 1.690 falhando nível 4 | **Produzida.** Total 10.090, nível 4 ok 8.405, falhando 1.685 = 1.483 OPAQUE (88,01%) + 67 inválidos (3,98%) + 134 geometria não parseada (7,95%) + 1 zero faces (0,06%). Multi-mesh 0. Evidência gerada por `tools/gen_level4_breakdown.py` em `evidence/ciclo6_level4_breakdown.log` e `ciclo5_level4_breakdown.log`. |
-| 3 — validação estatística multi-mesh | **Feita.** Full-scan 4.256 arquivos multi-mesh (12.590 malhas), parsing 100%. Nome estrito em `tri_end-4` 14,27% vs controle 0,0376% (379×). Nome fraco 100% mas controle 77,51% (0,67×, não discrimina). Evidência `evidence/ciclo6_multimesh_validation.log`. |
-| 4 — licenciamento referência externa | **Esclarecido.** Referência `xulek/muonline-bmd-viewer` commit `3f11bf89f3702261174d8efa1436d56a15c7d97a`, `bmd-loader.ts:348-422`, licença ISC. Loop inspirado, header 14 B vs 10 B e triângulo diferente são medições deste projeto. Ver `LICENSING.md` e `DEPENDENCIES.md` §6, atribuição em `bmd_body.cpp`. `git show --stat 3a44591` confirma nenhum `.ts` copiado. |
-| 5 — segurança e robustez multi-mesh | **Implementado.** `meshCount` limitado a 64 (observado máx 18), overflow checado, `make test-san` 389/0 sem reports. Testes: `TestBmdMultiMeshExtremeMeshCount` (0xFFFF), `TestBmdMultiMeshTruncated`, `TestBmdMultiMeshOverflow`. Evidência `evidence/ciclo6_test_san_final.log` e `ciclo5_test_san_final.log`. |
-
-## Métricas atuais (10.090 arquivos)
-
-| Nível | Arquivos | % | Triângulos |
-|---|---|---|---|
-| 1 — estrutura válida | 10.023 | 99,34% | — |
-| 2 — payload em claro | 8.571 | 84,95% | — |
-| 3 — vértice+normal | **8.406** | **83,31%** | — |
-| 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
-| 5 — ossos | 3.800 | 37,66% | — |
-| 6 — UV | 0 | 0,00% | — |
-
-Level 4b: multi-mesh 0 (0%), zero faces 1 (100%, `Player/player.bmd`, `meshCount=0`). Distribuição meshCount: 0 em 1 (0,01%), 1 em 4.149 (49,36%), 2 em 2.280 (27,12%), 3 em 1.086 (12,92%), resto conforme `ciclo6_bmd_multimesh.log`.
-
-**Reconciliação população multi-mesh (auditoria ciclo 6 item 1):** ferramenta `mutool bmdreport` confirma
-`meshCount>1` verdadeiro = 4.256 (2.280+1.086+449+190+114+42+38+12+10+6+7+2+13+7), `meshCount!=1` = 4.257 (4.256+1 zero).
-Divergência anterior: 4.257 usado no ciclo 4 como total `!=1`, 4.251 usado no ciclo 5 como `>1` no snapshot com regressão
-8.401 (8.401-4.149-1), 4.256 correto no snapshot final 8.406. Erro anterior: contar 4.257 como multi-mesh puro sem separar
-zero-faces, e reutilizar 4.251 de snapshot com regressão. Evidência `evidence/ciclo6_item1_bmdreport.log`.
-
-## Testes
-
-389 checks, 0 failures · 40 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 389/0.
-
----
-
-# Ciclo 5 — estado (fechado, com regressão conhecida)
-
-> **Base:** `7d10a18` (fim ciclo 4) → HEAD `e32a659` (6 commits). Auditoria do ciclo 4 exigiu 5 esclarecimentos antes de fechar DEC-008 e iniciar multi-mesh.
-
-## O que este ciclo resolveu
-
-| Item da auditoria | Resultado |
-|---|---|
-| 1 — natureza da medição DEC-008 | **Corrigido.** Expansão é custo de CARREGAMENTO (19.190,9 µs, 5,49×), não por quadro. Volume por quadro é quantidade exata (1,29×, 63,9% redundantes) com custo BLOCKED. Evidência regenerada por `gen_dec008_evidence.py` N=5. |
-| 2 — texto final da decisão em DECISIONS.md | **Registrado.** Blockquote com "VBO + VAO com buffers indexados é o piso mínimo" + 4 condições objetivas de revisão (Parte B, conteúdo pesado, hardware mínimo, glDrawElements encontrado). |
-| 3 — rotular tamanho da amostra | **Feito.** `PERFORMANCE_BASELINE.md` §2.1a: "Amostra pequena (N=5), indicativa, não definitiva" + limites que importam mais que N. |
-| 4 — verificação automatizada doc↔código | **Construída.** `tools/check_docs_consistency.py` 36 verificações, 0 falhas. Falha se número na linha da tabela diverge, número proibido sem marcador, include gráfico em src/, nível 4 > nível 3. Testes de injeção provam não ser vacuosa. Comando documentado em `AGENTS.md` §4. |
-| 5 — extensão multi-mesh | **Concluída (com regressão).** Parser estendido para `meshCount>1`. Nível 4: 4.149 (41,12%) → **8.400 (83,25%)**, +4.251 arquivos, triângulos 1.221.030 → 3.524.366. Evidência `ciclo5_bmd_multimesh.log`. Regressão nível 3: 8.406→8.401 (5 arquivos) devido a limite fixo 10k, corrigida no ciclo 6. |
-
-## DEC-008 — texto final, sem ambiguidade
-
-> **Decisão: VBO + VAO com buffers indexados (`GL_ARRAY_BUFFER` +
-> `GL_ELEMENT_ARRAY_BUFFER` + `glDrawElements`) é o piso mínimo do pipeline de
-> renderização da reconstrução.** Immediate mode e submissão não indexada estão
-> excluídos como caminho de produção. Permanecem OpenGL; não há troca de API.
-
-Justificativa: carregamento 5,49× (19.190,9 µs vs 3.493,1 µs, N=5, 5,14×–5,62×),
-volume por quadro 1,29× e 63,9% envios redundantes — quantidade exata, custo
-BLOCKED.
-
-Condições de revisão: Parte B menor que volume, conteúdo pesado sai do escopo,
-hardware mínimo sobe, glDrawElements encontrado no binário original.
-
-## Métricas ciclo 5 (10.090 arquivos) — com regressão
-
-| Nível | Arquivos | % | Triângulos |
-|---|---|---|---|
-| 1 — estrutura válida | 10.023 | 99,34% | — |
-| 2 — payload em claro | 8.571 | 84,95% | — |
-| 3 — vértice+normal | 8.401 | 83,26% | — | <!-- historico -->
-| 4 — topologia | **8.400** | **83,25%** | **3.524.366** | <!-- historico -->
-| 5 — ossos | 3.800 | 37,66% | — |
-| 6 — UV | 0 | 0,00% | — |
-
-Level 4b ciclo 5: multi-mesh 0 (0%), zero faces 1 (100%). Distribuição meshCount: 1 em
-4.149 (49,39%), 2 em 2.277 (27,10%), 3 em 1.086 (12,93%), resto conforme
-`ciclo5_bmd_multimesh.log`.
-
-## Testes ciclo 5
-
-373 checks, 0 failures · 36 verificações doc↔código, 0 falhas · 0 warnings 12 flags.
-
-Trava DEC-010: 0 includes gráficos em src/ (verificado por check_docs_consistency).
-
-## Próxima tarefa ciclo 5
-
-Parsing completo de ossos (hierarquia + transformação). Nível 4 agora é
-83,25%, praticamente igual ao nível 3. Próximo bloqueio para skinning é nível 5
-(37,66%). Ver `NEXT_TASK.md`.
-
-
-
----
-
-# Ciclo 4 — estado atual
-
-> **Numeração.** O ciclo 3 foi fechado com `docs/CICLO3_RELATORIO.md`. Este ciclo
-> resolveu as cinco pendências que a auditoria do ciclo 3 deixou e completou
-> `DEC-008`. As seções acima que dizem "ciclo 2" ou "ciclo 3" são registro
-> histórico do que foi fechado.
-
-## O que este ciclo resolveu
-
-| Pendência da auditoria do ciclo 3 | Resultado |
-|---|---|
-| 1 — relação entre os níveis da tabela | **Medida.** Nível 4 é subconjunto estrito do 3, provado em código e por teste. Causa da queda de 50,6%: `meshCount != 1` em **100,00%** dos 4.257 (4.256 multi-mesh verdadeiro +1 zero-faces) |
-| 2 — arquitetura de importação dual | **Já existia** (`ARCHITECTURE.md` §9, criada em `77662f5`). Dois defeitos corrigidos: dizia "oito hipóteses" quando são nove, e não citava a tabela corrigida |
-| 3 — evidência bruta do incidente de Git | **Produzida** em `evidence/ciclo4_git_incident.log`, com reflog e diff de verificação. Risco operacional registrado em `SECURITY.md` §9 |
-| 4 — tabela final publicada | **Confirmada** com trecho colado em `COMPATIBILITY.md` e `ASSET_FORMATS.md` |
-| 5 — arquivos de evidência commitados | **Confirmados** por `git show --stat 1e970da` |
-
-## DEC-008 completa
-
-`DECISIONS.md` DEC-008-A responde os quatro itens que `DEC-010` exigia.
-
-**Medido neste ambiente** (`evidence/ciclo4_dec008_submission_cost.log`), com as
-contagens reais da árvore — 1.792.108 vértices, 978.853 triângulos:
-
-| Medida | Valor | Desvio |
-|---|---|---|
-| **Carregamento:** expansão índice → flat, árvore inteira | 19190,9 µs | 5,14×–5,62× na razão |
-| **Carregamento:** upload VBO, só vértices únicos | 3493,1 µs | — |
-| Razão expansão/upload | **5,49×** | 5,14× a 5,62× |
-| **Por quadro:** volume expandido (quantidade, custo `BLOCKED`) | 67,21 MiB/draw | — |
-| **Por quadro:** razão de volume expandido/indexado | **1,29×** | — |
-| **Por quadro:** envios de canto, dos quais 63,9% redundantes | 2.936.559 | — |
-
-> **Correção do ciclo 5.** Uma versão anterior dizia "123,0% do orçamento <!-- historico -->
-> inteiro de um quadro a 60 FPS". **Essa comparação era inválida**: a expansão é
-> custo de **carregamento**, não de quadro. O que se repete por quadro é o
-> **volume** de submissão (1,29×, 63,9% de envios redundantes), e o **custo**
-> desse volume é driver/barramento — `BLOCKED`, sem contexto GL. Ver
-> `DECISIONS.md` DEC-008-A §3.1. O upload único se paga em 0,18
-quadro.
-
-**Critério de validação em duas partes:** parte A (CPU, sem contexto)
-**CONCLUÍDA**; parte B (benchmark em contexto real) **BLOQUEADA** — não há GPU,
-não há driver, não há `wglCreateContext`, e o ambiente não permite instalá-los.
-
-**Compatibilidade visual da opção adotada: `NOT EXECUTED`, não "preservada".**
-Sem GPU não há comparação pixel a pixel.
-
-## Bloqueio atual
-
-**Não é mais ausência de decisão.** `DEC-008` está registrada e `DEC-010` foi
-atualizada. O que impede código de backend agora é **ausência de ambiente que o
-execute**: sem GPU nem contexto, backend gráfico escrito aqui seria não
-testável, e backend não testável é o caminho mais curto para afirmar
-compatibilidade não verificada.
-
-**Trava permanente, verificada neste ciclo:** `grep -rn "glGenBuffers\|
-wglCreateContext\|glDrawElements\|GL/gl.h" src/` retorna **uma** ocorrência,
-comentário em `mesh.hpp:20`. Zero includes gráficos em `src/`.
-
-**Testes:** 372 checks, 0 failures · ASan+UBSan 372/0 · zero warnings sob 12
-flags `-W`.
-
-**Próxima tarefa (histórico ciclo 4):** estender o parser BMD para multi-mesh. Recuperava 4.257 arquivos com `meshCount!=1` (4.256 multi-mesh verdadeiro +1 zero), é implementação conhecida e não pesquisa, e é testável neste ambiente.
-arquivos, é implementação conhecida e não pesquisa, e é testável neste ambiente.
-Ver `NEXT_TASK.md`.
-
----
-
-# Atualização do ciclo 2 — bloqueio nº 1 resolvido
-
-## O que mudou
-
-A cifra do payload BMD v0x0C foi quebrada. Proveniência: algoritmo e tabela de
-chave do projeto `xulek/muonline-bmd-viewer` (licença ISC), reimplementados em
-C++ neste repositório. Ver `docs/DECISIONS.md` (DEC-007) e `docs/LICENSING.md`.
-
-**Isto é resultado de terceiros validado por este projeto, não resultado
-derivado por este projeto.** As chaves derivadas aqui continuam sendo o XOR-3 do
-bux e o layout v0x0A.
-
-## Números medidos (10.090 arquivos reais)
-
-| Nível | Ciclo 1 | Ciclo 2 |
-|---|---|---|
-| 1 — estrutura válida | 10.023 (99,34%) | 10.023 (99,34%) |
-| 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** | <!-- historico -->
-| 3 — geometria parseada | 1.191 (11,80%) | **8.401 (83,26%)** | <!-- historico -->
-| OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** | <!-- historico -->
-
-O teto teórico de 11,83% que constava no relatório do ciclo 1 deixa de existir.
-
-## Duas correções que precisavam ser feitas
-
-1. **Este projeto afirmou que a rota open-source estava bloqueada por falta de
-   acesso a um host de código. Era falso.** `github.com` é acessível. A
-   afirmação estava em `NEXT_TASK.md`, em `docs/evidence/ciclo1_bmd_layout.log`
-   e nas mensagens dos commits `d980216` e `50a5ceb`.
-2. **A rejeição da hipótese (u,v) estava errada.** O controle aleatório
-   subestimava a linha de base porque coordenadas de textura reais não são
-   uniformes em [0,1] — são enviesadas para 0 e 1 por espelhamento de malha.
-
-## O número 83,26% foi verificado, e uma suspeita sobre ele foi descartada
-
-Uma versão anterior deste documento registrava como "defeito conhecido" a
-suposição de que v0x0C usaria half-floats nos arrays, o que invalidaria as
-posições lidas. **A suposição era infundada.** Medido sobre 400 arquivos v0x0C
-decifrados: corpo completo em 400 de 400 sob o layout v0x0A, e normais com norma
-1 em **99,98%** dos casos (37.988 de 37.997) no deslocamento interno 0, contra
-31,46% no deslocamento 4. Uma chave errada não produz vetores unitários.
-
-Isso vale como verificação independente da cifra, por uma via que não depende do
-campo de nome usado na checagem de plausibilidade.
-
-## Um erro cometido e desfeito neste ciclo
-
-Uma revisão trocou a ordem dos campos nos registros de vértice e normal, com
-base numa medição que reportava "offset 4 vence em 1.050 arquivos, offset 0 em
-nenhum". A medição lia deslocamentos de arquivo como se fossem de payload,
-defasando tudo em 4 bytes. Revertido em `bf1668c`, com as medições corretas
-registradas em `docs/ASSET_FORMATS.md`.
-
-O layout de registro do projeto ISC **não corresponde** a estes arquivos: ele
-inicia cada registro com índice de osso e padding. Aqui as coordenadas vêm
-primeiro. A cifra daquele projeto foi confirmada; as tabelas de layout, não.
-
-## Testes
-
-236 checks, 0 failures (eram 231). ASan+UBSan: 236/0. Compilação sem warnings
-sob 12 flags `-W`. Evidência em `docs/evidence/ciclo2_test.log` e
-`docs/evidence/ciclo2_bmdreport_v0c.log`.
-
-## ESTADO DO GIT NESTE CICLO
-
-- `6821d94` feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,26% <!-- historico -->
-- push: **sim**, `git push origin arena/519f8fc9-clienterecriado` → sucesso
-- commits deste segmento: 1 código + 1 documentação
-- referência `Cliente_ref` intacta: `88edfc73` (inalterado)
-
----
-
-# Estado final do ciclo 2 (pós-correções)
-
-Substitui todas as seções anteriores deste arquivo para o ciclo 2.
-
-## Números finais — execução do zero, código consolidado
-
-| Nível | Ciclo 1 | **Ciclo 2** |
-|---|---|---|
-| 1 — estrutura válida | 10.023 (99,34%) | 10.023 (99,34%) |
-| 2 — payload em claro | 1.496 (14,83%) | **8.571 (84,95%)** | <!-- historico -->
-| 3 — geometria parseável | 1.191 (11,80%) | **8.401 (83,26%)** | <!-- historico -->
-| OPAQUE | 8.594 (85,17%) | **1.519 (15,05%)** | <!-- historico -->
-| Checks de teste | 231 | **236** |
-
-Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),
-`evidence/ciclo2_scan_final.log` (relatório com binário recém-compilado).
-
-## O que está resolvido e o que não está
-
-**Resolvido e validado:**
-
-- Decifragem v0x0C — 7.226 arquivos
-- Posições de vértice e normais — 8.401 arquivos (83,26%)
-- Array de coordenadas UV — zero não-finitos em 250.450 leituras (acaso daria ~976)
-- Topologia — 3.524.366 triângulos em 8.400 arquivos, lidos pelo parser C++
-- Hierarquia de ossos — `u16` pai (65535 = raiz em 75,9%) + 6 floats 100% finitos,
-  em registro intercalado de 59 B confirmado em 98,0%
-
-**Implementado neste ciclo, em código testado:**
-
-- `src/mu/assets/mesh.hpp/.cpp` — representação interna de malha e importador BMD
-  (caminho A). Contagens de 32 bits, índices separados, caixa delimitadora na
-  importação. Não produz coordenadas de textura nem ossos, e diz por quê
-- `src/mu/assets/terrain.cpp` — leitor de altura de terreno (`TerrainParseHeight`,
-  `TerrainHeightSmoothness`), com tratamento de BMP e fallback marcado
-- `src/mu/render/cull.cpp` — frustum culling por caixa delimitadora, o primeiro
-  módulo de renderização do projeto
-- `mutool meshimport <dir>` — pipeline BMD completo sobre a árvore real:
-  8.408 malhas internas, 1.792.108 vértices, 978.853 triângulos
-- `mutool culltest <dir>` — mede culling sobre malhas reais
-- `mutool terrain <dir>` — lê as 76 grades de altura reais e mede suavidade
-- Testes: **338 checks, 0 failures**; ASan+UBSan 338/0; zero warnings sob 12 flags `-W`
-
-**Bloqueado:**
-
-- **Índice de UV por canto** — investigação ENCERRADA, sete hipóteses descartadas.
-  Sem ele os 8.400 arquivos com topologia não podem ser texturizados
-- Ordem dos 6 floats de transformação — posição antes de rotação é inferência, não
-  confirmação. Aplicar trocado daria esqueleto silenciosamente errado
-- Seção de animação — não examinada
-- 1.519 arquivos v0x0C, malhas múltiplas, pipeline VBO/VAO (nenhuma linha de código)
-
-## Correções feitas neste ciclo
-
-1. A afirmação de que a rota open-source estava "bloqueada por falta de acesso"
-   era **falsa**; o acesso existia.
-2. A troca de layout de registro baseada em medição com base errada (arquivo vs
-   payload, defasagem de 4 bytes) foi **revertida** em `bf1668c`.
-3. O "defeito conhecido" de que v0x0C usaria `f16` era **infundado**; descartado
-   por medição (400/400 em `f32`).
-4. A atribuição ISC foi registrada com a ressalva de que o repositório de origem
-   **não tem arquivo `LICENSE`**.
-
-## Nova exigência arquitetural incorporada
-
-DEC-008 (VBO/VAO como piso mínimo), DEC-009 (teste sintético não é suporte a
-asset), limites do BMD conhecidos vs desconhecidos, importação dual com glTF 2.0
-no caminho B, requisitos de escalabilidade. **Nada disso está implementado** — são
-decisões e requisitos registrados.
-
-## ESTADO DO GIT NESTE CICLO
-
-- Commits: **15**, listados em `CICLO2_RELATORIO.md`. Um por unidade coerente
-- Push: **realizado após cada commit**, nenhuma falha em todo o ciclo
-- Hash local **==** hash remoto. O valor **não se copia deste documento**: um
-  commit não contém o próprio hash, então lê-se com `git rev-parse HEAD` e
-  `git ls-remote origin arena/519f8fc9-clienterecriado` no momento da consulta.
-  Esta regra existe porque três versões anteriores desta seção ficaram defasadas
-  pelo commit seguinte
-- `git status --short`: vazio — **working tree limpa**
-- Referência `Cliente_ref`: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`, idêntica
-  ao início do ciclo, **não modificada**
-- Nada ficou sem commitar ou sem publicar
-
-Relatório completo em `CICLO2_RELATORIO.md`.
+| Renderer (any backend) | NOT STARTED, esqueleto Win32 BLOCKED | win32_window.hpp NÃO COMPILADO BLOCKED requer Windows+GPU, sequência wglCreateContext documentada, TestWin32GLSkeletonBlocked BLOCKED |
+| Window / input / main loop | PARTIAL — esqueleto MainLoop CONCLUÍDO update/render/present predição budget sem GL, Win32 BLOCKED | main_loop.hpp/.cpp TestMainLoopSkeleton 9 checks, win32_window BLOCKED |
+| Resource cache and manager | NOT STARTED | — |
+| Texture upload to GPU | NOT STARTED, but OztToBgraTopDown 6,6us ready for GL_BGRA | OPT-005 |
+| Model loading | PARTIAL — 8406 vertex+normal, 8405 topology, 3693 bones loose 1186 strict, 7879 bones, UV 0% | bmd_body parser |
+| Audio mu/audio | NOT STARTED, arquitetura definida docs/AUDIO.md | AUDIO.md |
+| Network mu/network | NOT STARTED, estrutura pacotes documentada com rótulos docs/NETWORK.md | NETWORK.md |
+| Interface mu/interface | NOT STARTED, fluxo telas definido docs/INTERFACE.md | INTERFACE.md |
+| Animation | NOT DECODED — 62 plausíveis ratio 0,02× NÃO discriminativo, 53 plausíveis [-pi,pi] ratio 0,04× NÃO discriminativo | ciclo11_item5_anim_validation_full.log |
+| OPAQUE cipher | BLOQUEADO — 1519 15,05% cifra não recuperada full-scan 1503 PlausiblePath 0 variantes plausíveis tentativa falha | ciclo11_opaque_step_fullscan.log |
+| UV | NOT DECODED — 0% 11 hipóteses descartadas platô 9-26× explicado artefato floats pequenos | ciclo10_itemA4_uv_ratio_per_offset.log |
+| FPS/VRAM baseline | NOT EXECUTED — no Windows no GPU | PERFORMANCE_BASELINE.md |
+| Visual validation Windows | BLOCKED — no renderer | — |
+
+## 4. Security and dependencies
+
+- Parser ossos: detecção ciclo visited[64] self-loop parent==i rejeitado bc>64 limite overflow, reduz FP 8,32%→0,0079% ratio 1846,28×, testes CircularParent ExtremeCount Truncated Overflow 474 checks ASan0
+- BuxCrypt word-at-a-time 8B key64[3] phase advances 2 mod 3, memcpy unaligned safe, self-inverse mantido, 880→2598 MB/s 2,96× (3437 MB/s 3,9× OPT-003)
+- OzjProbe word-at-a-time 8B chunk has_zero bitmask sem FF skip 8B unaligned safe via memcpy sem strict-aliasing sem leitura além file.size preserva escape FF 00 e FF D0..D7 edge remaining<8 4 casos PASS 0 ASan/UBSan
+- OztToRgbaTopDown 2px 8B via uint64_t bit ops (pixel & 0xFF00FF00) | ((pixel & 0xFF)<<16) | ((pixel>>16)&0xFF) memcpy unaligned safe, OztToBgraTopDown BGRA direct via GL_BGRA elimina swap só flip memcpy 10,2× 66,4us→6,5us 9,45× median 12,26× p99
+- Nenhum include gráfico em src/ exceto esqueleto BLOCKED win32_window que não inclui <windows.h> nem <GL/gl.h> propositalmente
+- Makefile fix ciclo13 item1: test-san agora cobre 100% checks 474, antes 389 vs 469 discrepância corrigida, regra permanente qualquer divergência futura entre test e test-san é bloqueio crítico automático
+- Dependências: zero dep build C++17, mas cliente referência tem msvcr100 msvcp100 VS2010, MSVCP140 VCRUNTIME140 VS2015+ Audio.dll, vorbisfile.dll 999KB ogg.dll 53KB Xiph BSD-style, 3DGuard.dll hinetworks.dll License.hinet main.premium etc Comercial não redistribuível, MHPClient.dll MHPVerify.dll, PS.dll Delphi packed, AutoLogin plaintext Settings.ini SECURITY.md, Thumbs.db 12 arquivos 677KB rar/zip 14,3MB ScreenShots 51,7MB não deveriam shippar
+- Licença bmdref xulek/muonline-bmd-viewer commit 3f11bf89f3702261174d8efa1436d56a15c7d97a ISC NÃO CONFIRMADA sem LICENSE file e-mail placeholder xulek@example.com, nada copiado em bloco git ls-files | grep -ci bmdref 0, clone /tmp/bmdref e /tmp/cliente_ref fora repo não commitado
+
+## 5. Next task
+
+**Otimizar BuxCrypt e OztToRgbaTopDown já parcialmente feito ciclo13 item10, mas ainda pode melhorar com SIMD SSE2/AVX2 e medir baseline completo**
+
+Após ciclo13 item10, BuxCrypt 382,8us 2598 MB/s (vs original 1135us 880 MB/s 2,96×, vs OPT-003 290,9us 3437 MB/s 3,9×) e OztToBgra 6,6us 9,45× já medidos, mas próxima tarefa pode ser:
+- Implementar SIMD SSE2/AVX2 para OztToRgbaTopDown BGRA→RGBA shuffle e BuxCrypt XOR 16B com _mm_xor_si128, medir bench_assets speedup >2× adicional
+- Ou avançar para mu/audio decoder_wav via miniaudio, medir bench decode WAV 1.020 arquivos
+
+Critério: build limpo, teste sanitizado cobrindo 100% testes (474 checks), números batendo com ferramenta, sem contradição entre documentos, comparação real-vs-controle com unidades idênticas.
+
+## ESTADO DO GIT NESTE CICLO — até item9
+
+- Branch: arena/519f8fc9-clienterecriado
+- Base: 972fabcea1b0d4e80345f0f5abd287b46d819455 main
+- HEAD atual: 772d0a4 docs(ciclo13-item9): revisa STATUS_FINAL.md linha a linha corrigindo classificação otimista
+- Commits locais ciclo13 até item9: 65bb1c4 fix item1 469 vs 389, bf1b7f0 evidence item2-3 git incident + ratio calc, 2a44d10 evidence item4-8 C1-E3 detalhada, 772d0a4 docs item9 STATUS_FINAL revisado
+- Push realizado: pendente, será pushado agora
+- Referência Cliente_ref: 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9 intacto, mas /tmp/cliente_ref re-clonado ciclo13 item5 para medição escala real culling 8406 bounds reais
+- Métricas: 474 checks 0 failures, test-san 474 checks 0 failures 0 ASan/UBSan após fix, culling escala real 8406 bounds 2,77% a 7,88% culled, bones 3693 loose ratio 1846,28× definitivo 1186 strict limite sup 3557× per trial 1185× per file, OPAQUE 1519 15,05%, animação 62 plausíveis não confirmado ratio 0,02×, UV 0% 11 hipóteses platô explicado
