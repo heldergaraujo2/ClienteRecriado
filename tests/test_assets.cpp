@@ -22,6 +22,7 @@
 #include "mu/assets/mesh.hpp"
 #include "mu/render/cull.hpp"
 #include "mu/render/buffers.hpp"
+#include "mu/render/skinning.hpp"
 #include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
@@ -598,6 +599,7 @@ void TestBmdBonesTruncated();
 void TestBmdBonesOverflow();
 void TestMeshInternalRepresentation();
 void TestPackMeshForUpload();
+void TestSkinningLBS();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -644,6 +646,7 @@ const Test kTests[] = {
     {"bmd bones overflow check", TestBmdBonesOverflow},
     {"mesh internal representation (C1)", TestMeshInternalRepresentation},
     {"pack mesh for upload (D1)", TestPackMeshForUpload},
+    {"skinning LBS CPU strict (D2)", TestSkinningLBS},
 };
 
 }  // namespace
@@ -2030,5 +2033,64 @@ void TestPackMeshForUpload() {
   CHECK(packed3.bad_indices==1);
 }
 
+
+
+void TestSkinningLBS() {
+  // D2: LBS CPU strict count, no GL
+  // (a) identity bones -> original
+  mu::Mesh mesh;
+  mesh.positions = {{0,0,0}, {1,2,3}, {-1,0.5f,2}};
+  mesh.normals = {{0,0,1}, {0,0,1}, {0,0,1}};
+  mesh.has_texcoords = false;
+  mu::BoneWeight w0; w0.bone=0; w0.weight=1.0f;
+  mu::BoneWeight w1; w1.bone=1; w1.weight=0.5f;
+  mu::BoneWeight w2; w2.bone=1; w2.weight=0.5f;
+  mesh.bone_weights = {{w0}, {w0}, {{w1,w2}}};
+  mesh.has_bone_weights = true;
+
+  mu::Skeleton skel;
+  mu::Bone b0; b0.name="Root"; b0.parent=mu::kNoBoneParent; b0.position={0,0,0}; b0.rotation={0,0,0};
+  mu::Bone b1; b1.name="Child"; b1.parent=0; b1.position={1,0,0}; b1.rotation={0,0,0};
+  skel.bones = {b0,b1};
+  skel.has_bones = true;
+
+  std::vector<mu::Mat4> identity;
+  identity.push_back(mu::Mat4::Identity());
+  identity.push_back(mu::Mat4::Identity());
+
+  auto res = mu::ApplySkinningLBS(mesh, skel, identity);
+  CHECK(res.ok);
+  CHECK(res.positions.size()==3);
+  CHECK(std::fabs(res.positions[0].x-0.0f)<1e-5f && std::fabs(res.positions[0].y-0.0f)<1e-5f);
+  CHECK(std::fabs(res.positions[1].x-1.0f)<1e-5f && std::fabs(res.positions[1].y-2.0f)<1e-5f && std::fabs(res.positions[1].z-3.0f)<1e-5f);
+  CHECK(std::fabs(res.positions[2].x-(-1.0f))<1e-5f);
+
+  // (b) self-loop fails safe
+  mu::Skeleton badLoop;
+  mu::Bone bl0; bl0.name="Bad"; bl0.parent=0; bl0.position={0,0,0}; bl0.rotation={0,0,0};
+  badLoop.bones={bl0};
+  badLoop.has_bones=true;
+  std::vector<mu::Mat4> oneId = {mu::Mat4::Identity()};
+  auto resBad = mu::ApplySkinningLBS(mesh, badLoop, oneId);
+  CHECK(!resBad.ok);
+
+  // invalid parent fails safe
+  mu::Skeleton badParent;
+  mu::Bone bp0; bp0.name="BadParent"; bp0.parent=5; bp0.position={0,0,0}; bp0.rotation={0,0,0};
+  badParent.bones={bp0};
+  badParent.has_bones=true;
+  auto resBad2 = mu::ApplySkinningLBS(mesh, badParent, oneId);
+  CHECK(!resBad2.ok);
+
+  // (c) mesh without bone_weights zero movement
+  mu::Mesh meshNoWeight;
+  meshNoWeight.positions = {{0,0,0}, {1,0,0}};
+  meshNoWeight.normals = {{0,0,1}, {0,0,1}};
+  meshNoWeight.has_bone_weights = false;
+  auto resNoW = mu::ApplySkinningLBS(meshNoWeight, skel, identity);
+  CHECK(resNoW.ok);
+  CHECK(resNoW.positions.size()==2);
+  CHECK(resNoW.positions[0].x==0.0f && resNoW.positions[1].x==1.0f);
+}
 
 }  // namespace

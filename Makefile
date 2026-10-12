@@ -28,6 +28,7 @@ LIB_SRCS := src/mu/assets/format.cpp \
             src/mu/assets/mesh.cpp \
             src/mu/render/cull.cpp \
             src/mu/render/buffers.cpp \
+            src/mu/render/skinning.cpp \
             src/mu/assets/bmd_report.cpp \
             src/mu/assets/terrain.cpp \
             src/mu/assets/tga.cpp \
