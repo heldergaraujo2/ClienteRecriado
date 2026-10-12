@@ -8,8 +8,34 @@
 namespace mu {
 
 void BuxCrypt(uint8_t* data, std::size_t size, std::size_t phase_offset) {
-  for (std::size_t i = 0; i < size; ++i)
-    data[i] = static_cast<uint8_t>(data[i] ^ kBuxKey[(i + phase_offset) % 3]);
+  if (size == 0 || data == nullptr) return;
+  // Precompute 8-byte key patterns for each phase 0,1,2.
+  // For phase p, byte j = kBuxKey[(j+p)%3].
+  // This allows XORing 8 bytes at a time with a single uint64 operation.
+  // 8 % 3 == 2, so after each 8-byte chunk phase advances by 2 mod 3.
+  uint64_t key64[3];
+  for (std::size_t p = 0; p < 3; ++p) {
+    uint8_t kb[8];
+    for (std::size_t j = 0; j < 8; ++j) kb[j] = kBuxKey[(j + p) % 3];
+    uint64_t k = 0;
+    std::memcpy(&k, kb, 8);
+    key64[p] = k;
+  }
+  std::size_t pos = 0;
+  std::size_t cur_phase = phase_offset % 3;
+  // Process 8 bytes at a time
+  for (; pos + 8 <= size; pos += 8) {
+    uint64_t chunk = 0;
+    std::memcpy(&chunk, data + pos, 8);
+    chunk ^= key64[cur_phase];
+    std::memcpy(data + pos, &chunk, 8);
+    cur_phase = (cur_phase + 8) % 3;
+  }
+  // Tail 0..7 bytes
+  for (; pos < size; ++pos) {
+    data[pos] ^= kBuxKey[cur_phase];
+    cur_phase = (cur_phase + 1) % 3;
+  }
 }
 
 void BuxCrypt(uint8_t* data, std::size_t size) { BuxCrypt(data, size, 0); }

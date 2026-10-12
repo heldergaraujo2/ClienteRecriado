@@ -1,0 +1,46 @@
+ClienteRecriado asset micro-benchmarks
+CPU-side decode cost only. Not a frame rate measurement.
+
+benchmark                            med us   p95 us   p99 us  mean us         MB      MB/s
+---------                            ------   ------   ------  -------         --      ----
+OztProbe 256x256                        0.0      0.0      0.0      0.0       0.25 7144165.0
+OztRead 256x256 (copy pixels)           6.0      6.2     20.6      6.5       0.25   41480.7
+OztToRgbaTopDown 256x256               45.3     59.2     72.9     47.0       0.25    5517.8
+OztRead 512x512                        40.9     77.3     93.1     45.5       1.00   24467.7
+OztRead 1024x1024                     316.3    389.3    406.7    339.2       4.00   12645.0
+BuxCrypt 1 MiB                        290.9    334.5    346.3    300.6       1.00    3437.8
+ByteEntropy 1 MiB                     486.3    543.9    564.9    494.7       1.00    2056.3
+Crc32 64 KiB (in cache)                29.5     34.3     45.6     30.4       0.06    2118.5
+    reps=300  mean=30.4 us  stddev=3.2 us (10.69% of mean)  min=29.4  max=53.7
+Crc32 1024 KiB (in cache)             509.3    543.6    600.2    508.6       1.00    1963.3
+    reps=300  mean=508.6 us  stddev=23.4 us (4.61% of mean)  min=473.7  max=662.0
+Crc32 16384 KiB (in cache)           8595.9   8754.2   8754.2   8606.6      16.00    1861.3
+    reps=20  mean=8606.6 us  stddev=141.6 us (1.65% of mean)  min=8343.5  max=9120.2
+Crc32 + disk read: NOT RUN (set MU_BENCH_FILE to a real file to include it)
+ManifestParse 5000 entries            949.2    999.7   1070.8    954.9       0.19     200.9
+  (parsed 5000 entries)
+OzjProbe 512x512 + 200KB scan          86.6    101.2    118.5     87.0       0.19    2202.1
+  (geometry 512x512)
+LOAD-TIME expand indexed -> flat    20401.1  21845.6  21845.6  20540.7      67.21    3294.6
+    reps=20  mean=20540.7 us  stddev=628.7 us (3.06% of mean)  min=19936.1  max=22354.1
+LOAD-TIME vertex buffer upload       3733.2   3772.2   3808.4   3735.3      41.02   10987.4
+    reps=50  mean=3735.3 us  stddev=35.9 us (0.96% of mean)  min=3655.1  max=3896.4
+
+    LOAD-TIME, measured on CPU:
+      expansion, index -> flat             20401.1 us  ( 67.21 MiB)
+      VBO upload, unique vertices only      3733.2 us  ( 41.02 MiB)
+      ratio expansion/upload                  5.46x
+
+    PER-FRAME, volume only - cost is BLOCKED, no GL context:
+      no glDrawElements, expanded            67.21 MiB per draw
+      VBO + index buffer, resident once      52.22 MiB total
+      per-frame volume ratio                  1.29x
+      corner sends, expanded               2936559 per draw
+      unique vertices, indexed             1792108 uploaded once
+
+    The per-frame advantage of VBO/VAO is real and follows
+    from the absent imports, but its COST is driver, bus and
+    per-vertex call overhead: BLOCKED here. See DEC-008.
+
+Run twice and compare the medians; a shift of more than a few
+percent on the same machine means something changed.

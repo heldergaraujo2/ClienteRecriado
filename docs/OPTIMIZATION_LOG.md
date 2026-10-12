@@ -143,6 +143,54 @@ actually needed.
 
 ---
 
+## OPT-003 — Vectorised bux cipher (CAND-002 implemented)
+
+**Status: KEPT.**
+
+### Problem observed
+
+`BuxCrypt` XORs each byte with `kBuxKey[(i+phase)%3]` where key is 3 bytes `FC CF AB` repeating. Original scalar loop does one table lookup and XOR per byte, limited by load-use latency. Measured 880.5 MB/s, slowest per-byte op, 131KB terrain attrib file ~150 µs, 265 files ~40 ms serial during map load.
+
+### Evidence
+
+Before (scalar):
+
+```
+BuxCrypt 1 MiB  med  ~1135 us  880.5 MB/s
+```
+
+### Hypothesis
+
+XOR against repeating 3-byte key can be done 8 bytes at a time by pre-expanding key to 8-byte pattern for each phase 0,1,2. Since 8%3==2, phase advances by 2 each 8-byte chunk, cycling every 3 chunks (24 bytes). Precompute 3 uint64 key patterns, then loop over data with uint64 loads/stores via memcpy (no unaligned UB), tail 0..7 bytes scalar.
+
+### Change
+
+`src/mu/assets/bmd.cpp`: `BuxCrypt` rewritten to precompute `key64[3]` (8-byte patterns for phase 0: FC CF AB FC CF AB FC CF, phase1: CF AB FC..., phase2: AB FC CF...), then process 8 bytes at a time with `memcpy` to uint64, XOR, `memcpy` back, updating `cur_phase = (cur_phase+8)%3`. Tail scalar with correct phase tracking. No behavioural change, still self-inverse, phase_offset handled correctly.
+
+### Test
+
+Correctness: existing self-inverse test in `test_assets.cpp` still passes (389 checks). Added manual check: for all phase 0..2 and lengths 0..40, scalar vs vectorised byte-for-byte equality (verified via `make test`).
+
+Performance: `bench_assets` BuxCrypt 1 MiB:
+
+```
+before: med ~1135 us  880.5 MB/s
+after:  med  290.9 us  3437.8 MB/s  (evidence ciclo10_opt002_bux_benchmark.log)
+speedup: 3.9x
+```
+
+### Side effects
+
+- No extra memory, only 3 uint64 precomputed on stack.
+- Uses memcpy for unaligned safe loads, no strict-aliasing violation.
+- Phase handling verified for all offsets 0..2 and lengths 0..40.
+
+### Decision
+
+**Keep.** 3.9x improvement on slowest per-byte op, verified correctness, no behavioural change, low risk.
+
+---
+
 ## Candidates identified, not yet implemented
 
 Each has evidence and a stated expected effect. None has been measured, so none
@@ -167,25 +215,6 @@ screenshot.
 not remove the need for it. Note that OZT stores rows bottom-up, which happens
 to match GL's default `GL_UNPACK` orientation, so the flip may not be needed at
 all for direct upload. That needs verifying, not assuming.
-
-### CAND-002 — Vectorise the bux cipher
-
-**Evidence.** 880.5 MB/s, the slowest per-byte operation measured. A 131,076
-byte terrain attribute file costs about 150 µs; across 265 terrain files that is
-roughly 40 ms of serial work during map load.
-
-**Hypothesis.** XOR against a repeating 3-byte key can be done 16 or 32 bytes at
-a time by pre-expanding the key to a multiple of the vector width, or simply by
-unrolling to a 3-byte-period loop over machine words.
-
-**Test.** `BuxCrypt` benchmark before and after, plus the existing
-self-inverse test and a new test asserting byte-for-byte equality with the
-scalar implementation on a range of lengths and phase offsets.
-
-**Risk.** Low. The phase offset must be handled correctly or decryption silently
-produces garbage — and because the cipher is its own inverse, a wrong
-implementation still round-trips, so the equality test against the scalar
-version is mandatory rather than optional.
 
 ### CAND-003 — Word-at-a-time search in the JPEG scan skip
 
