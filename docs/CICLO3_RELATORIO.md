@@ -144,12 +144,23 @@ execução do zero com o código atual:
 | Nível | Arquivos | % de 10.090 |
 |---|---|---|
 | 1 — estrutura válida | 10.023 | 99,34% |
-| 2 — payload em claro | 8.571 | 84,95% |
+| 2 — decifrado (payload em claro) | 8.571 | 84,95% |
 | 3 — vértice + normal parseáveis | 8.406 | 83,31% |
 | 4 — **faces parseáveis** | **4.149** | **41,12%** |
-| 5 — **UV parseável** | **0** | **0,00%** |
+| 5 — **ossos parseáveis** | **3.505** | **34,74%** |
+| 6 — **UV parseável** | **0** | **0,00%** |
 
 Nível 2 = plaintext 1.245 + bux 100 + v0x0C 7.226. OPAQUE 1.519 (15,05%).
+
+**Os níveis não são cumulativos na mesma população, e isso importa.** O nível 4
+conta apenas arquivos de **malha única**; malhas múltiplas não são parseadas porque
+o layout não foi confirmado. O nível 5 conta arquivos cuja hierarquia de ossos foi
+lida — 3.505 de 4.119 elegíveis (85,09%), o que sobre a árvore inteira é 34,74%.
+Citar "98,68%" sem o denominador foi exatamente o erro corrigido neste ciclo.
+
+**Nenhum nível é um modelo renderizável.** O nível 6 é zero: sem índice de UV por
+canto não há textura, e sem ordem confirmada dos floats de transformação não há
+skinning.
 
 **Faces:** 1.221.030 triângulos, 306.109 referências fora de faixa (8,357%).
 
