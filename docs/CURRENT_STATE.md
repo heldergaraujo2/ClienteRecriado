@@ -254,18 +254,23 @@ Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),
 
 ## O que está resolvido e o que não está
 
-**Resolvido e validado:** decifragem v0x0C (7.226 arquivos), posições de vértice,
-normais, **array de UV** (zero não-finitos em 250.450 leituras; acaso daria
-~976), **topologia** (1.221.030 triângulos em 4.149 arquivos, lidos pelo parser
-C++).
+**Resolvido e validado:**
 
-**Bloqueado:** índice de UV por canto (três hipóteses descartadas: campo +4 é
-padding, não há quarto canto, relação implícita refutada em 93% dos casos),
-bytes 24..59 do registro de triângulo, ossos, animação, 1.519 arquivos v0x0C,
-malhas múltiplas.
+- Decifragem v0x0C — 7.226 arquivos
+- Posições de vértice e normais — 8.406 arquivos (83,31%)
+- Array de coordenadas UV — zero não-finitos em 250.450 leituras (acaso daria ~976)
+- Topologia — 1.221.030 triângulos em 4.149 arquivos, lidos pelo parser C++
+- Hierarquia de ossos — `u16` pai (65535 = raiz em 75,9%) + 6 floats 100% finitos,
+  em registro intercalado de 59 B confirmado em 98,0%
 
-**Sem índices de face, nenhum modelo BMD pode ser renderizado como malha neste
-momento — apenas dados de vértice/normal foram extraídos.**
+**Bloqueado:**
+
+- **Índice de UV por canto** — investigação ENCERRADA, sete hipóteses descartadas.
+  Sem ele os 4.149 arquivos com topologia não podem ser texturizados
+- Ordem dos 6 floats de transformação — posição antes de rotação é inferência, não
+  confirmação. Aplicar trocado daria esqueleto silenciosamente errado
+- Seção de animação — não examinada
+- 1.519 arquivos v0x0C, malhas múltiplas, pipeline VBO/VAO (nenhuma linha de código)
 
 ## Correções feitas neste ciclo
 

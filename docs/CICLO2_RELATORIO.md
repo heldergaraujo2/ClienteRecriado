@@ -113,6 +113,7 @@ Evidência bruta, completa e não resumida:
 | 2 — payload obtível em claro | 8.571 | 84,95% |
 | 3 — geometria parseável (vértice + normal) | 8.406 | 83,31% |
 | 4 — topologia parseável (índices de face) | 4.149 | 41,12% |
+| 5 — hierarquia de ossos decodificada | 901 de 919 | 98,0% |
 
 Nível 2 detalhado: 1.245 plaintext + 100 bux + **7.226 v0x0C** = 8.571;
 1.519 OPAQUE (15,05%).
