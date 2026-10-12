@@ -446,7 +446,10 @@ int CmdBmdReport(int argc, char** argv) {
   std::printf("    triangles read                       %8zu\n", sum.triangles_total);
   std::printf("    corner refs out of range             %8zu  (%6.3f%% of refs)\n",
               sum.bad_corner_refs,
-              sum.triangles_total ? 100.0 * sum.bad_corner_refs / (3.0 * sum.triangles_total) : 0.0);
+              sum.triangles_total
+                  ? 100.0 * static_cast<double>(sum.bad_corner_refs) /
+                        (3.0 * static_cast<double>(sum.triangles_total))
+                  : 0.0);
   std::printf("    Single-mesh files only. Texture coordinates are NOT\n");
   std::printf("    located and bones are NOT decoded, so a file counted here\n");
   std::printf("    is still NOT a renderable model.\n\n");
