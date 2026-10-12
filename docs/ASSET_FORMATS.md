@@ -981,15 +981,34 @@ então não é isso.
   | 368 bytes | 23 |
   | 80 bytes | 9 |
 
-  A concentração em 26 bytes para arquivos de um osso é forte e sugere um bloco
-  de **26 bytes por osso** após todos os nomes — não 24, como daria um conjunto
-  simples de 6 floats. Para dois ossos a sobra é 53, e não 52: **um byte de
-  diferença que este projeto não explicou.**
+  **A conta fecha com o modelo `27 × boneCount − 1`**, equivalente a 26 bytes
+  para o primeiro osso e 27 para cada osso seguinte. Verificado agrupando a sobra
+  por `boneCount` em 1.525 arquivos:
 
-  Sem fechar essa conta não é possível afirmar o layout. 26 bytes não se
-  decompõem em floats de forma inteira (6×4 = 24, sobram 2), o que sugere um
-  campo `u16` — possivelmente o índice do osso pai — seguido de 6 floats.
-  **Isso é hipótese, não resultado.**
+  | `boneCount` | Sobra modal | Arquivos | Previsto `27·bc−1` | Bate? |
+  |---|---|---|---|---|
+  | 1 | 26 | 1.222 de 1.328 | 26 | **sim** |
+  | 2 | 53 | 82 de 93 | 53 | **sim** |
+  | 3 | 368 | 23 de 50 | 80 | não |
+  | 4 | 107 | 3 de 13 | 107 | **sim** |
+  | 5 | 134 | 5 de 7 | 134 | **sim** |
+  | 6 | 1.745 | 8 de 13 | 161 | não |
+  | 8 | 215 | 3 de 7 | 215 | **sim** |
+  | 9 | 242 | 2 de 2 | 242 | **sim** |
+  | 11 | 296 | 2 de 4 | 296 | **sim** |
+
+  **1.319 de 1.525 = 86,5%** dos arquivos seguem o modelo na moda de cada
+  contagem.
+
+  Os que divergem têm sobra muito maior que o previsto (bc=3 → 368 em vez de 80;
+  bc=6 → 1.745 em vez de 161). O padrão é coerente com **presença de dados de
+  animação** nesses arquivos, que vêm depois das transformações. Isso é hipótese,
+  não resultado.
+
+  **27 bytes por osso não se decompõe em floats de forma inteira**: 6×4 = 24,
+  sobram 3. A decomposição mais plausível é `u16` índice do osso pai + 6 floats
+  (24 B) + 1 byte não identificado. **Hipótese, não resultado** — o byte extra e
+  o `−1` do modelo não foram explicados.
 - A hierarquia pai/filho.
 - A seção de animação, que vem depois dos ossos.
 - Por que 26,3% falham.
