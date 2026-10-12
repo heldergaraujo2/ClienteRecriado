@@ -233,3 +233,27 @@ projeto registram **o hash HEAD de ambos os repositórios no cabeçalho**. Sem
 isso, o incidente teria passado despercebido: os números do ciclo 3 teriam sido
 gerados sobre `972fabc` e comparados com os do ciclo 2 gerados sobre `c03264b`,
 e a diferença teria parecido regressão de código.
+
+### 9.5 Segurança do parser de ossos — detecção de ciclo e OOM-safe (ciclo 9 item 3 e ciclo 10 Fase A)
+
+**Problema:** hierarquia de ossos com parent pointers pode conter ciclo A->B->A ou self-loop A->A, causando travessia infinita em código futuro que caminha a hierarquia para skinning. Além disso, `boneCount` 0xFFFF (65535) lido de payload corrompido causaria alocação de `bc*59` bytes ~3.8 MB, mas com `bc=0xFFFF` e `mc` grande poderia causar OOM ou overflow `bc*59` em `size_t`.
+
+**Mitigação implementada (commit `f28a02d` e `0d84b0f`):**
+- `TryParseBonesAt`: verifica overflow `bc > SIZE_MAX/59` antes de multiplicar, rejeita `bc==0` ou `bc>64` (observado máx 18, limite 64 seguro).
+- Detecção de ciclo: para cada osso, segue parents até `bc` passos com `visited[64]` booleano, se revisita nó → ciclo detectado → rejeita arquivo. Também rejeita self-loop `parent==i` diretamente.
+- Para `bc=1`, apenas parent -1 (0xFFFF) válido, parent 0 é self-loop → rejeitado. Isso reduziu falso-positivo de controle de 8,32% (2099/25218) para 0,0079% (2/25218), ratio de 5,43× para 1846×, evidência `ciclo9_item2_validation_fixed.log`.
+- Testes: `TestBmdBonesCircularParent` (0->1->0 ciclo deve falhar), `ExtremeCount` bc=0xFFFF OOM-safe, `Truncated` no meio lista, `Overflow` bc=0xFFFF. 389 checks 0 falhas, ASan/UBSan 0 reports, evidência `ciclo9_item3_security_test.log`.
+
+**Impacto segurança:** sem detecção de ciclo, código futuro de skinning que faz `while(parent!=-1) parent = bones[parent].parent` entraria em loop infinito, causando deadlock ou CPU 100%. Com detecção, arquivo com ciclo é rejeitado no parsing, não chega a skinning.
+
+### 9.6 Otimização bux cipher — vetorização segura (ciclo 10 Fase C OPT-003)
+
+**Mudança:** `BuxCrypt` reescrito de scalar byte-a-byte para 8 bytes por vez com `uint64` XOR e `memcpy` para loads/stores unaligned safe, sem strict-aliasing violation. Precomputa 3 padrões `key64[3]` para fases 0,1,2 (FC CF AB...), fase avança `(cur_phase+8)%3` a cada chunk.
+
+**Riscos avaliados:**
+- **Unaligned access:** usa `memcpy` para carregar/store `uint64`, não cast direto, seguro em x86 e ARM.
+- **Phase handling:** testado para fases 0..2 e lengths 0..40, igualdade byte-a-byte com scalar, 389 checks 0 falhas.
+- **Timing side-channel:** bux cipher não é criptografia de segurança (XOR 3-byte key), apenas obfuscação de asset, não protege segredo, então timing não é risco. Otimização não introduz branch dependente de dados secretos.
+- **Corretude:** self-inverse mantido, `BuxCrypt(BuxCrypt(data)) == data` ainda verdadeiro.
+
+**Evidência:** `ciclo10_opt002_bux_benchmark.log` mostra 880 MB/s → 3437 MB/s 3.9x, sem regressão.
