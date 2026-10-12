@@ -70,6 +70,47 @@ There is no path from this renderer to instancing, batching by material, or
 GPU-driven culling. That is not a criticism of code written for 2003 hardware;
 it is the reason a performance gain requires new code rather than a patch.
 
+### 3.1 Load-time cost and per-frame cost are different things
+
+This distinction had to be made explicit, because an earlier revision of
+`DEC-008` conflated them and the cycle-4 audit caught it.
+
+**"Re-marshalled per draw" is the driver re-reading the array, not the
+application rebuilding it.** In the `Main.dll` path a flat client-side vertex
+array exists in application memory. The natural implementation builds it **once**,
+when the model is loaded, and reuses it. Nothing in the import table says the
+array is reconstructed each frame. So the index-to-flat expansion is a
+**load-time** cost, and comparing it against the budget of a single frame was
+wrong. The correct comparison is against the loading budget. See
+`DECISIONS.md`, DEC-008-A §3.1.
+
+**What does recur every frame is the submission volume.** With no
+`glGenBuffers`, the vertex data lives in client memory and the driver marshals
+it out on every draw. With no `glDrawElements`, shared vertices are resubmitted
+rather than referenced, so the volume per frame is the **expanded** size. That
+is an exact quantity, derived from these absent imports and independent of any
+GPU:
+
+| Per frame | Value |
+|---|---|
+| Expanded submission, no `glDrawElements` | **67.21 MiB per draw** |
+| Corner sends | **2,936,559 per draw** |
+| Unique vertices, if indexed | 1,792,108, uploaded once |
+| Vertices resent unnecessarily | **63.9% of sends** |
+
+Counts measured on the real tree by `mutool meshimport`: 1,792,108 vertices,
+978,853 triangles across 4,071 meshes; sharing ratio 1.64 vertices per triangle
+rather than 3.
+
+**The cost of that volume cannot be measured in this environment.** It is driver
+marshalling, bus transfer, and per-vertex call overhead — all of which need a GL
+context. Recorded as `BLOCKED` in DEC-008-A §3.3 (Part B).
+
+In the `Main.exe` immediate-mode path (`glBegin`/`glEnd`/`glVertex3f`) there is
+no persisted array at all: each vertex crosses the API boundary as an individual
+call, every frame. The per-frame cost there is structural, but it is call
+overhead, and it is equally unmeasurable here.
+
 ## 4. `glReadPixels` on the presentation path
 
 `Main.exe` imports `glReadPixels`. A readback forces the driver to finish all

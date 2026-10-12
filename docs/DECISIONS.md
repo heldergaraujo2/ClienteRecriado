@@ -424,7 +424,7 @@ Os quatro eixos que a auditoria pediu, cada um com o que se sabe e de onde vem:
 
 | Eixo | Fixed-function / immediate mode (como o original) | VBO/VAO com draw indexado |
 |---|---|---|
-| **Capacidade de suportar malha pesada** | Teto estrutural. `glBegin`/`glEnd` envia um vértice por chamada; sem `glDrawElements` no binário, toda malha é submetida expandida. **Medido:** a expansão por quadro custa **20.502,7 µs** de marshalling de CPU para o volume desta árvore — **123,0% do orçamento inteiro de um quadro a 60 FPS**, e isso é só CPU, sem driver nem GPU | O volume único é enviado uma vez e fica residente. **Medido:** submissão indexada por quadro custa **935,7 µs** (**21,91×** menos) e **1.144.451 envios de vértice a menos por quadro (38,97%)** |
+| **Capacidade de suportar malha pesada** | Teto estrutural, em dois lugares diferentes. **Carregamento:** sem `glDrawElements` o array tem que ser expandido — **medido: 18.760,4 µs** para a árvore inteira, **5,16×** o custo do upload indexado. **Por quadro:** o volume submetido é o expandido — **67,21 MiB por draw**, **2.936.559 envios de canto**, dos quais **63,9% reenviam vértice que já foi enviado**. O custo por quadro é driver/barramento e está `BLOCKED` | Vértice único enviado uma vez e residente. **Carregamento: 3.632,5 µs** de upload. **Por quadro:** 52,22 MiB residentes no total, draw indexado, volume independente da contagem de vértice. Custo por quadro `BLOCKED` |
 | **Número de draw calls** | Uma chamada por primitiva em immediate mode; display list agrupa mas é estática e opaca. Sem índice, não há como reduzir o volume dentro de uma chamada | Uma chamada por malha via `glDrawElements`, volume independente da contagem de vértice. Instancing disponível. **Contagem real de draw call em tempo de execução: BLOQUEADA** — exige contexto |
 | **Compatibilidade com hardware e drivers modernos** | OpenGL 1.1 fixed-function está **deprecado** desde GL 3.1 e **removido do perfil core** desde GL 3.2. Drivers modernos mantêm caminho de compatibilidade, mas em camadas de tradução (ex.: D3D12/Vulkan por baixo no Windows), o que tipicamente custa mais, não menos. Hardware antigo que roda o cliente original roda GL 2.0+ | GL 2.0 como piso, disponível em todo hardware que hoje roda o cliente original. Não exige driver recente nem troca de API. **Desempenho em driver específico: BLOQUEADO** |
 | **Complexidade de implementação** | Zero — é o que o original faz. Mas não atende ao requisito de conteúdo pesado, então o custo zero compra um teto intransponível | Moderada e conhecida: buffer + VAO + shader mínimo substituindo a função fixa. Mesmo conjunto de conceitos, sem biblioteca nova. Estimativa de esforço: **não medida**, e não será afirmada como prazo |
@@ -442,43 +442,107 @@ qualifica a afirmação que se pode fazer sobre ela. A alternativa de menor risc
 de medição (manter fixed-function) é justamente a que não atende ao requisito.
 Escolher por facilidade de medição seria otimizar a métrica errada.
 
+> **Correção do ciclo 5, item 1 da auditoria.** As duas primeiras versões desta
+> seção comparavam o custo da expansão contra o **orçamento de um quadro a 60
+> FPS** e declaravam "123,0% do orçamento inteiro de um quadro". **Essa
+> comparação era inválida.** A expansão índice → flat é um custo de
+> **carregamento**, não de quadro. A tabela e o texto abaixo foram corrigidos.
+
 ### 3. O que será medido para decidir, e em que hardware
 
-**Já medido neste ambiente** (evidência:
-[`evidence/ciclo4_dec008_submission_cost.log`](evidence/ciclo4_dec008_submission_cost.log)):
+#### 3.1 A natureza de cada custo, explicitada
 
-| Medida | Valor | Desvio |
+A auditoria do ciclo 4 exigiu que se dissesse qual das duas interpretações se
+aplica, com justificativa técnica. A resposta é que **os dois custos existem e
+pertencem a orçamentos diferentes**, e confundi-los foi o erro.
+
+**(1) Expansão índice → flat: custo de CARREGAMENTO.**
+
+No caminho `glDrawArrays` do cliente (`Main.dll`) existe um array de vértice
+flat em memória de aplicação. A implementação natural o constrói **uma vez**, ao
+carregar o modelo, e o reutiliza. A evidência do ciclo 1
+([`RENDERING.md`](RENDERING.md) §3) diz que "vertex data lives in client memory
+and is **re-marshalled per draw**" — isso é o **driver** relendo o array a cada
+draw, não o aplicativo **reconstruindo** o array. São coisas diferentes, e a
+import table não sustenta a segunda.
+
+Portanto: comparar a expansão com o orçamento de um quadro era comparar um custo
+único contra um orçamento recorrente. **Retirado.**
+
+**(2) Volume de submissão por quadro: o que realmente se repete.**
+
+Sem `glGenBuffers`/`glBufferData` no binário, o dado de vértice mora em memória
+de cliente e o driver o re-marshals a cada draw. Sem `glDrawElements`, vértice
+compartilhado é **reenviado** em vez de referenciado. Logo o volume por quadro é
+o tamanho **expandido**. Isso é uma **quantidade exata**, derivada das importações
+ausentes, e não depende de GPU.
+
+O **custo** desse volume — marshalling de driver, transferência por barramento e
+overhead de chamada por vértice — **não pode ser medido neste ambiente**: não há
+contexto GL.
+
+No caminho immediate mode de `Main.exe` (`glBegin`/`glEnd`/`glVertex3f`,
+[`RENDERING.md`](RENDERING.md) §2) não há array persistido: cada vértice cruza a
+fronteira da API como chamada individual, a cada quadro. Aí o custo por quadro é
+estrutural, mas é **overhead de chamada**, e também não é mensurável aqui.
+
+#### 3.2 O que foi medido
+
+Evidência:
+[`evidence/ciclo4_dec008_submission_cost.log`](evidence/ciclo4_dec008_submission_cost.log).
+Gerada por `tools/gen_dec008_evidence.py`, que deriva todos os números da saída
+do benchmark — nenhum valor é digitado.
+
+**Amostra pequena (N=5 execuções completas do binário), indicativa, não
+definitiva — sujeita a nova medição quando ambiente gráfico real estiver
+disponível.**
+
+**CARREGAMENTO — medido em CPU:**
+
+| Medida | Mediana (N=5) | Amplitude entre execuções |
 |---|---|---|
-| Expansão indexado → flat, por quadro | 20.502,7 µs | 6,40% (entre execuções) |
-| Submissão indexada, por quadro | 935,7 µs | 10,23% (entre execuções) |
-| Upload único do vertex buffer | 3.647,9 µs | 5,59% (entre execuções) |
-| Razão expandido/indexado | **21,91×** | — |
-| Upload se paga em | **0,19 quadro** a 60 FPS | — |
+| Expansão índice → flat, árvore inteira | 18.760,4 µs | 4,95×–6,18× na razão |
+| Upload VBO, só vértices únicos | 3.632,5 µs | — |
+| Razão expansão/upload | **5,16×** | 4,95× a 6,18× |
+
+**VOLUME POR QUADRO — quantidade exata; custo `BLOCKED`:**
+
+| Medida | Valor |
+|---|---|
+| Sem `glDrawElements`, expandido | **67,21 MiB por draw** |
+| VBO + index buffer, residente uma vez | 52,22 MiB total |
+| Razão de volume por quadro | **1,29×** |
+| Envios de canto, expandido | **2.936.559 por draw** |
+| Vértices únicos, indexado | 1.792.108, enviados uma vez |
+| Vértices reenviados desnecessariamente | **63,9% dos envios** |
 
 Contagens reais da árvore (`mutool meshimport`): 1.792.108 vértices, 978.853
 triângulos, 4.071 malhas. Razão de compartilhamento medida: 1,64 vértice por
 triângulo em vez de 3.
 
-**Critério objetivo de validação — em duas partes, porque uma delas está
-bloqueada:**
+Carregar os 10.090 modelos de uma vez não é o que um jogo faz; uma cena carrega
+um subconjunto. Os números acima são o **teto** para a árvore inteira. A **razão**
+é o que se preserva em qualquer subconjunto, porque ambos os custos são lineares
+na contagem de vértice.
 
-- **PARTE A — CONCLUÍDA.** Custo de marshalling de CPU, medido sem contexto
-  gráfico. Resultado acima. O que sustenta: o modelo expandido custa, em CPU,
-  mais que o orçamento inteiro de um quadro a 60 FPS para este volume de
-  geometria. Isso independe de driver e de GPU, porque é trabalho que a CPU faz
-  antes de qualquer chamada.
-- **PARTE B — BLOQUEADA.** Benchmark sintético comparando upload de N vértices
-  via immediate mode contra VBO, em contexto real. **Não pode ser executado
-  neste ambiente**: não há GPU, não há driver, não há `wglCreateContext`, e o
-  ambiente não permite instalá-los (sem root, sem headers de GL). Estado:
-  **BLOCKED**, com roteiro reproduzível em
+#### 3.3 Critério objetivo de validação, em três partes
+
+- **PARTE A — CONCLUÍDA.** Custo de CPU do **carregamento**. Sustentado:
+  expandir custa **5,16×** mais que subir o buffer indexado. Isso é trabalho de
+  carregamento, e o orçamento relevante é o de carga, não o de quadro.
+- **PARTE A' — CONCLUÍDA, e é quantidade, não custo.** Volume de submissão por
+  quadro: **1,29×** maior e **63,9%** mais envios de vértice no modelo sem índice.
+  Segue das importações ausentes, não de medição de desempenho.
+- **PARTE B — `BLOCKED`.** Custo real por quadro: benchmark sintético comparando
+  immediate mode contra VBO em contexto real. **Não pode ser executado neste
+  ambiente**: não há GPU, não há driver, não há `wglCreateContext`, e o ambiente
+  não permite instalá-los (sem root, sem headers de GL). Roteiro reproduzível em
   [`BENCHMARKS.md`](BENCHMARKS.md) e `scripts/benchmark_windows.ps1`.
 
-**O que decidirá entre as opções quando a Parte B puder rodar:** o mesmo
-critério da Parte A, medido em GPU — tempo de quadro e contagem de draw call
-para volume de geometria declarado, com hardware, driver, resolução e estado de
-cache registrados. Se a diferença medida for menor que a diferença de CPU já
-estabelecida, a decisão é revisada, não defendida.
+**O que decidirá entre as opções quando a Parte B puder rodar:** tempo de quadro
+e contagem de draw call para volume de geometria declarado, com hardware, driver,
+resolução e estado de cache registrados. **Se a diferença medida for menor que a
+diferença de volume já estabelecida, a decisão é revisada, não defendida.**
 
 ### 4. O que acontece com a compatibilidade visual em cada caso
 
