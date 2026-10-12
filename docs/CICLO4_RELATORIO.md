@@ -6,8 +6,12 @@
 > autoritativa é o comando:
 >
 > ```
-> $ git log --oneline 8c83376..HEAD      # 9 commits: 8 de trabalho + este
+> $ git log --oneline 8c83376..HEAD
 > ```
+>
+> A contagem **não** é registrada aqui de propósito. Qualquer número fixo escrito
+> neste arquivo fica errado no commit seguinte ao que o escreve — inclusive no
+> commit que corrige o próprio número. O comando é a fonte.
 >
 > **Referência:** `Cliente_ref` em `88edfc73`, inalterado no início e no fim
 > **Escopo:** as cinco pendências deixadas pela auditoria do ciclo 3, mais
@@ -281,13 +285,15 @@ segundo ciclo consecutivo que registra a ausência dela. Registrar sem construir
 
 ## ESTADO DO GIT NESTE CICLO
 
-**Commits locais** — 9 no total. Os oito abaixo são os de trabalho; **o nono é
-o commit que acrescenta este relatório, e o hash dele não pode aparecer dentro
-do próprio arquivo**. A lista autoritativa é o comando, não a cópia abaixo:
+**Commits locais.** A lista autoritativa é o comando, não a cópia abaixo — esta
+seção já foi desatualizada pelo próprio commit que a criou, quatro vezes neste
+projeto, e a cópia existe só para leitura:
 
 ```
 $ git log --oneline 8c83376..HEAD
 ```
+
+Os commits de trabalho, anteriores ao deste relatório:
 
 
 ```
@@ -303,7 +309,7 @@ d32f270 docs(decisions): DEC-008-A - comparacao formal de custo e risco registra
 
 **Push realizado:** sim, após cada commit, inclusive o do relatório. Nenhuma
 falha de push neste ciclo. A verificação de remoto == local abaixo é executada
-**depois** do push do nono commit.
+**depois** do push do commit que acrescenta este relatório.
 
 **Confirmação de que remoto == local:**
 
