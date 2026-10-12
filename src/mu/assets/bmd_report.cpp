@@ -128,6 +128,12 @@ BmdFileReport Classify(ByteView data, const std::string& label) {
       r.topology_skip = body.topology_skip;
       r.declared_mesh_count = body.declared_mesh_count;
       r.declared_triangle_count = body.declared_triangle_count;
+      r.declared_bone_count = body.declared_bone_count;
+      r.declared_action_count = body.declared_action_count;
+      if (body.has_bones) {
+        r.has_bones = true;
+        r.bone_count = body.bones.size();
+      }
     } else {
       r.body_problem = body.problem.empty() ? bs.message : body.problem;
     }
@@ -199,6 +205,11 @@ void BmdAccumulate(const BmdFileReport& r, BmdSummary* s) {
     ++s->topology_parsed;
     s->triangles_total += r.triangle_count;
     s->bad_corner_refs += r.bad_corner_refs;
+  }
+  // Level 5 - bones is a subset of level 3 as well.
+  if (r.geometry_parsed && r.has_bones) {
+    ++s->bones_parsed;
+    s->total_bones += r.bone_count;
   }
 
   if (r.payload_entropy > s->max_entropy) s->max_entropy = r.payload_entropy;

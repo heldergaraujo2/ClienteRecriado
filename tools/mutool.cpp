@@ -458,9 +458,9 @@ int CmdBmdReport(int argc, char** argv) {
                   ? 100.0 * static_cast<double>(sum.bad_corner_refs) /
                         (3.0 * static_cast<double>(sum.triangles_total))
                   : 0.0);
-  std::printf("    Multi-mesh supported since ciclo 5. Texture coordinates\n");
-  std::printf("    are NOT located and bones are NOT decoded, so a file\n");
-  std::printf("    counted here is still NOT a renderable model.\n\n");
+  std::printf("    Multi-mesh supported since ciclo 5. Bones decoded since\n");
+  std::printf("    ciclo 8 (level 5). Texture coordinates are NOT located, so\n");
+  std::printf("    a file counted here is still NOT a renderable model.\n\n");
 
   const std::size_t geom_no_topo =
       sum.geometry_parsed > sum.topology_parsed
@@ -481,6 +481,14 @@ int CmdBmdReport(int argc, char** argv) {
   std::printf("    Level 4 is a STRICT SUBSET of level 3: every file counted\n");
   std::printf("    in level 4 was necessarily counted in level 3. Verified by\n");
   std::printf("    TestTopologyIsSubsetOfGeometry over the whole tree.\n\n");
+
+  std::printf("LEVEL 5 - bones (hierarchy) parsed\n");
+  std::printf("    with bones                            %8zu  (%6.2f%%)\n",
+              sum.bones_parsed, mu::PercentOf(sum.bones_parsed, sum.total));
+  std::printf("    total bones parsed                    %8zu\n", sum.total_bones);
+  std::printf("    Bones layout: 32B name + u16 parent (0xFFFF=root) + 6*f32\n");
+  std::printf("    + 1 pad except last. Total bc*59-1, multi 4+bc*59-1.\n");
+  std::printf("    Level 5 is a STRICT SUBSET of level 3.\n\n");
 
   std::printf("declared meshCount over the level-3 files\n");
   for (std::size_t i = 0; i < 16; ++i) {

@@ -72,6 +72,12 @@ struct BmdFileReport {
   BmdTopologySkip topology_skip = BmdTopologySkip::kNone;
   std::size_t declared_mesh_count = 0;
   std::size_t declared_triangle_count = 0;
+
+  /// Level 5 - bones. Meaningful only when |geometry_parsed| is true.
+  bool has_bones = false;
+  std::size_t bone_count = 0;
+  std::size_t declared_bone_count = 0;
+  std::size_t declared_action_count = 0;
 };
 
 struct BmdSummary {
@@ -92,6 +98,10 @@ struct BmdSummary {
   std::size_t topology_parsed = 0;
   std::size_t triangles_total = 0;
   std::size_t bad_corner_refs = 0;
+
+  // Level 5 - bones
+  std::size_t bones_parsed = 0;
+  std::size_t total_bones = 0;
 
   /// Why the level-3 files that have no topology have none. These four counts
   /// sum to |geometry_parsed| - |topology_parsed|, and the sum is asserted in
