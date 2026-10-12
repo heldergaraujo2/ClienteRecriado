@@ -163,6 +163,26 @@ everywhere it appears.
 
 ---
 
+# Ciclo 3 — estado atual
+
+> **Numeração.** O ciclo 2 foi fechado com `docs/CICLO2_RELATORIO_FINAL.md`. Todo
+> trabalho posterior é **ciclo 3** e não reabre o número anterior. As seções
+> abaixo que dizem "ciclo 2" são registro histórico do que foi fechado, não do
+> que está em andamento.
+
+**Correções deste ciclo, todas por medição:**
+
+| Afirmação anterior | Corrigida para | Como |
+|---|---|---|
+| Topologia não implementada em C++ | **Implementada, com testes** | `bmd_body.cpp:117,135`; `TestBmdTriangles`; nível 4 do `bmdreport` |
+| Ossos 98,0% | **98,68% de 3.552** = 85,09% dos 4.119 elegíveis | `tools/bmd_bones_probe.py`, full-scan |
+| BMP 44 de 47 | **42** (41 no offset 4 + 1 no offset 0) | critério real do parser |
+| Referências fora de faixa pendentes | **Já tratadas** — descartadas e contadas | `MeshFromBmd`, `bad_indices` |
+
+**Testes:** 344 checks, 0 failures · ASan+UBSan 344/0 · zero warnings sob 12 flags `-W`
+
+---
+
 # Atualização do ciclo 2 — bloqueio nº 1 resolvido
 
 ## O que mudou

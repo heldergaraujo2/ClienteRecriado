@@ -92,7 +92,46 @@ refinement.
   [`SECURITY.md`](SECURITY.md).
 - 12 `Thumbs.db` files (677,376 bytes) are shipped in the asset tree.
 
-## Ciclo 2 (em andamento)
+## Ciclo 3 — auditoria, correção de documentação e confirmação de escala
+
+### Corrigido
+
+- **A documentação afirmava que a topologia BMD não estava implementada em C++.
+  Estava.** O parser lê triângulos desde o commit `bee2a5e`, há testes
+  (`TestBmdTriangles`, `TestMeshFromBmd`) e o nível 4 do `mutool bmdreport` sai do
+  parser. `COMPATIBILITY.md` e `ASSET_FORMATS.md` continuavam dizendo "não
+  implementada" por dezenas de commits. Sexta ocorrência do padrão deste projeto:
+  o trabalho avança e a documentação fica para trás
+- **Hierarquia de ossos: o "98,0%" era de amostra.** Full-scan real: 98,68% sobre
+  os 3.552 arquivos cujo tamanho fecha, o que é **85,09% dos 4.119 elegíveis** e
+  **34,74% dos 10.090** da árvore. Os três números são verdadeiros; nenhum deles é
+  "98% dos modelos"
+- **BMP de altura: "44 dos 47" corrigido para 42.** O número anterior vinha de
+  teste mais frouxo que conferia só o tamanho declarado; o critério que o parser
+  de fato aplica dá 41 no offset 4 + 1 no offset 0
+- Referências de canto fora de faixa (~8,4%) deixaram de ser listadas como
+  pendência: o importador já as descarta e conta em `bad_indices`
+
+### Adicionado
+
+- **`tools/bmd_bones_probe.py`** — full-scan de hierarquia de ossos, sem teto, que
+  imprime o denominador ao lado de cada taxa
+- **`DEC-010`** — registro retroativo de que o frustum culling foi implementado
+  antes da decisão formal de pipeline, com o teste de que o módulo é
+  backend-agnóstico e a lista explícita do que continua bloqueado
+- **Auditoria de licenciamento executada**, não afirmada: `git ls-files` não lista
+  arquivo de terceiros, sem submódulos, 86 arquivos rastreados todos do projeto,
+  atribuição transcrita do código-fonte
+
+### Evidência
+
+- `docs/evidence/ciclo3_test_final.log` — `make clean && make test`, 344/0, 0 warnings
+- `docs/evidence/ciclo3_scan_final.log` — bmdreport + meshimport + terrain + bmdanim
+- `docs/evidence/ciclo3_bones_fullscan.log` — hierarquia de ossos sem teto
+- `docs/evidence/ciclo3_escala_medicoes.log` — população de cada medição
+- `docs/evidence/ciclo3_licensing_audit.log` — confirmações de licenciamento
+
+## Ciclo 2 (fechado)
 
 ### Quebrado
 - **Cifra BMD v0x0C** — XOR rolante sobre tabela de 16 B com chave corrente
