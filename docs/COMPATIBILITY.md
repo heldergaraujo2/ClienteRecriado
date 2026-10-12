@@ -39,7 +39,8 @@ zero (`make clean && make test`). Saída completa em
 | Posições de vértice | **CONCLUÍDO E VALIDADO** | 8.406 arquivos (83,31%); `f32 x,y,z` no deslocamento 0 do registro, medido em 740.514 componentes |
 | Normais | **CONCLUÍDO E VALIDADO** | 260.030 de 260.268 com norma 1 (99,91%) em v0x0A; 37.988 de 37.997 (99,98%) em v0x0C |
 | Índices de face (topologia) | **PARCIAL — decodificados, ainda não em C++** | 3 referências de 8 B em +0/+8/+16; índice de vértice válido em 97,66% e de normal em 97,20% sobre 58.836 referências |
-| **Coordenadas UV** | **BLOQUEADO — sem localização** | O candidato em +4 da referência foi descartado (indistinguível entre os três limites, 68,35–68,56%). A hipótese (u,v) na normal foi refutada por controle (razão 1,10×) |
+| Array de coordenadas UV | **CONCLUÍDO E VALIDADO** | `52+vc*16+nc*20`, `ntc` entradas de 8 B `[f32 u][f32 v]`. Zero não-finitos em 250.450 leituras (acaso daria ~976); 98,13% em [0,1] |
+| **Índice de UV por canto do triângulo** | **BLOQUEADO — sem localização** | O candidato em +4 foi descartado (68,35–68,56% contra os três limites, indistinguível). Sem ele não há como ligar cada canto a uma coordenada |
 | **Contagem de malhas** | **BLOQUEADO** | `u16@32` tem mediana 1 e máximo 18, coerente com contagem de malhas, mas não foi verificado um a um |
 | **Estrutura de ossos** | **BLOQUEADO** | Nenhum registro de osso foi localizado nem validado |
 | **Animação** | **BLOQUEADO** | Depende de ossos, que estão bloqueados |
@@ -54,7 +55,9 @@ ainda impede renderizar:
   como prova de conceito, não portada ao parser.
 - **~2,4% das referências apontam fora da faixa**, causa não determinada.
   Renderizar sem tratar isso leria fora dos limites.
-- **UV está bloqueado**, então a malha não pode ser texturizada corretamente.
+- O **array** de UV está decodificado, mas o **índice** que liga cada canto do
+  triângulo a uma entrada dele não foi localizado. Sem esse índice a malha não
+  pode ser texturizada.
 - Ossos e animação estão bloqueados, então não há skinning.
 
 Portanto:

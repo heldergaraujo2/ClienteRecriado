@@ -771,8 +771,9 @@ revelou a estrutura: **três referências de 8 bytes** no início do registro.
   indistinguível entre os três, o que significa que **nenhum** deles é o limite
   certo. Mediana 0 e máximo 65535 sugerem campo opcional com sentinela `-1`, mas
   isso é inferência, não confirmação.
-- **Coordenadas UV por vértice do triângulo continuam não localizadas.** O
-  campo que parecia candidato não é. UV segue **BLOQUEADO**.
+- **O índice de UV por vértice do triângulo continua não localizado.** O campo
+  em +4 era o candidato natural e foi descartado. O *array* de UV, porém, está
+  confirmado — ver abaixo.
 - Os bytes 24..59. Todos zero em apenas 40,9% dos registros, então há conteúdo
   ali que não foi identificado.
 - Os `u16` em +60 e +62.
@@ -794,6 +795,47 @@ conta e reporta esses casos em vez de aceitá-los silenciosamente.
 **Restrição do levantamento.** Tudo acima vale para **arquivos de malha única**
 (586 dos 1.500 examinados). Para malhas múltiplas o corpo se repete por malha e
 a aritmética de um bloco só não se aplica; isso não foi medido.
+
+### Array de coordenadas de textura — CONFIRMADO
+
+```
+uvstart = 52 + numVertices*16 + numNormals*20
+ntc entradas de 8 bytes, cada uma [f32 u][f32 v]
+```
+
+A posição já era conhecida indiretamente — é ela que faz o array de triângulos
+cair no lugar certo, confirmado pelo nome de textura em 87,9% dos arquivos. O
+que faltava era verificar o **conteúdo**, e isso agora está feito.
+
+**Evidência** (250.450 leituras em 319 arquivos de malha única):
+
+| Medida | Resultado |
+|---|---|
+| Leituras `f32` não-finitas | **0** de 250.450 |
+| Esperado por acaso (expoente todo-1 = NaN/Inf, ~0,39%) | **~976** |
+| Componentes em [0,1] | 245.773/250.450 = **98,13%** |
+| Distribuição | mín −0,4266 · p1 0,0083 · mediana 0,5058 · p99 1,5518 · máx 1,9980 |
+
+**Zero não-finitos em 250.450 leituras é o argumento forte.** Bytes arbitrários
+interpretados como `f32` produzem NaN ou Inf em ~0,39% dos casos; em 250.450
+leituras isso seriam ~976 ocorrências. Observar zero não é compatível com dados
+que não sejam float.
+
+A distribuição fecha o caso como coordenadas de textura e não como outro tipo de
+float: concentrada em [0,1] com cauda até ~2,0, que é o padrão de *tiling* de
+textura em modelos reais.
+
+**Um controle que falhou e precisa constar.** Deslocar a leitura 4 bytes deu
+97,91% em [0,1] contra 98,13% da hipótese — razão 1,00×, sem poder
+discriminatório. O controle estava contaminado: deslocar dentro de um array de
+pares `f32` ainda lê floats válidos do par vizinho. É a mesma armadilha do
+controle dentro do array de triângulos. **Controle válido precisa sair da região,
+não se deslocar dentro dela.**
+
+**O que continua bloqueado.** O array existe e está legível, mas **o índice que
+liga cada vértice de um triângulo a uma entrada desse array não foi localizado**.
+Sem esse índice não há como texturizar a malha: sabe-se quais coordenadas
+existem, não qual pertence a cada canto.
 
 ### Verificação independente da decifragem v0x0C
 
