@@ -1,0 +1,90 @@
+=== EVIDENCIA DE DEC-008: custo do caminho de submissao (CPU) ===
+data: 2026-10-12T15:23:23Z
+HEAD ClienteRecriado: 4f0f6eb07401f721789e37355a957153f5815706
+HEAD Cliente_ref    : 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+hardware: 2 nucleos, Intel(R) Xeon(R) Processor @ 2.60GHz
+memoria : 3.8 GiB
+compilador: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+flags: CXXFLAGS ?= $(CXXSTD) $(OPT) $(WARN) -Isrc
+comando: ./build/bench_assets
+
+---------------------------------------------------------------------------
+O QUE ESTA E O QUE NAO ESTA SENDO MEDIDO
+---------------------------------------------------------------------------
+MEDIDO: custo de marshalling de vertices no lado da CPU, por quadro, para os
+dois modelos de submissao. Usa as contagens REAIS medidas na arvore de assets
+(mutool meshimport: 1.792.108 vertices, 978.853 triangulos em 4.071 malhas),
+nao numeros escolhidos para favorecer uma conclusao.
+
+O cliente original nao tem glDrawElements no binario (verificado no ciclo 1 em
+docs/RENDERING.md), entao toda malha e submetida EXPANDIDA: cada triangulo
+carrega seus tres vertices, e um vertice compartilhado por N triangulos e
+enviado N vezes.
+
+NAO MEDIDO, e que NAO pode ser inferido destes numeros:
+  - overhead de chamada do driver (nao existe contexto GL aqui)
+  - processamento de vertice, transformacao ou rasterizacao na GPU
+  - custo de transferencia pelo barramento ate o dispositivo
+  - FPS, frametime ou VRAM
+Esses exigem contexto real em hardware real e estao registrados como BLOCKED
+em DEC-008. Estas linhas limitam apenas o termo de marshalling de CPU, que e a
+parte que uma reconstrucao controla diretamente e a que escala com a contagem
+de vertices.
+
+Estado de cache: os buffers sao alocados uma vez e reutilizados entre
+repeticoes, entao estao RESIDENTES. Isso e o caso favoravel ao caminho
+expandido; ler de memoria nao residente pioraria a diferenca.
+
+---------------------------------------------------------------------------
+RESULTADO
+---------------------------------------------------------------------------
+Expand indexed -> flat (per frame)  20588.0  23472.9  23472.9  21103.3      67.21    3264.6
+    reps=20  mean=21103.3 us  stddev=1180.7 us (5.59% of mean)  min=19768.9  max=23574.4
+Indexed submission (per frame)        898.7    952.0    961.6    906.0      11.20   12464.3
+    reps=200  mean=906.0 us  stddev=26.5 us (2.92% of mean)  min=853.8  max=1062.8
+One-time vertex buffer upload        3655.3   3700.3   3739.2   3668.7      41.02   11221.6
+    reps=50  mean=3668.7 us  stddev=86.4 us (2.36% of mean)
+
+    bytes per frame, expanded :      67.21 MiB (2936559 vertex sends)
+    bytes resident, indexed   :      52.22 MiB (1792108 unique + indices)
+    ratio expanded/indexed    :       1.29x
+    vertex sends saved per frame: 1144451 (38.97%)
+    NOTE: CPU marshalling only. Driver, GPU and bus cost are
+          BLOCKED in this environment; see DEC-008.
+
+---------------------------------------------------------------------------
+CONTA DE FECHAMENTO
+---------------------------------------------------------------------------
+orcamento de 1 quadro a  60 FPS :   16666.7 us
+orcamento de 1 quadro a 144 FPS :    6944.4 us
+
+expansao por quadro             :   21459.9 us  =  128.8% do orcamento de 60 FPS
+                                    21459.9 us  =  309.0% do orcamento de 144 FPS
+
+razao expansao/indexado         :     25.63x
+
+upload unico do vertex buffer   :    3610.2 us
+quadros para o upload se pagar  :      0.18  (a 0.18 s a 60 FPS)
+
+A expansao sozinha excede o orcamento INTEIRO de um quadro a 60 FPS.
+Isso e CPU apenas: nao inclui driver, GPU nem barramento, entao o
+numero real de um quadro e pior, nao melhor.
+
+---------------------------------------------------------------------------
+LIMITE DA CONCLUSAO
+---------------------------------------------------------------------------
+O que este resultado SUSTENTA: o modelo de submissao expandido custa, em
+marshalling de CPU, mais do que o orçamento inteiro de um quadro a 60 FPS para
+o volume de geometria que esta arvore de assets produz. Isso é independente de
+driver e de GPU, porque é trabalho que a CPU faz antes de qualquer chamada.
+
+O que este resultado NAO SUSTENTA: nenhum número de FPS, nenhum ganho de
+desempenho, nenhuma comparação de draw call em tempo real. A validação final de
+DEC-008 exige contexto gráfico e está BLOQUEADA. Ver a seção de critério de
+validação em DECISIONS.md.
+
+Uma ressalva que precisa viajar com o número: as contagens são da árvore
+inteira carregada de uma vez, o que não é o que um quadro de jogo desenha. Um
+quadro desenha o subconjunto visível. A conclusão se mantém para cena com
+geometria comparável, e o benchmark está parametrizado para ser reexecutado
+com o volume real de uma cena quando houver renderer.

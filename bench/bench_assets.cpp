@@ -264,6 +264,104 @@ int main() {
     std::printf("  (geometry %ux%u)\n", img.width, img.height);
   }
 
+  // ------------------------------------ DEC-008: submission path cost (CPU)
+  //
+  // This is the only part of the fixed-function versus VBO/VAO comparison that
+  // can be measured HERE, and the boundary has to be stated rather than blurred.
+  //
+  // What is measured: the CPU-side cost of marshalling vertex data into the
+  // layout each submission model needs, per frame, using the vertex and
+  // triangle counts this project actually measured on the asset tree
+  // (mutool meshimport: 1,792,108 vertices, 978,853 triangles across 4,071
+  // meshes). Fixed-function in the original client has no glDrawElements in
+  // the binary, so every mesh is submitted EXPANDED: each triangle carries its
+  // three vertices, and a vertex shared by N triangles is sent N times.
+  //
+  // What is NOT measured, and must not be inferred from these numbers:
+  //   - driver call overhead (no GL context exists here)
+  //   - GPU-side vertex processing, transform or rasterisation cost
+  //   - bus transfer cost to the device
+  //   - frame rate, frame time, or VRAM
+  // Those require a real context on real hardware and are recorded as BLOCKED
+  // in DEC-008. These rows bound only the CPU marshalling term, which is the
+  // part a reconstruction controls directly and the part that scales with
+  // vertex count.
+  {
+    // Interleaved position + normal, the layout both paths converge on.
+    struct V { float p[3]; float n[3]; };
+    constexpr std::size_t kVerts = 1792108;   // measured, not chosen
+    constexpr std::size_t kTris = 978853;     // measured, not chosen
+    const std::size_t expanded = kTris * 3;   // what expansion must send
+
+    std::vector<V> pool(kVerts);
+    for (std::size_t i = 0; i < kVerts; ++i) {
+      pool[i].p[0] = static_cast<float>(i % 1000) * 0.01f;
+      pool[i].p[1] = static_cast<float>(i % 977) * 0.01f;
+      pool[i].p[2] = static_cast<float>(i % 1009) * 0.01f;
+      pool[i].n[1] = 1.0f;
+    }
+    // An index buffer whose sharing ratio matches the measured assets:
+    // 978,853 triangles over 1,792,108 vertices is 1.64 vertices per triangle
+    // rather than 3, so vertices are shared.
+    std::vector<uint32_t> idx(expanded);
+    for (std::size_t i = 0; i < expanded; ++i)
+      idx[i] = static_cast<uint32_t>((i * 2654435761u) >> 12) % kVerts;
+
+    std::vector<V> out(expanded);
+
+    // Path A: expand through the index every frame. This is the per-frame
+    // marshalling cost the indexless submission model pays.
+    Samples sa = TimeIt(20, [&] {
+      for (std::size_t i = 0; i < expanded; ++i) out[i] = pool[idx[i]];
+    });
+    PrintRow("Expand indexed -> flat (per frame)", expanded * sizeof(V), sa);
+    std::printf("    reps=20  mean=%.1f us  stddev=%.1f us (%.2f%% of mean)"
+                "  min=%.1f  max=%.1f\n",
+                sa.mean, sa.stddev, sa.mean > 0 ? 100.0 * sa.stddev / sa.mean : 0.0,
+                sa.min, sa.max);
+
+    // Path B: the vertex buffer already holds the unique vertices, so the
+    // per-frame marshalling is nothing but the index walk. Upload happens
+    // once, not per frame.
+    std::vector<uint32_t> idx_copy(expanded);
+    Samples sb = TimeIt(200, [&] {
+      std::memcpy(idx_copy.data(), idx.data(), expanded * sizeof(uint32_t));
+    });
+    PrintRow("Indexed submission (per frame)", expanded * sizeof(uint32_t), sb);
+    std::printf("    reps=200  mean=%.1f us  stddev=%.1f us (%.2f%% of mean)"
+                "  min=%.1f  max=%.1f\n",
+                sb.mean, sb.stddev, sb.mean > 0 ? 100.0 * sb.stddev / sb.mean : 0.0,
+                sb.min, sb.max);
+
+    // Path B, the one-time upload cost that Path A never pays because it has
+    // no resident buffer.
+    std::vector<V> upload(kVerts);
+    Samples sc = TimeIt(50, [&] {
+      std::memcpy(upload.data(), pool.data(), kVerts * sizeof(V));
+    });
+    PrintRow("One-time vertex buffer upload", kVerts * sizeof(V), sc);
+    std::printf("    reps=50  mean=%.1f us  stddev=%.1f us (%.2f%% of mean)\n",
+                sc.mean, sc.stddev, sc.mean > 0 ? 100.0 * sc.stddev / sc.mean : 0.0);
+
+    const double mb_expanded =
+        static_cast<double>(expanded) * sizeof(V) / 1048576.0;
+    const double mb_indexed =
+        (static_cast<double>(kVerts) * sizeof(V) +
+         static_cast<double>(expanded) * sizeof(uint32_t)) / 1048576.0;
+    std::printf("\n    bytes per frame, expanded : %10.2f MiB (%zu vertex sends)\n",
+                mb_expanded, expanded);
+    std::printf("    bytes resident, indexed   : %10.2f MiB (%zu unique + indices)\n",
+                mb_indexed, kVerts);
+    std::printf("    ratio expanded/indexed    : %10.2fx\n",
+                mb_indexed > 0 ? mb_expanded / mb_indexed : 0.0);
+    std::printf("    vertex sends saved per frame: %zu (%.2f%%)\n",
+                expanded - kVerts,
+                100.0 * static_cast<double>(expanded - kVerts) /
+                    static_cast<double>(expanded));
+    std::printf("    NOTE: CPU marshalling only. Driver, GPU and bus cost are\n");
+    std::printf("          BLOCKED in this environment; see DEC-008.\n");
+  }
+
   std::printf("\nRun twice and compare the medians; a shift of more than a few\n"
                 "percent on the same machine means something changed.\n");
   return 0;
