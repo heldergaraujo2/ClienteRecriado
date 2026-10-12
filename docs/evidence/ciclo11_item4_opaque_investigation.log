@@ -1,0 +1,37 @@
+CICLO 11 ITEM 4 — INVESTIGAR COM RIGOR ACHADO ICEGOLEM STEP 0x33 vs 0x3D
+
+Contexto: ciclo10 Fase B brute force 20 primeiros OPAQUE encontrou IceGolem.bmd step 0x33 (init 0x5E padrão) com printable first 32 bytes, sugerindo possível variante cifra passo único adicional nos OPAQUE. Mesma rigor usado para cifra bux original: full-scan, padrão step reconhecível, validar contra texto plausível (como Lorencia.att).
+
+Metodologia:
+- População: 1503 arquivos OPAQUE (BMD_V0C com length_consistent, payload>=32, mas BmdV0CDecrypt padrão com init 0x5E step 0x3D falha Printable32)
+- Teste: para cada arquivo, para cada step 0..255 (exceto 0x3D padrão) com init 0x5E e key array 16B D1 73 52 F6 D2 9A CB 27 3E AF 59 31 37 B3 E7 A2, decifra apenas primeiros 32 bytes e verifica Printable32 (bytes 0 ou 32..126) e PlausiblePath (NUL-padded, >=3 chars, apenas alnum / _ . - \ )
+- Mesmo para init variation 0..255 com step 0x3D
+
+Resultados full-scan 1503 OPAQUE:
+- Step variation: found_printable (qualquer step dá Printable32) = 15 arquivos, found_plausible (path-like) = 0 arquivos
+  - Exemplos printable mas não plausível: IceGolem.bmd step 0x33 name "DDfPsxkvfWyx}~o|fMyvvy}<f'H<:Y*I" (contém } ~ | < etc não permitido em path), boss_invitationticket.bmd step 0x34 name "DCeOrwjueVxw|}n{eLxuux|;e&G;9X)H"
+  - Todos 15 printable têm caracteres não permitidos em path ( } ~ | ; : < > etc), indicando falso-positivo de check fraco Printable32, não decifragem real
+- Init variation: found_printable = 0, found_plausible = 0
+
+Validação contra texto plausível (como Lorencia.att):
+- Para terreno, validação usou texto "Lorencia" etc como âncora plausível após decrypt bux
+- Para BMD, texto plausível é path-like "Data/Monster/IceGolem" ou "Data/Item/..." com apenas alnum / _ . - \
+- Nenhum dos 1503 OPAQUE produziu PlausiblePath com step ou init alternativo, portanto não há variante de cifra de passo único com mesma key array que produza texto plausível
+
+Padrão step reconhecível:
+- 15 arquivos têm algum step que dá Printable32, mas steps são dispersos (0x33,0x34,0x35 etc para mesmo arquivo IceGolem: steps 0x33..0x3A todos dão Printable32 mas nenhum plausível), sem padrão consistente de step único para todos OPAQUE
+- IceGolem.bmd tem steps 0x33..0x3A todos printable, mas nenhum plausível, indicando que payload tem bytes que por acaso decifram para printable com vários steps, não variante real
+
+Conclusão:
+- Achado IceGolem step 0x33 vs 0x3D é FALSO-POSITIVO de check fraco Printable32, não variante de cifra confirmada
+- Full-scan 1503 OPAQUE com validação PlausiblePath (mesmo rigor que bux original com Lorencia.att) resulta em 0 arquivos com variante plausível
+- OPAQUE permanece 1519 (15,05%), tentativa documentada como FALHA, não confirmado
+- Próximos passos para reduzir OPAQUE requerem investigar key arrays alternativos (não apenas init/step), ou versão 0x0B, ou compressão, ou arquivos corrompidos
+
+Evidências:
+- docs/evidence/ciclo11_opaque_step_fullscan.log: 1503 total, found_step 2 (printable fraco)
+- docs/evidence/ciclo11_opaque_step_plausible.log: 1503 total, found_printable 15, found_plausible 0
+- docs/evidence/ciclo11_opaque_init_plausible.log: 1503 total, found_printable 0, found_plausible 0
+- Este log: síntese com validação PlausiblePath
+
+Ferramentas: /tmp/ciclo11_item4_opaque_fullscan.cpp, /tmp/ciclo11_item4_opaque_plausible.cpp, /tmp/ciclo11_item4_opaque_init.cpp, /tmp/check_plausible.cpp, /tmp/validate_icegolem.cpp
