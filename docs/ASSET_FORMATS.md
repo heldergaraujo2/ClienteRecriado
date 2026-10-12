@@ -1142,16 +1142,33 @@ corpo = 256 × 256 bytes, um u8 de altura por célula da grade
 ```
 
 **Evidência de que o corpo é altura e não bytes arbitrários.** A diferença média
-entre células vizinhas:
+entre células vizinhas horizontais, medida sobre **todos os 76 arquivos**
+(`mutool terrain`, evidência em `docs/evidence/ciclo2_terrain.log`):
 
-| Direção | Medida | Aleatório `u8` |
-|---|---|---|
-| horizontal | 4,400 | ~85,3 |
-| vertical | 4,455 | ~85,3 |
+| Métrica | Valor |
+|---|---|
+| Média entre os 76 arquivos | **8,038** |
+| Arquivo mais suave | 0,000 |
+| Arquivo mais rugoso | 138,237 |
+| Abaixo de 30,0 (campo suave) | 72 de 76 = **94,74%** |
+| Esperado para `u8` aleatório | ~85,3 |
 
-Uma razão de cerca de 19× abaixo do aleatório. Superfície de terreno é um campo
-suave; bytes arbitrários não são. Valores medidos: mínimo 0, mediana 110, máximo
-255.
+Uma razão de cerca de 10× abaixo do aleatório na média, com 94,74% dos arquivos
+claramente suaves. Superfície de terreno é um campo suave; bytes arbitrários não
+são.
+
+**Correção de uma generalização que este projeto fez.** A primeira medição, sobre
+um único arquivo (`World1/TerrainHeight.OZB`), deu 4,400 e foi registrada como se
+descrevesse o formato. Sobre os 76 arquivos a média é **8,038**, quase o dobro, e
+**4 arquivos não são suaves** — o mais rugoso chega a 138,237, acima do
+aleatório. Uma amostra não é o formato.
+
+Os 4 arquivos fora do padrão **não foram investigados**. Podem ser mapas
+realmente abruptos, podem ter prefixo de tamanho diferente (a média de prefixo é
+6.217 bytes, contra 1.082 no arquivo examinado primeiro, então o prefixo **não é
+constante**), ou podem não ser grades de altura. **O leitor assume que o corpo são
+os últimos 65.536 bytes, e para esses 4 arquivos essa suposição não foi
+verificada.**
 
 **Também medido: o arquivo NÃO é cifrado bux.** Começa com zeros, e aplicar a
 chave XOR-3 transforma esses zeros em `FC CF AB` — o que seria altura espúria.
@@ -1159,7 +1176,9 @@ A extensão `.OZB` induz ao erro: nem todo `.OZB` deste cliente usa bux.
 
 **O que não foi determinado:**
 
-- O que são os 1.082 bytes de prefixo.
+- O que é o prefixo, cujo tamanho **não é constante**: média de 6.217 bytes nos 76
+  arquivos, 1.082 no primeiro examinado. A afirmação anterior de "1.082 bytes de
+  prefixo" era específica de um arquivo.
 - A escala vertical: se cada unidade vale 1, 0,5 ou outro fator. Sem isso a
   altura é relativa, não métrica.
 - Se os outros mundos seguem o mesmo prefixo.
