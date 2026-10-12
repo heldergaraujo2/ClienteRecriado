@@ -344,8 +344,25 @@ foi modificado, e nenhum commit deste ciclo foi feito nele.
   docs/evidence/ciclo3_test_final.log |  79 ++++++++++
   2 files changed, 240 insertions(+)
   ```
-- **Item 4** — a tabela de seis níveis está publicada com os números corrigidos
-  em `COMPATIBILITY.md` ("Tabela final de compatibilidade — seis níveis") e em
-  `ASSET_FORMATS.md`, com trechos colados no corpo deste ciclo de trabalho.
+- **Item 4** — a auditoria pediu trecho colado, não referência. Segue o bloco
+  como está em `COMPATIBILITY.md`, sob o título "Tabela final de
+  compatibilidade — seis níveis" (verificado por `grep -c "^| [1-6] — "`, que
+  retorna **6** em `COMPATIBILITY.md` e **6** em `ASSET_FORMATS.md`):
+
+  ```
+  | Nível | O que mede | Arquivos | % de 10.090 |
+  |---|---|---|---|
+  | 1 — estrutura de contêiner válida | magic + versão reconhecidos; para v0x0C o tamanho declarado confere | 10.023 | 99,34% |
+  | 2 — payload obtível em claro | 1.245 plaintext + 100 bux + 7.226 v0x0C | 8.571 | 84,95% |
+  | 3 — vértice + normal | posições e normais realmente lidas pelo parser | 8.406 | 83,31% |
+  | 4 — topologia (índices de face) | triângulos lidos | 4.149 | 41,12% |
+  | 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.505 | 34,74% |
+  | 6 — UV | índice ligando canto de triângulo a coordenada de textura | **0** | **0,00%** |
+  ```
+
+  A mesma tabela está em `ASSET_FORMATS.md`, seguida da frase que elimina a
+  ambiguidade pedida: **"Os seis níveis são critérios independentes aplicados à
+  mesma população de 10.090 arquivos, não uma hierarquia em que cada linha é
+  subconjunto da anterior."**
 
 **Nada ficou sem commitar nem sem publicar.**
