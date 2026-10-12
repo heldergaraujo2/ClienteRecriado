@@ -44,11 +44,18 @@ void BuxCrypt(uint8_t* data, std::size_t size, std::size_t phase_offset);
 /// with a running key derived from the previous *ciphertext* byte.
 ///
 /// Provenance, stated because this project derived every other key itself and
-/// this one was not derived: the algorithm and its key table were taken from
-/// the ISC-licensed project xulek/muonline-bmd-viewer
-/// (src/crypto/file-cryptor.ts). ISC is permissive and compatible with this
-/// repository's MIT licence. It is re-implemented here rather than copied, and
-/// the key table is reproduced verbatim because it is data, not expression.
+/// this one was not derived: the algorithm and its key table were inspired by
+/// the project xulek/muonline-bmd-viewer (src/crypto/file-cryptor.ts),
+/// commit 3f11bf89f3702261174d8efa1436d56a15c7d97a, branch main.
+/// That repository declares license ISC in package.json field only, with
+/// author placeholder xulek@example.com (RFC2606) and no LICENSE file;
+/// commit date 2026-07-24 with clock skew, marked NAO CONFIRMADA in
+/// docs/evidence/ciclo6_bmdref_commit_date.log (auditoria ciclo 6 item 0).
+/// It is re-implemented here rather than copied, the key table is data,
+/// and the surrounding data structures are comprovadamente diferentes
+/// (header 14B vs 10B, triangulo 64B vs layout do viewer, etc.).
+/// Referencia consultada para inspiracao estrutural; atribuicao/licenca
+/// NAO CONFIRMADA; estrutura de dados comprovadamente diferente da fonte.
 ///
 /// This resolves the project's number-one blocker. Before it, 8,594 of 10,090
 /// BMD files were opaque and no geometry could be read from them.
