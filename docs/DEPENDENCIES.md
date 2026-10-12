@@ -125,6 +125,17 @@ $ git show --stat 6821d94
 O clone de consulta foi feito em `/tmp/bmdref`, fora do repositório, e **não foi
 commitado**: `git ls-files | grep -ci "bmdref\|muonline-bmd-viewer"` retorna `0`.
 
+**Re-verificado no ciclo 3.** As quatro confirmações foram rodadas de novo, não
+apenas reafirmadas — evidência em
+[`evidence/ciclo3_licensing_audit.log`](evidence/ciclo3_licensing_audit.log):
+
+| Verificação | Comando | Resultado |
+|---|---|---|
+| Arquivo de terceiros commitado | `git ls-files \| grep -ciE "bmdref\|muonline-bmd-viewer\|xulek"` | **0** |
+| Clone externo dentro do repo | `ls -d .git/modules` | sem submódulos |
+| Arquivos rastreados | `git ls-files \| wc -l` | 86, todos do projeto |
+| Cópia em bloco | `git show --stat 6821d94` | 8 arquivos, nenhum de terceiros |
+
 **Ressalva sobre a licença.** O repositório de origem **não traz arquivo
 `LICENSE`**; a licença ISC consta apenas do `package.json`, e o e-mail do autor é
 `xulek@example.com`, um domínio de exemplo. Ver `docs/LICENSING.md` para a
