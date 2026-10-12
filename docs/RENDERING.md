@@ -388,3 +388,62 @@ material e por estado — não minimizar triângulos.
 Todo teste desta seção feito com geometria sintética deve ser rotulado
 **"teste sintético de pipeline"**, conforme `DECISIONS.md` (DEC-009). Nenhum
 deles conta como validação de asset pesado nem como progresso no bloqueio nº 1.
+
+### 12.6 Plano de otimização consistente com dados medidos (D4 — CONCLUÍDO ciclo12)
+
+**Objetivo:** documentar plano de otimização com dados medidos (não estimativas), separando medido × estimativa × hipótese, conforme regra permanente.
+
+#### (a) LOD — Level of Detail
+
+**Dados medidos ciclo12:**
+- `Data/` 10.090 arquivos BMD, 8.406 com geometria parseada (tool /tmp/find_max_vert)
+- Vértices por mesh: campo u16 teto 65.535, máximo observado 22.987 (Custom/Monster/Ozarugold.bmd), mediana não medida mas meshCount mediana 1
+- Triângulos por mesh: máximo observado 39.193 geral, 15.390 com ossos (Staff36.bmd, Object40 etc)
+- Malhas por modelo: máximo observado 30 geral (Object157/Object06.bmd), 9 com ossos (Object74/Object40.bmd)
+- Bones: máximo 63 observado (Item/Stick32.bmd), limite prático 64, total 7.879 bones em 3.693 arquivos loose (ratio per file 1.846,28× definitivo vs ctrl 0,023795%)
+- Importação original: 1.792.108 vértices únicos, 978.853 triângulos em 4.071 meshes, sharing ratio 1,64 vértices por triângulo vs 3 sem índice, 63,9% de reenvios desnecessários sem `glDrawElements`
+
+**Plano LOD consistente:**
+- Caminho A (BMD original): LOD bloqueado pelo bloqueio nº 1 (geometria cifrada 85%), gerar LOD exige topologia decodificada, não é só implementar — registrar bloqueio explícito
+- Caminho B (glTF 2.0): `MSFT_lod` com geração na ferramenta de autoria, cadeia de LOD por mesh, seleção por cobertura de tela (screen coverage) não distância absoluta, transição dither/morph para evitar popping
+- Métrica de validação: frametime vs cobertura de tela, contar triângulos antes/depois LOD, medir redução draw calls por LOD, condições hardware declaradas (resolução, driver, cena, iterações, desvio padrão, cache quente/frio)
+- Implementação atual: frustum culling já reduz custo de desenho para o que é visível, LOD complementa reduzindo custo do que permanece visível
+
+#### (b) Streaming de assets
+
+**Dados medidos ciclo12:**
+- Texturas: inventário ciclo1 soma teórica `w*h*4` = 2.893,80 MB footprint máximo teórico — **estimativa teórica, não medição** (não havia GPU para medir VRAM real), serve como argumento ordem de grandeza para exigir orçamento explícito, não como número consumo
+- BMD: 10.090 arquivos, 8.406 com geometria, 3.693 com bones loose (43,93%), 1.186 strict (14,11%), payload 85% cifrado v0x0C (bloqueio #1)
+- Buffers: PackMeshForUpload transforma Mesh C1 em arrays flat VBO/VAO sem GL, valida size mismatch strict, conta skipped_vertices/bad_indices, bounds computada via ComputeBounds
+- Skinning: PackSkeletonForUpload valida parent range, self-loop, cycle detection visited[64], fail safe
+
+**Plano streaming consistente:**
+- Orçamento VRAM declarado e respeitado, política expulsão por frequência uso (LRU/LFU) não ordem chegada
+- Carregamento mip sob demanda, custo textura grande proporcional ao visível
+- Streaming de malhas: carregar bounds primeiro (32B nome + bounds), depois geometria sob demanda quando IsVisible true, usar frustum culling para priorizar carregamento do visível
+- Para assets originais: streaming bloqueado parcialmente por cifra BMD v0x0C (85%), payload cifrado impede leitura bounds sem decifra, decifra V0C validada 400/400 com normais norma 1 99,98%
+- Implementação atual D1: buffers CPU-side prontos para upload, sem GL headers, packing verificado byte a byte TestPackMeshForUpload 21 checks
+
+#### (c) Redução de draw calls
+
+**Dados medidos ciclo12:**
+- Original: sem `glGenBuffers`/`glBufferData` (sem VBO), sem `glDrawElements` (sem indexed), sem `glGenFramebuffers` (sem FBO), `glBegin`/`glEnd` immediate mode Main.exe, client-side arrays Main.dll com `glDrawArrays` (re-marshal per draw)
+- Per frame expandido sem `glDrawElements`: **67,21 MiB por draw** medido via `mutool meshimport` 1.792.108 vértices, 978.853 triângulos, 4.071 meshes
+- Corner sends: **2.936.559 por draw**, unique vertices se indexado 1.792.108, vertices reenviados desnecessariamente **63,9%**
+- Frustum culling: já implementado cull.hpp/cull.cpp, p-vertex test, conservative safe (kIntersect quando duvida), IsVisible true para invalid bounds fail safe, TestFrustumCull + TestFrustumCullRealBounds 13 checks, métrica objetos descartados por culling exposta
+- Buffers D1: PackMeshForUpload gera índices flat, dropa triângulos bad index, conta bad_indices, bounds real
+
+**Plano redução draw calls consistente:**
+- Substituir immediate mode e client-side arrays por VBO/IBO batching (DEC-008): PackMeshForUpload já prepara vertices flat e indices flat, pronto para `glBufferData` + `glDrawElements`
+- Agrupar por material e estado: 1 textura por mesh observado (sbow06_R.jpg etc), cada mesh tem 1 nome textura 32B após triângulos, agrupar meshes por textura reduz bind calls
+- Frustum culling antes de qualquer bind: custo objeto invisível = 1 comparação Bounds vs 6 planos, não bind descartado, métrica eficácia medida por contagem descartados
+- Instancing para objetos repetidos (árvores, itens): não medido ainda, requer análise instâncias no mapa, registrar como hipótese até medição
+- Eliminar `glReadPixels`: render full-screen effects para FBO, não readback, requer saber uso readback (screenshot vs minimap vs glow) — atualmente UNVERIFIED
+- Método para definir orçamento: medir frametime com geometria sintética complexidade crescente no hardware destino, condições declaradas (resolução, driver, cena, iterações, desvio padrão, cache quente/frio), identificar ponto CPU vs GPU dominado, definir orçamento logo abaixo pior caso observado não mediana, sem meta arbitrária antes baseline (regra permanente)
+
+**Rotulagem:** todo teste sintético de pipeline rotulado "teste sintético de pipeline" conforme DEC-009, não conta como validação asset pesado nem progresso bloqueio #1.
+
+
+Todo teste desta seção feito com geometria sintética deve ser rotulado
+**"teste sintético de pipeline"**, conforme `DECISIONS.md` (DEC-009). Nenhum
+deles conta como validação de asset pesado nem como progresso no bloqueio nº 1.
