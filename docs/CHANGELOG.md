@@ -92,6 +92,70 @@ refinement.
   [`SECURITY.md`](SECURITY.md).
 - 12 `Thumbs.db` files (677,376 bytes) are shipped in the asset tree.
 
+## Ciclo 4 — pendências da auditoria do ciclo 3 e DEC-008 completa
+
+### Adicionado
+
+- **`BmdTopologySkip`** em `src/mu/assets/bmd_body.{hpp,cpp}` — o parser agora
+  registra *por que* não leu os triângulos: multi-mesh, zero faces declarado,
+  array que não cabe, ou payload curto. Um array vazio eram quatro falhas
+  indistinguíveis; agora são quatro causas com consequências diferentes
+- **`TestTopologyIsSubsetOfGeometry`** (28 asserções novas) — prova três coisas
+  que a tabela não expressa: nível 4 é subconjunto estrito do nível 3, um array
+  vazio são quatro falhas distinguíveis, e as quatro causas são **exaustivas**
+  (soma comparada com `geometry_parsed - topology_parsed`, então uma quinta causa
+  não aparece em silêncio)
+- **`LEVEL 4b`** e histograma de `meshCount` na saída de `mutool bmdreport`
+- **Benchmark de caminho de submissão** em `bench/bench_assets.cpp`, para
+  decidir DEC-008 com medição em vez de argumento
+- **`DEC-008-A`** em `DECISIONS.md` — a comparação formal de custo e risco que
+  `DEC-010` exigia antes de qualquer código de backend
+- **`SECURITY.md` §9** — risco operacional de restauração de snapshot, com a
+  tabela de mitigação e o que fazer quando o branch divergir
+
+### Medido
+
+- **Causa da queda de 50,6% entre nível 3 e nível 4: `meshCount != 1` em
+  100,00%** dos 4.257 arquivos. Zero falham por tamanho, versão ou campo
+  ausente. É limite do parser, não do formato
+- **Expansão indexado → flat: 21.459,9 µs por quadro** (desvio 7,31%) contra
+  **837,3 µs** da submissão indexada (desvio 3,84%) — razão **25,63×**. A
+  expansão sozinha é **128,8% do orçamento inteiro de um quadro a 60 FPS**, e é
+  CPU apenas
+- Upload único do vertex buffer: 3.610,2 µs, pago em **0,18 quadro**
+
+### Corrigido
+
+- **`ARCHITECTURE.md` §9 dizia "oito hipóteses" descartadas para UV. São nove.**
+  A nona foi testada e rejeitada no ciclo 3 e a seção não foi revisitada — a
+  mesma classe de defasagem que a auditoria cobra. Corrigido também em
+  `COMPATIBILITY.md`. Relatórios de ciclo fechado ficaram como estavam: eram
+  verdadeiros quando escritos
+- **Tabela do ciclo 1 removida de `COMPATIBILITY.md` e `ASSET_FORMATS.md`.**
+  Dizia "payload em claro 1.496 (14,83%)" e "geometria 1.191 (11,80%)",
+  anteriores a DEC-007. Manter as duas tabelas lado a lado era a própria
+  ambiguidade que a auditoria pediu para eliminar
+- Prefixo dos arquivos de evidência novos: `ciclo3_` → `ciclo4_`. A convenção é
+  que o prefixo indica o ciclo que **produziu** a evidência, não o ciclo sobre o
+  qual ela fala
+
+### Estado de decisão
+
+**`DEC-008` completa.** A trava de `DEC-010` sobre código de backend deixou de
+valer por ausência de decisão. Continua valendo por ausência de ambiente —
+motivo diferente, que precisa ficar separado. Compatibilidade visual da opção
+adotada: **`NOT EXECUTED`**, não "preservada".
+
+### Evidência
+
+- `docs/evidence/ciclo4_topology_subset.log` — relação entre os níveis, com o
+  histograma de `meshCount` sobre os 8.406 arquivos de nível 3
+- `docs/evidence/ciclo4_git_incident.log` — reflog e diff de verificação
+- `docs/evidence/ciclo4_dec008_submission_cost.log` — benchmark com hardware,
+  flags, desvio padrão e estado de cache declarados
+
+---
+
 ## Ciclo 3 — auditoria, correção de documentação e confirmação de escala
 
 ### Corrigido

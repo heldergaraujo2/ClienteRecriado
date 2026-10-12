@@ -1,109 +1,82 @@
 # Próxima tarefa
 
-> **Ciclo 3 fechado** com `docs/CICLO3_RELATORIO.md`. Este arquivo foi atualizado
-> no ciclo 3, conforme a regra permanente — o que não aconteceu durante o ciclo,
-> e é a segunda vez que este documento fica para trás.
+> **Ciclo 4 fechado** com `docs/CICLO4_RELATORIO.md`. Atualizado no mesmo ciclo
+> em que mudou, conforme a regra permanente.
 
-## Completar `DEC-008` com a comparação de custo/risco
+## O que mudou neste ciclo
 
-É o que está na frente de tudo, e não é tarefa de código.
+`DEC-008` estava incompleta e era o que bloqueava tudo. **Foi completada** em
+`DECISIONS.md` (DEC-008-A), com medição real onde este ambiente permite medir e
+`BLOQUEADO` declarado onde não permite. A trava de `DEC-010` sobre código de
+backend **deixou de valer por ausência de decisão** — mas continua valendo por
+ausência de ambiente, e esse é um motivo diferente que precisa ficar separado.
 
-`DEC-008` registra a **intenção** (VBO/VAO como piso mínimo) mas não a comparação
-de custo/risco que este projeto exige para decisões de arquitetura. Enquanto
-estiver incompleta:
+A parte A do critério de validação foi medida: a expansão indexado → flat custa
+**21.459,9 µs** de marshalling de CPU por quadro, **128,8% do orçamento inteiro
+de um quadro a 60 FPS**, contra **837,3 µs** da submissão indexada (**25,63×**).
+A parte B (contexto real) está `BLOQUEADA`.
 
-- **Nenhum código de backend pode ser escrito** — `DEC-010` lista o que está
-  bloqueado: `wglCreateContext`, `glGenBuffers`, `glBindBuffer`, `glBufferData`,
-  `glGenVertexArrays`, `glDrawElements`, `glDrawArrays`, shaders, FBOs
-- Sem backend não há como medir desempenho, que é o objetivo declarado do projeto
-- `PERFORMANCE_BASELINE.md` continua sem baseline de FPS, e continuará
+## Próxima tarefa: estender o parser BMD para multi-mesh
 
-**O que `DEC-008` precisa para ficar completa:**
+**Por que esta, e não outra.** É a única descoberta do ciclo 4 que virou
+trabalho conhecido em vez de pesquisa:
 
-1. Custo de implementação de cada alternativa considerada
-2. Risco de cada uma, **incluindo o risco de não conseguir medir neste ambiente**
-3. O que será medido para decidir entre elas, e em que hardware
-4. O que acontece com o requisito de compatibilidade visual em cada caso
+- O item 1 da auditoria mediu que a queda do nível 3 para o nível 4 (8.406 →
+  4.149, perda de 50,6%) tem **causa única e total: `meshCount != 1` em 100,00%
+  dos 4.257 arquivos**. Nenhum falha por tamanho, versão ou campo ausente.
+- A causa é **deste parser**, não do formato. Ele lê um bloco de triângulos; com
+  várias malhas a mesma sequência se repete e ler um bloco leria o errado em
+  silêncio.
+- A sequência por malha é a mesma já verificada. Falta iterar e somar offsets.
+  É **implementação conhecida**, não investigação.
+- Recupera **4.257 arquivos** — mais do que o parser lê hoje (4.149).
+- É testável neste ambiente: não depende de GPU, contexto nem Windows.
 
-**Verificação de conformidade enquanto estiver pendente:**
+**Critério de aceite:**
+
+1. `mutool bmdreport` nível 4 acima de 4.149, com o denominador na saída
+2. `skip_multi_mesh` caindo de 4.257 para o resto irredutível, medido e não estimado
+3. Testes novos cobrindo malha com 2 e com 3 blocos, gerados em fixture
+4. `TestTopologyIsSubsetOfGeometry` continuando a passar — a exaustividade das
+   causas de pulo é o que impede uma quinta causa de aparecer em silêncio
+5. Zero regressão: 372 checks atuais continuam passando, ASan+UBSan limpo
+
+**O que isso NÃO destrava, e precisa ser dito antes de começar:** o nível 6 (UV)
+continua em **zero**. Um modelo sem textura pode ser desenhado; um modelo
+texturizado não. Multi-mesh aumenta a malha montável, não a renderizável.
+
+## Depois disso
+
+| Tarefa | Por quê | Bloqueio |
+|---|---|---|
+| Ordem dos 6 `f32` de transformação de osso | "posição antes de rotação" é inferência, não medição. Sem isso, esqueleto animado é chute | nenhum — testável aqui |
+| Conteúdo dos 3 `f32` de keyframe | 77,00% dos arquivos têm o bloco; o conteúdo não foi determinado | nenhum — testável aqui |
+| Escala vertical da altura de terreno | três caminhos fechados; sem ela, terreno tem proporção errada | nenhum — testável aqui |
+| Índice de UV por canto | **nove** hipóteses descartadas. Critério de parada ativo: não reabrir sem hipótese genuinamente nova | investigação, não implementação |
+| Backend VBO/VAO | decisão registrada, implementação conhecida | **GPU/contexto — BLOQUEADO** |
+| Validação da parte B de DEC-008 | benchmark em contexto real | **GPU/contexto — BLOQUEADO** |
+| Baseline de FPS/frametime/VRAM | objetivo declarado do projeto | **GPU — BLOQUEADO** |
+
+## O que não adianta retomar
+
+**As nove hipóteses de UV.** Todas testadas e descartadas, com controle válido
+em cada uma. A nona (bytes 24..59 do triângulo como coordenadas UV por canto)
+deu 79,42% em [0,1] — contra bytes aleatórios (24,82%) pareceria forte, razão
+3,2×. **Esse controle é inválido**: a pergunta é "estes `f32` são UV", então o
+controle correto é outro `f32` que não seja UV. O array de normais dá 70,34%,
+razão de apenas **1,13×**. Rejeitada. A regra ficou registrada: **o controle tem
+que ser da mesma classe do que se testa.**
+
+**Criptoanálise dos 1.519 opacos.** XOR periódico (P=1..32), CFB, CBC-like,
+rolling-sub e chaves derivadas já foram tentados. Sem fonte nova, não há o que
+fazer.
+
+## Verificação de conformidade, permanente
 
 ```
 grep -rn "glGenBuffers\|wglCreateContext\|glDrawElements\|GL/gl.h" src/
 ```
 
-Deve retornar apenas comentários. Se retornar código, ele foi escrito antes da
-decisão e deve ser revertido, ou a decisão completada.
-
-## Alternativa, se houver acesso a GPU
-
-Iniciar o pipeline VBO/VAO. Não está bloqueado por nenhuma descoberta pendente —
-apenas pela ausência de hardware e pela decisão incompleta.
-
----
-
-## O que NÃO adianta retomar
-
-### Índice de UV por canto — nove hipóteses descartadas
-
-Investigação encerrada. As nove, para não repetição:
-
-| # | Hipótese | Por que falhou |
-|---|---|---|
-| 1 | Campo em +4 do registro de triângulo | padding — 64,95% zero, 18,18% 0xCDCD |
-| 2 | Quarto canto em +24 | não existe — nível de ruído |
-| 3 | Relação implícita por posição | refutada — 93% dos arquivos diferem |
-| 4 | Bytes 24..59 como índices | platô sem pico; confirmado serem `f32` |
-| 5 | `u16@48` do cabeçalho | contagem, não índice |
-| 6 | `u16@50` do cabeçalho | parcialmente padding (0xCDCD) |
-| 7 | Array paralelo no corpo | 11,8% com distâncias dispersas |
-| 8 | `u16@12`/`@14` do vértice | teste não discrimina |
-| 9 | Bytes 24..59 como coordenadas UV | 79,42% contra controle de 70,34% — razão 1,13× |
-
-**Não reabrir sem hipótese genuinamente nova** — não uma variação das nove. O
-critério de parada existe porque nove falhas seguidas são evidência de que a
-pergunta pode estar mal formulada, não de que falta tentar mais uma vez.
-
-### Escala vertical da altura — três caminhos fechados
-
-1. Prefixo dos 29 arquivos de grade crua — inteiramente zero em 29 de 29
-2. `xPixelsPerMeter`/`yPixelsPerMeter` do BMP — 2.834 em 42 de 45, que é o padrão
-   de 72 DPI, valor default e não medição
-3. Paleta BMP — identidade (`palette[i] = (i,i,i)`), então o byte **é** a altura
-
-**O que resta:** procurar em outro arquivo do mundo, ou tratar a escala como
-parâmetro de renderização ajustado visualmente. A segunda é provavelmente a
-correta — motores desse período costumavam ter a escala como constante.
-
----
-
-## Problema estrutural não resolvido, e é o mais importante
-
-**Nada obriga o commit que muda o código a mudar o documento.**
-
-A topologia ficou registrada como "não implementada em C++" por dezenas de commits
-depois de implementada, justamente porque os testes passavam e a ferramenta
-funcionava. **Não havia sinal de que algo estava errado.**
-
-Este ciclo corrigiu quatro afirmações falsas e aplicou quatro correções
-estruturais (medições viraram comandos, denominador impresso, regra de controle
-da mesma classe, documentos sem hash de ponta). **Nenhuma delas impede a próxima
-defasagem.**
-
-Uma verificação automática — por exemplo, um teste que falhe se `COMPATIBILITY.md`
-afirmar que algo não está implementado quando há símbolo correspondente em `src/`
-— atacaria a causa. Não foi construída neste ciclo.
-
----
-
-## Números de referência, do full-scan do ciclo 3
-
-Para o próximo ciclo não repetir medição amostral:
-
-| Medição | Valor | População |
-|---|---|---|
-| Faces parseáveis | 4.149 (41,12%) | 10.090, full-scan |
-| Vértice + normal | 8.406 (83,31%) | 10.090, full-scan |
-| Hierarquia de ossos | 3.505 = 98,68% dos que fecham | **85,09% dos 4.119 elegíveis** |
-| Animação divisível por `12×bc` | 385 (77,00%) | 500, população total |
-| Altura de terreno | 76 = 47 BMP + 29 sem cabeçalho | 76, 100% |
-| Testes | 344 checks, 0 failures | — |
+Deve retornar **apenas comentários**. Se retornar código, ele foi escrito sem
+ambiente que o execute e deve ser revertido. Verificado no ciclo 4: uma
+ocorrência, comentário em `mesh.hpp:20`, zero includes gráficos em `src/`.

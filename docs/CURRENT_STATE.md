@@ -198,9 +198,71 @@ Os níveis **não** são cumulativos na mesma população: o nível 4 conta só 
 **Nenhum nível é modelo renderizável.** Nível 6 é zero — sem índice de UV por canto
 não há textura. Nove hipóteses descartadas; investigação encerrada.
 
-**Bloqueio atual: `DEC-008` incompleta.** Sem a comparação de custo/risco, nenhum
-código de backend pode ser escrito (`DEC-010`), e sem backend não há como medir
-desempenho — que é o objetivo declarado do projeto.
+**Bloqueio do ciclo 3: `DEC-008` incompleta. RESOLVIDO no ciclo 4** — ver a
+seção seguinte.
+
+---
+
+# Ciclo 4 — estado atual
+
+> **Numeração.** O ciclo 3 foi fechado com `docs/CICLO3_RELATORIO.md`. Este ciclo
+> resolveu as cinco pendências que a auditoria do ciclo 3 deixou e completou
+> `DEC-008`. As seções acima que dizem "ciclo 2" ou "ciclo 3" são registro
+> histórico do que foi fechado.
+
+## O que este ciclo resolveu
+
+| Pendência da auditoria do ciclo 3 | Resultado |
+|---|---|
+| 1 — relação entre os níveis da tabela | **Medida.** Nível 4 é subconjunto estrito do 3, provado em código e por teste. Causa da queda de 50,6%: `meshCount != 1` em **100,00%** dos 4.257 |
+| 2 — arquitetura de importação dual | **Já existia** (`ARCHITECTURE.md` §9, criada em `77662f5`). Dois defeitos corrigidos: dizia "oito hipóteses" quando são nove, e não citava a tabela corrigida |
+| 3 — evidência bruta do incidente de Git | **Produzida** em `evidence/ciclo4_git_incident.log`, com reflog e diff de verificação. Risco operacional registrado em `SECURITY.md` §9 |
+| 4 — tabela final publicada | **Confirmada** com trecho colado em `COMPATIBILITY.md` e `ASSET_FORMATS.md` |
+| 5 — arquivos de evidência commitados | **Confirmados** por `git show --stat 1e970da` |
+
+## DEC-008 completa
+
+`DECISIONS.md` DEC-008-A responde os quatro itens que `DEC-010` exigia.
+
+**Medido neste ambiente** (`evidence/ciclo4_dec008_submission_cost.log`), com as
+contagens reais da árvore — 1.792.108 vértices, 978.853 triângulos:
+
+| Medida | Valor | Desvio |
+|---|---|---|
+| Expansão indexado → flat, por quadro | 21.459,9 µs | 7,31% |
+| Submissão indexada, por quadro | 837,3 µs | 3,84% |
+| Upload único do vertex buffer | 3.610,2 µs | 3,83% |
+| Razão expandido/indexado | **25,63×** | — |
+
+**21.459,9 µs = 128,8% do orçamento inteiro de um quadro a 60 FPS**, e é CPU
+apenas — sem driver, sem GPU, sem barramento. O upload único se paga em 0,18
+quadro.
+
+**Critério de validação em duas partes:** parte A (CPU, sem contexto)
+**CONCLUÍDA**; parte B (benchmark em contexto real) **BLOQUEADA** — não há GPU,
+não há driver, não há `wglCreateContext`, e o ambiente não permite instalá-los.
+
+**Compatibilidade visual da opção adotada: `NOT EXECUTED`, não "preservada".**
+Sem GPU não há comparação pixel a pixel.
+
+## Bloqueio atual
+
+**Não é mais ausência de decisão.** `DEC-008` está registrada e `DEC-010` foi
+atualizada. O que impede código de backend agora é **ausência de ambiente que o
+execute**: sem GPU nem contexto, backend gráfico escrito aqui seria não
+testável, e backend não testável é o caminho mais curto para afirmar
+compatibilidade não verificada.
+
+**Trava permanente, verificada neste ciclo:** `grep -rn "glGenBuffers\|
+wglCreateContext\|glDrawElements\|GL/gl.h" src/` retorna **uma** ocorrência,
+comentário em `mesh.hpp:20`. Zero includes gráficos em `src/`.
+
+**Testes:** 372 checks, 0 failures · ASan+UBSan 372/0 · zero warnings sob 12
+flags `-W`.
+
+**Próxima tarefa:** estender o parser BMD para multi-mesh. Recupera 4.257
+arquivos, é implementação conhecida e não pesquisa, e é testável neste ambiente.
+Ver `NEXT_TASK.md`.
 
 ---
 
