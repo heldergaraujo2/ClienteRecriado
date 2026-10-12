@@ -158,3 +158,45 @@ Full log: `docs/evidence/ciclo13_bench_after.log` 474 checks 0 failures test-san
 
 Decision: Keep OPT-003 BuxCrypt word-at-a-time 8B key64[3] phase, OPT-004 OzjProbe word-at-a-time 8B has_zero bitmask, OPT-005 OztToBgraTopDown GL_BGRA direct memcpy flip only 10.2×.
 
+
+### 3.5 Ciclo14 — BuxCrypt N=10 runs reconciliação pico vs mediana
+
+**Problema:** BENCHMARKS.md §3.4 citava "3.9× peak OPT-003 290.9us 3437 MB/s" como se fosse representativo. Valor único pico não é representativo, viola regra permanente ciclo14: "Para qualquer otimização medida: reporte mediana + desvio padrão de N>=5 execuções, nunca um único valor pico".
+
+**Metodologia N=10:** `make bench && for i in 1..10; do ./build/bench_assets; done` extrai BuxCrypt 1 MiB med us e MB/s, g++ 12.2.0 -O2 Linux x86_64, 200 reps por execução, buffer 1 MiB, warm-up antes timing, evidência `docs/evidence/ciclo14_buxcrypt_10runs.log`.
+
+**Resultados N=10:**
+
+```
+run 1: med 388.6 us p95 419.6 p99 453.7 mean 393.4 MB/s 2573.2
+run 2: med 397.6 us p95 428.6 p99 495.9 mean 395.7 MB/s 2515.0
+run 3: med 389.8 us p95 412.7 p99 417.3 mean 391.3 MB/s 2565.5
+run 4: med 397.9 us p95 435.9 p99 457.9 mean 398.0 MB/s 2513.2
+run 5: med 398.3 us p95 425.7 p99 441.0 mean 394.5 MB/s 2510.7
+run 6: med 391.0 us p95 420.4 p99 430.9 mean 394.1 MB/s 2557.8
+run 7: med 393.5 us p95 411.2 p99 423.6 mean 391.2 MB/s 2541.2
+run 8: med 390.4 us p95 413.8 p99 432.0 mean 392.7 MB/s 2561.7
+run 9: med 391.6 us p95 419.2 p99 438.2 mean 393.2 MB/s 2553.8
+run 10: med 383.7 us p95 413.7 p99 429.4 mean 391.7 MB/s 2606.0
+
+median MB/s: 2555.8
+mean MB/s: 2549.81
+stdev MB/s: 30.42
+min MB/s: 2510.7
+max MB/s: 2606.0
+median med_us: 391.3
+mean med_us: 392.24
+stdev med_us: 4.67
+min med_us: 383.7
+max med_us: 398.3
+```
+
+**Interpretação:**
+- Antes ciclo11 baseline: 1135.7 us 880.5 MB/s
+- Depois ciclo14 N=10 mediana: 391.3 us 2555.8 MB/s → speedup 2.90× (1135.7/391.3) ou 2.90× MB/s (2555.8/880.5)
+- Pico anterior 3437 MB/s (290.9us) citado em ciclo10 `ciclo10_opt002_bux_benchmark.log` foi **outlier** medido em máquina diferente / condição cache quente / compilação anterior, não reproduzível neste ambiente: max observado N=10 é 2606.0 MB/s, 24% abaixo de 3437. Portanto 3437 MB/s **não é representativo**, é outlier e não deve ser usado como headline.
+- Mediana 2555.8 MB/s com desvio padrão 30.42 MB/s (1.2%) é número de referência correto para documentação futura.
+- Ainda >2× vs original, mantém decisão Keep OPT-003.
+
+**Decisão:** Usar mediana N=10 2555.8 MB/s como referência futura, mencionar 3437 MB/s explicitamente como outlier não reproduzível neste ambiente, não como ganho típico. Atualizar toda documentação futura para mediana, não pico.
+
