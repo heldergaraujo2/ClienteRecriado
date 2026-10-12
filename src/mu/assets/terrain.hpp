@@ -85,6 +85,11 @@ struct TerrainHeight {
   /// Bytes before the grid. Contents not determined; kept so a round trip does
   /// not silently drop data this project cannot yet interpret.
   std::size_t prefix_size = 0;
+  /// True when the file had a BMP header this project could not read, so the
+  /// grid was taken from the end of the file instead. That is a fallback, not a
+  /// decode: 46 of 47 BMP-headed files have pixel offset 0, bpp 0, and a
+  /// duplicated four-byte prefix whose layout is not determined.
+  bool header_ignored = false;
   bool complete = false;
 };
 

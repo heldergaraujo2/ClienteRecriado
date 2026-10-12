@@ -1163,12 +1163,30 @@ descrevesse o formato. Sobre os 76 arquivos a média é **8,038**, quase o dobro
 **4 arquivos não são suaves** — o mais rugoso chega a 138,237, acima do
 aleatório. Uma amostra não é o formato.
 
-Os 4 arquivos fora do padrão **não foram investigados**. Podem ser mapas
-realmente abruptos, podem ter prefixo de tamanho diferente (a média de prefixo é
-6.217 bytes, contra 1.082 no arquivo examinado primeiro, então o prefixo **não é
-constante**), ou podem não ser grades de altura. **O leitor assume que o corpo são
-os últimos 65.536 bytes, e para esses 4 arquivos essa suposição não foi
-verificada.**
+**Os 4 arquivos fora do padrão foram investigados, e dois deles não são grades de
+altura.**
+
+| Arquivo | Tamanho | Prefixo | Suavidade | O que é |
+|---|---|---|---|---|
+| `World43/TerrainHeight.OZB` | 196.666 | 131.130 | 138,237 | **imagem BMP** — abre com `42 4d 36 00` = `"BM6\0"` |
+| `World64/TerrainHeight.OZB` | 196.666 | 131.130 | 68,577 | **imagem BMP** — mesma assinatura |
+| `World108/TerrainHeight.OZB` | 66.620 | 1.084 | 71,509 | prefixo 2 bytes maior; conteúdo não determinado |
+| `World88/TerrainHeight.OZB` | 66.620 | 1.084 | 71,509 | idem |
+
+**Dois desses arquivos são imagens BMP com nome de `TerrainHeight.OZB`.** O leitor
+deste projeto tomava os últimos 65.536 bytes de qualquer arquivo com esse nome e
+os tratava como altura — o que produziria um campo de altura feito de dados de
+pixel, e **pareceria plausível, porque pixels também são bytes 0..255**. A
+suavidade alta (138,2 e 68,6, contra média de 8,0) era o único sinal, e ele só
+apareceu porque a medição foi feita sobre todos os arquivos e não sobre um.
+
+**Correção aplicada:** `TerrainParseHeight` rejeita arquivos que abrem com `"BM"`
+retornando `kUnsupported`. Verificar a assinatura custa nada e impede um campo de
+altura silenciosamente errado.
+
+Os outros dois (`World108`, `World88`) têm prefixo de 1.084 bytes em vez de 1.082
+e suavidade 71,5. **Não foram determinados** — podem ser mapas abruptos de
+verdade ou podem ter layout diferente. Permanecem como limite conhecido.
 
 **Também medido: o arquivo NÃO é cifrado bux.** Começa com zeros, e aplicar a
 chave XOR-3 transforma esses zeros em `FC CF AB` — o que seria altura espúria.

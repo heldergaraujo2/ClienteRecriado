@@ -112,9 +112,47 @@ Status TerrainParseHeight(ByteView file, TerrainHeight* out) {
     return Status::Make(Status::kTruncated,
                         "terrain height file shorter than one grid");
   }
-  // The grid is the trailing part of the file. Everything before it is a prefix
-  // whose contents are not determined, so it is measured and reported rather
-  // than interpreted.
+  // Most TerrainHeight files in the reference tree (47 of 76) are 8-bit BMP
+  // images whose pixel data IS the height grid. The rest (29) are a prefix plus
+  // a raw grid. Both are handled, because rejecting the BMP family would throw
+  // away the majority of the terrain in the game.
+  //
+  // This replaced an earlier version that rejected "BM" outright. That was
+  // wrong, and it was wrong in a way only the real files could show: the unit
+  // test builds a raw grid, so it passed while the parser was refusing most of
+  // the actual data.
+  if (file.size >= 54 && file.data[0] == 'B' && file.data[1] == 'M') {
+    auto rd32 = [&file](std::size_t o) {
+      return static_cast<std::size_t>(file.data[o]) |
+             (static_cast<std::size_t>(file.data[o + 1]) << 8) |
+             (static_cast<std::size_t>(file.data[o + 2]) << 16) |
+             (static_cast<std::size_t>(file.data[o + 3]) << 24);
+    };
+    const std::size_t pixoff = rd32(10);
+    const uint16_t bpp = static_cast<uint16_t>(file.data[28]) |
+                         (static_cast<uint16_t>(file.data[29]) << 8);
+    // 46 of the 47 BMP-headed files have a header this project cannot read:
+    // pixel offset 0, bpp 0, and the value 40 where a width should be. Their
+    // first four bytes appear twice ("BM6\0" then "BM6\0" again), which is the
+    // same duplicated-prefix pattern the OZJ format in this client uses. The
+    // real header presumably starts after it, but the layout is not decoded.
+    //
+    // Rather than reject them, fall through to the trailing-grid reading and
+    // record that the header was ignored. Measured over all 76 files that
+    // reading yields a smooth field in 94.74% of cases, so it is the better
+    // available answer -- but it is a fallback, not a decode, and calling it
+    // otherwise would be the same mistake as publishing one file's number as
+    // the format's.
+    if (bpp == 8 && pixoff + body <= file.size) {
+      out->prefix_size = pixoff;
+      out->cells.assign(file.data + pixoff, file.data + pixoff + body);
+      out->complete = true;
+      return Status::Ok();
+    }
+    out->header_ignored = true;
+  }
+  // Raw grid: the body is the trailing part of the file, and everything before
+  // it is a prefix whose contents are not determined.
   out->prefix_size = file.size - body;
   out->cells.assign(file.data + out->prefix_size, file.data + file.size);
   out->complete = out->cells.size() == body;
