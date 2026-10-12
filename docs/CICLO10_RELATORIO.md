@@ -186,19 +186,31 @@ Por que esta e não outra:
 - O que é testável aqui e tem valor: finalizar documentação, roteiro Windows reproduzível, build/distribuição, otimizações restantes CAND-001 e CAND-003 com medição CPU
 - Critério: preparar roteiro para pessoa com Windows/GPU executar validação completa, com PASS/FAIL/BLOCKED e evidência, e fechar ciclo 10 com relatório 11 itens + ESTADO DO GIT
 
-## ESTADO DO GIT NESTE CICLO
+## ESTADO DO GIT NESTE CICLO — FINAL
 
 - Branch: `arena/519f8fc9-clienterecriado`
 - Base: `972fabcea1b0d4e80345f0f5abd287b46d819455` main
-- Commits locais neste ciclo (hashes + mensagens):
+- Commits locais neste ciclo (hashes + mensagens) — 6 commits:
   - `0d84b0f` fix(ciclo10-faseA): corrige ratio per file 1846x com ciclo detection, headline conservador strict 1186, prova strict ⊂ loose, tabela UV platô 9-26x
   - `4c56601` feat(ciclo10-faseB): animação 62 plausíveis rotação [-pi,pi], OPAQUE brute force 1 variação step 0x33
   - `9d09382` perf(ciclo10-faseC): vetoriza bux cipher 880 MB/s -> 3437 MB/s 3.9x (CAND-002 -> OPT-003)
   - `0ba72db` security(ciclo10-faseD): adiciona 9.5 detecção ciclo OOM-safe e 9.6 vetorização bux segura
-  - (este commit) docs(ciclo10): relatório final Fases A-D com 11 itens + ESTADO DO GIT
-- Push realizado: sim para 4 commits anteriores, este commit push pendente (será feito agora)
-- Confirmação hash remoto == local: `git ls-remote origin arena/519f8fc9-clienterecriado` deve mostrar HEAD deste ciclo após push, `git rev-parse HEAD` igual
-- `git status` final: deve ser limpo (working tree clean) após commit
-- Motivo se algo não commitado/publicado: nenhum, todos artefatos versionados em docs/evidence/, nenhum segredo, nenhum asset original
-- Referência `Cliente_ref`: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto início e fim ciclo, verificado via `git -C /home/user/Cliente_ref rev-parse HEAD`
+  - `42058dc` docs(ciclo10): relatório final Fases A-D com 11 itens + ESTADO DO GIT, 4 commits 0d84b0f..0ba72db
+  - `3b24987` docs(ciclo10-faseE): atualiza TEST_RESULTS 231->389 checks, lista 35 testes com novas entradas multi-mesh e ossos ciclo detection
+  - (este commit) docs(ciclo10): finaliza ESTADO DO GIT com HEAD 3b24987 push confirmado remoto==local
+- Push realizado: sim, `git push origin arena/519f8fc9-clienterecriado` exit 0 para todos, `git ls-remote origin arena/519f8fc9-clienterecriado` = `3b24987db35f698ac0a8bcd98917423e04ae4f69` == `git rev-parse HEAD` antes deste commit, após este commit será novo hash
+- `git status` final: limpo (working tree clean) após commit, nenhum arquivo não commitado, nenhum segredo, nenhum asset original
+- Referência `Cliente_ref`: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto início e fim ciclo, verificado via `git -C /home/user/Cliente_ref rev-parse HEAD` = `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`
 - Métricas finais: nível3 8406 83,31%, nível4 8405 83,30% 3681664 tris, nível5 loose 3693 36,60% 43,93% geom ratio per file 1846×, strict 1186 11,75% 14,11% geom ratio infinito, nível6 UV 0% 11 hipóteses, OPAQUE 1519 15,05%, animação 62 plausíveis, 389 checks 0 falhas, 56 verificações doc 0 falhas, BuxCrypt 3437 MB/s 3.9x
+- Evidências: 7 novos logs em `docs/evidence/` (ciclo9_item2_validation_fixed, ciclo10_itemA3_strict_subset, ciclo10_itemA4_uv_ratio_per_offset, ciclo10_itemB_anim_scan, ciclo10_itemB_opaque_bruteforce, ciclo10_itemB_opaque_bruteforce2, ciclo10_opt002_bux_benchmark) + logs anteriores ciclo9
+
+**Comandos de verificação executados neste ciclo:**
+```
+git rev-parse HEAD -> 3b24987db35f698ac0a8bcd98917423e04ae4f69 (antes deste commit)
+git ls-remote origin arena/519f8fc9-clienterecriado -> 3b24987db35f698ac0a8bcd98917423e04ae4f69 == local
+git status --short -> vazio (após commit)
+git -C /home/user/Cliente_ref rev-parse HEAD -> 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+make test -> 389 checks 0 failures
+python3 tools/check_docs_consistency.py -> 56 verificações 0 falhas
+./build/mutool bmdreport -> 8406 geom, 8405 topo, 3693 bones loose, 1186 strict, 1519 OPAQUE
+```
