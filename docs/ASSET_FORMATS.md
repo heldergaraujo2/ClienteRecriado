@@ -1207,9 +1207,27 @@ Os 29 arquivos que este projeto vinha tratando como "grade crua com prefixo" tê
 exatamente o tamanho de um BMP de 8 bits com prefixo duplicado, **com o cabeçalho
 zerado**. Ou seja: são o mesmo formato dos 47 BMP, apenas sem cabeçalho legível.
 
-**Isso é hipótese, não resultado.** O que a sustenta é a coincidência exata de
-tamanho e o prefixo nulo; o que faltaria para confirmar é achar um desses arquivos
-com cabeçalho não zerado, ou o código que os escreve.
+**A hipótese foi testada e se sustenta.** Medido nos 29 arquivos:
+
+| Tamanho | Arquivos | Leitura |
+|---|---|---|
+| 66.618 | 15 | exatamente `4 + 1.078 + 65.536` |
+| 66.620 | 14 | 2 bytes acima — variação não explicada |
+
+E o prefixo é **inteiramente zero nos 29 de 29**, não apenas no arquivo examinado
+primeiro.
+
+Nenhum dos 29 tem 65.536 bytes, que é o que uma grade crua pura teria. Todos têm
+o tamanho de um BMP de 8 bits com prefixo duplicado.
+
+**O que continua sem explicação:** os 14 arquivos com 2 bytes a mais. Podem ter
+paleta ligeiramente maior ou um campo extra. Não foi determinado.
+
+**Consequência prática, ainda não aplicada ao código:** o parser trata esses 29
+como "grade crua" e os 47 como BMP, quando provavelmente são o mesmo formato.
+Unificar os dois caminhos é uma simplificação pendiente, não uma correção de
+bug — a saída atual já é a mesma, porque em ambos os casos o corpo fica nos
+últimos 65.536 bytes.
 
 **Escala vertical: NÃO DETERMINADA, e não está no prefixo.** Procurar em outro
 arquivo do mundo, ou aceitar que a altura é relativa.
