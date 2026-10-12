@@ -272,3 +272,78 @@ Ordered by expected impact, all evidence-backed:
 
 What cannot be done: modify the existing renderer. It is inside a
 VMProtect-protected module.
+
+---
+
+## 12. Requisitos de escalabilidade (ciclo 2) — estratégia, ainda sem implementação
+
+Adotado com o novo escopo de suportar conteúdo significativamente mais pesado
+que o original. Ver `DECISIONS.md` (DEC-008).
+
+**Nada desta seção está implementado ou medido.** Não há baseline de FPS,
+frametime ou VRAM neste projeto: não há Windows nem GPU no ambiente. São
+requisitos de arquitetura a validar por benchmark depois, não afirmações de
+desempenho.
+
+### 12.1 Frustum culling — obrigatório desde o início
+
+Não é otimização tardia. É requisito de projeto, porque sem ele o custo de
+desenho escala com o tamanho do mundo e não com o que é visível, e nenhum outro
+item desta seção compensa isso.
+
+- Caixa delimitadora calculada **na importação**, não no desenho.
+- Cull por nó de cena antes de qualquer bind de estado, para que o custo de um
+  objeto invisível seja uma comparação, não um bind descartado.
+- Contagem de objetos descartados por culling exposta como métrica, para que a
+  eficácia seja medida e não presumida.
+
+### 12.2 LOD para malhas pesadas
+
+- Cadeia de LOD por malha, com seleção por cobertura de tela, não por distância
+  absoluta — distância absoluta se comporta mal com campo de visão variável.
+- Transição com *dither* ou *morph* para evitar *popping*, que é o defeito
+  visual que mais chama atenção em LOD mal feito.
+- Para o caminho A: o BMD original **não** traz cadeia de LOD. Gerar LOD exige
+  redução de malha, que por sua vez exige topologia — **portanto LOD para assets
+  originais está bloqueado pelo mesmo bloqueio nº 1**. Registrado para não dar a
+  entender que é só implementar.
+- Para o caminho B: `MSFT_lod` em glTF, com geração na ferramenta de autoria.
+
+### 12.3 Streaming e cache de textura
+
+- Orçamento de VRAM declarado e respeitado, com política de expulsão por
+  frequência de uso, não por ordem de chegada.
+- Carregamento de mip sob demanda, para que o custo de uma textura grande seja
+  proporcional ao que está visível.
+- Para os assets originais: o inventário do ciclo 1 estima **2.893,80 MB** de
+  footprint máximo teórico de textura (`w*h*4` somado). **Isso é estimativa
+  teórica, não medição** — não havia GPU para medir VRAM real. Serve como
+  argumento de ordem de grandeza para exigir orçamento explícito, não como
+  número de consumo.
+
+### 12.4 Orçamento de draw calls
+
+**Meta numérica: não definida, e deliberadamente.** Este projeto não tem baseline
+de FPS nem frametime em nenhuma configuração, portanto qualquer número escrito
+agora seria inventado — e a regra permanente proíbe meta arbitrária antes de
+linha de base.
+
+O que fica definido é o **método**, para que a meta possa ser derivada depois:
+
+1. Medir frametime com geometria sintética de complexidade crescente, no hardware
+   de destino, com condições declaradas (resolução, driver, cena, número de
+   iterações, desvio padrão, cache quente ou frio).
+2. Identificar o ponto em que o frametime deixa de ser dominado por CPU e passa
+   a ser dominado por GPU, ou vice-versa.
+3. Definir o orçamento logo abaixo desse ponto, com folga para o pior caso
+   observado, não para a mediana.
+
+Até lá, o que se pode afirmar é qualitativo: draw call é caro por chamada, não
+por triângulo, então o objetivo é **minimizar chamadas** com agrupamento por
+material e por estado — não minimizar triângulos.
+
+### 12.5 Rotulagem obrigatória
+
+Todo teste desta seção feito com geometria sintética deve ser rotulado
+**"teste sintético de pipeline"**, conforme `DECISIONS.md` (DEC-009). Nenhum
+deles conta como validação de asset pesado nem como progresso no bloqueio nº 1.

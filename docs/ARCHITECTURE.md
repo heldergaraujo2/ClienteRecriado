@@ -165,3 +165,94 @@ vertex or bone data to animate. That is a hard dependency, recorded in
 
 Recorded in full, with alternatives considered, in
 [`DECISIONS.md`](DECISIONS.md).
+
+---
+
+## 9. Importação dual: representação interna única e dois caminhos
+
+Adotado no ciclo 2, quando o escopo passou a incluir conteúdo significativamente
+mais pesado que o original. Ver `DECISIONS.md` (DEC-008, DEC-009).
+
+### 9.1 Representação interna única
+
+Existe **uma** representação de malha e esqueleto no motor, independente do
+formato de origem. Nenhum renderer, sistema de colisão ou de animação lê BMD,
+OZJ, OZT ou glTF diretamente. Isso é o que permite que dois importadores
+coexistam sem duplicar lógica de renderização.
+
+Contrato da representação (a definir em código; ainda não implementado):
+
+- Posição, normal e UV por vértice, com contagem declarada — não assumida.
+- Índice de triângulo separado da lista de vértices, para malha com vértice
+  compartilhado não pagar expansão.
+- Pesos de skin por vértice, com contagem de influências por vértice.
+- Hierarquia de ossos por nome e por índice de pai.
+- Caixa delimitadora calculada na importação, não no desenho.
+- **Nenhum campo de tamanho fixo herdado de formato de origem.** O BMD usa
+  `u16` para contagens, o que limita uma malha a 65.535 vértices; a
+  representação interna usa contagem de 32 bits para não importar esse teto.
+
+### 9.2 Caminho A — assets originais (BMD / OZJ / OZT)
+
+Importador dos formatos do cliente para a representação interna.
+
+**Status real: PARCIAL.** O que está concluído e o que não está, sem generalizar:
+
+| Parte | Status |
+|---|---|
+| Decifragem v0x0C | **CONCLUÍDO E VALIDADO** (7.226 de 8.741; validação independente por normais unitárias a 99,98%) |
+| Posições de vértice | **CONCLUÍDO E VALIDADO** (8.406 arquivos, 83,31%) |
+| Normais | **CONCLUÍDO E VALIDADO** (99,91% com norma 1) |
+| Localização do array de triângulos | **CONCLUÍDO** (98,05% contra controle de 2,35%) |
+| **Conteúdo do registro de triângulo** | **BLOQUEADO** — 58 dos 64 bytes não decodificados |
+| **Coordenadas UV** | **BLOQUEADO** — hipótese refutada por controle estatístico |
+| **Ossos e animação** | **BLOQUEADO** — nenhum registro localizado |
+| Texturas OZJ/OZT | **CONCLUÍDO** para decodificação de contêiner |
+
+O caminho A **não está pronto** e não há data que este projeto possa prometer
+para ele: depende de decodificar o registro de triângulo, que resistiu a todas as
+tentativas até agora.
+
+### 9.3 Caminho B — assets pesados customizados
+
+Formato adicional para conteúdo novo, com malhas e texturas acima do que o BMD
+expressa.
+
+**Escolha: glTF 2.0 (`.gltf`/`.glb`).** Comparação com as alternativas
+consideradas:
+
+| Critério | **glTF 2.0** | FBX | OBJ + MTL |
+|---|---|---|---|
+| Skinning | Nativo, com pesos e hierarquia | Nativo | **Não tem** |
+| PBR | Nativo (metálico-rugosidade) | Parcial, depende de exportador | **Não tem** |
+| Maturidade de bibliotecas | Alta; é o formato de intercâmbio da Khronos | Alta mas proprietária | Alta |
+| Licença | Especificação aberta, sem royalties | **SDK Autodesk, licença restritiva** | Aberta |
+| Parsing sem dependência problemática | `.glb` é binário simples: header + chunks JSON + binário. Um parser mínimo é viável sem biblioteca | Exige o SDK | Trivial, mas incapaz |
+| LOD | Extensão `MSFT_lod` | Manual | Manual |
+| Compressão de geometria | `EXT_meshopt_compression`, KTX2 para textura | Parcial | Nenhuma |
+| Teto de contagem | 32 bits | 32 bits | sem índice |
+
+**Por que não FBX:** licença do SDK é restritiva e incompatível com a postura de
+zero dependência e distribuição livre deste projeto.
+
+**Por que não OBJ:** não tem skinning nem PBR. Seria incapaz para personagens
+animados, que é exatamente o conteúdo pesado que se quer suportar.
+
+`glTF` vence em capacidade e é o único dos três cuja especificação é aberta e
+cuja variante binária pode ser lida por um parser próprio, preservando a
+propriedade de zero dependência do build.
+
+### 9.4 O caminho B NÃO substitui o caminho A
+
+Declarado explicitamente, porque é a confusão mais fácil de cometer aqui:
+
+- O caminho B é para **conteúdo novo e customizado apenas**.
+- Ele **não** resolve, não contorna e não torna opcional o trabalho pendente em
+  faces, UV e ossos do BMD original.
+- O requisito (a) do escopo — reaproveitar **100%** dos assets 3D originais —
+  continua pendente do bloqueio nº 1, e o caminho B não o satisfaz.
+- Um projeto que entregasse só o caminho B teria um motor capaz de desenhar
+  modelos modernos e **nenhum** dos 10.090 modelos do cliente.
+
+A regra de rotulagem de `DECISIONS.md` (DEC-009) se aplica: teste com geometria
+sintética ou com asset do caminho B nunca conta como progresso no caminho A.

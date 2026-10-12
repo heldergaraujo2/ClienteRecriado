@@ -801,3 +801,53 @@ inconclusivo, porque encerra a investigação.
 | Vértices + normais (v0x0C) | **CONCLUÍDO** — verificado em 400/400 amostrados: corpo completo sob o mesmo layout, normais unitárias 99,98% no deslocamento 0. Arrays são `f32`, não `f16` |
 | Triângulos, UV, nomes de textura | **NÃO DETERMINADO** — a cifra está quebrada, mas o layout destas seções não foi estabelecido contra os dados |
 | Ossos e animações | **NÃO INICIADO** |
+
+---
+
+# Limites reais do formato BMD — conhecidos vs desconhecidos
+
+Levantamento do ciclo 2. A regra aqui é separar o que foi **medido nos arquivos**
+do que só poderia ser conhecido decodificando seções ainda bloqueadas. Omitir a
+segunda coluna seria esconder o tamanho do que falta.
+
+## Limites CONHECIDOS — medidos nos 10.090 arquivos
+
+| Limite | Valor | Origem da medição |
+|---|---|---|
+| Precisão de coordenadas | **`f32`** (não `f16`) | Confirmado no ciclo 2: 400/400 arquivos v0x0C com corpo completo sob layout `f32` e normais de norma 1 em 99,98% |
+| Contagem de vértices por malha | campo `u16` → **teto de 65.535** | `u16` no payload offset 38; máximo observado 5.082 |
+| Contagem de normais por malha | campo `u16` → **teto de 65.535** | payload offset 40; máximo observado 5.376 |
+| Contagem de UV por malha | campo `u16` → **teto de 65.535** | payload offset 42 |
+| Contagem de triângulos por malha | campo `u16` → **teto de 65.535** | payload offset 44 |
+| Registro de vértice | **16 bytes** | Verificado em 260 mil+ registros |
+| Registro de normal | **20 bytes** | Verificado em 260.268 registros (99,91% de norma 1) |
+| Registro de triângulo | **64 bytes** | Confirmado pela posição do nome de textura em 87,9% dos arquivos de malha única |
+| Contagem de malhas | campo `u16`; mediana 1, **máximo observado 18** | payload offset 32; nomes dos campos não verificados um a um |
+| Nome do modelo de origem | **32 bytes**, ASCII NUL-pad | Campo inicial do corpo |
+| Nome de textura | campo de texto após o array de triângulos | Observado em 87,9% dos arquivos de malha única |
+
+**Consequência prática do teto `u16`.** Uma malha não pode exceder 65.535
+vértices nem 65.535 triângulos. Para conteúdo pesado isso é restritivo e é um
+argumento concreto a favor do caminho B (assets customizados em formato moderno)
+para modelos novos — ver `docs/ARCHITECTURE.md`.
+
+## Limites DESCONHECIDOS — bloqueados por parsing não concluído
+
+| Limite | Por que não se sabe |
+|---|---|
+| **Número de materiais/texturas por modelo** | Exige percorrer a tabela de nomes de textura, que só foi localizada em arquivos de malha única. Não foi contada nem validada |
+| **Máximo de ossos por modelo** | Nenhum registro de osso foi localizado nem validado. O campo `boneCount` existe no cabeçalho, mas seu significado não foi confirmado um a um |
+| **Máximo de frames de animação** | Depende de ossos e da seção de ações, ambas bloqueadas |
+| **Conteúdo do registro de triângulo** | 64 bytes localizados; apenas os índices de vértice em +2/+6/+10 têm evidência. Os demais 58 bytes não estão decodificados. O byte de polígono esperado **não** está lá (3,01%, aleatório) |
+| **Limite de malhas por modelo** | Máximo observado 18, mas sem confirmação de que o campo é contagem de malhas, 18 é observação, não limite do formato |
+| **Semântica dos `u16` em 32/34/36** | Coerentes com contagem de malha/osso/ação, não verificados |
+
+**Registro explícito, como exigido:** a ausência de índices de face decodificados
+impede levantar limites que dependem de topologia. Isso é limitação do
+levantamento, não propriedade conhecida do formato.
+
+## Restrição que se aplica a tudo acima
+
+As medições de estrutura interna valem para **arquivos de malha única** (586 dos
+1.500 examinados no levantamento de topologia). Para malhas múltiplas o corpo se
+repete por malha e a aritmética de bloco único não se aplica — não foi medido.

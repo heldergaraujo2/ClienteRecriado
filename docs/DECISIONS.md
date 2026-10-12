@@ -311,3 +311,146 @@ submetida a uma verificação de plausibilidade: o campo de nome de 32 bytes
 precisa ser ASCII imprimível, e a decifragem é rejeitada caso contrário. Isso é
 o que impede que uma chave errada reclassifique lixo como decifrado, e é o que
 produz o número honesto de 7.226 arquivos decifrados em vez de 8.741.
+
+---
+
+## DEC-008 — Substituir o pipeline fixed-function por VBO/VAO como piso mínimo
+
+**Data:** ciclo 2 · **Status:** aceita · **Depende de:** DEC-001 (fidelidade visual)
+
+### Problema
+
+O escopo passou a incluir, além de reaproveitar os assets originais, suportar
+malhas e texturas **significativamente mais pesadas** que as originais sem
+perder FPS, fluidez ou responsividade. O pipeline do cliente original não
+suporta isso, e o motivo é estrutural, não de tuning.
+
+O que foi medido no ciclo 1 sobre o cliente original (evidência em
+`docs/RENDERING.md`): OpenGL **1.1 fixed-function**, com `glBegin`/`glEnd`,
+display lists e vertex arrays do lado do cliente. Ausentes do binário:
+`glGenBuffers`, `glDrawElements`, framebuffer objects, `wglSwapIntervalEXT`.
+
+### Por que fixed-function é incompatível com malha pesada
+
+1. **`glBegin`/`glEnd` envia um vértice por chamada de função.** Cada vértice
+   atravessa o driver como uma chamada individual. Não há como o driver
+   transferir em lote nem reutilizar entre quadros. O custo escala linearmente
+   com a contagem de vértices **por quadro**, mesmo para geometria estática.
+
+2. **Vertex array do lado do cliente reenvia os dados a cada desenho.** Sem
+   buffer no lado do servidor, a memória de vértice é copiada a cada
+   `glDrawArrays`. Para uma malha pesada desenhada todos os quadros, isso é
+   tráfego de barramento contínuo que VBO elimina por construção.
+
+3. **Display lists são estáticas e opacas.** Ajudam para geometria que nunca
+   muda, mas não permitem instancing, atualização parcial, nem atributos por
+   vértice além do conjunto fixo. Skin moderno e atributos customizados ficam
+   fora.
+
+4. **Sem `glDrawElements` no binário, não há índice.** Toda malha é enviada
+   expandida. Uma malha com compartilhamento de vértices paga o custo de
+   triplicar os dados — exatamente o oposto do que se quer para conteúdo
+   pesado.
+
+5. **Fixed-function não tem shader.** LOD por shader, skinning na GPU,
+   decalque, PBR — nada disso é expressável. O limite não é de velocidade, é de
+   capacidade de expressar o pipeline.
+
+Nenhum desses pontos é contornável com otimização dentro de fixed-function. São
+propriedades do modelo de programação.
+
+### Decisão
+
+Adotar **VBO + VAO com draw indexado** como piso mínimo do pipeline de
+renderização da reconstrução, dentro da mesma stack OpenGL. Concretamente:
+
+- Geometria residente em buffer do lado do servidor (`GL_ARRAY_BUFFER` /
+  `GL_ELEMENT_ARRAY_BUFFER`), enviada uma vez e não a cada quadro.
+- Estado de atributos em VAO, para troca de malha custar um bind.
+- Draw indexado (`glDrawElements`), para malha com vértice compartilhado não
+  pagar expansão.
+- Shader mínimo substituindo a função fixa, habilitando skinning e LOD na GPU.
+
+Isso é **mudança de backend dentro da mesma stack**, permitida pelo comando
+mestre quando justificada: continua sendo OpenGL, não é troca de API.
+
+### Custo e risco
+
+| Opção | Custo | Risco | Veredicto |
+|---|---|---|---|
+| Manter fixed-function | zero | não atende ao requisito (b); teto de capacidade intransponível | rejeitada |
+| **VBO/VAO em OpenGL (adotada)** | reescrever o caminho de desenho; exige GL 2.0+ no alvo | baixo: é o mesmo conjunto de conceitos, e o hardware que roda o cliente original roda GL 2.0+ | **adotada** |
+| Trocar de API (Vulkan/D3D12) | reescrita completa do backend | alto: perde a compatibilidade com hardware antigo que é requisito do projeto | rejeitada |
+
+A opção adotada é a de menor risco que atende ao requisito. Trocar de API daria
+mais teto, mas sacrificaria a compatibilidade com o hardware que hoje roda o
+cliente — e essa compatibilidade é parte do escopo.
+
+### Compatibilidade com decisões já registradas
+
+- **DEC-001 (fidelidade visual):** preservada. VBO/VAO muda *como* a geometria
+  chega à GPU, não *o que* é desenhado. O caminho A (assets originais) produz a
+  mesma malha.
+- **Zero dependência de build (ver `DEPENDENCIES.md`):** preservada. VBO/VAO é
+  OpenGL puro; não entra biblioteca.
+- **Prioridades de desempenho do comando mestre:** atende à ordem — primeiro
+  eliminar crash/corrupção, depois gargalo de FPS. Este é um gargalo de FPS e de
+  tempo de carregamento.
+
+### O que esta decisão NÃO diz
+
+**Nada aqui está implementado, medido ou validado.** Não há baseline de FPS,
+frametime ou VRAM neste projeto, porque não há Windows nem GPU no ambiente. Esta
+é uma decisão de arquitetura com justificativa de capacidade, não uma afirmação
+de desempenho. Qualquer número de ganho só pode ser declarado depois de medido
+em condições declaradas, conforme a regra permanente deste projeto.
+
+E **não substitui o bloqueio nº 1.** Ver DEC-009 e o item 10 do comando: teste
+de pipeline com geometria sintética é teste de pipeline, não suporte a asset
+original.
+
+---
+
+## DEC-009 — Teste de pipeline sintético não é suporte a asset original
+
+**Data:** ciclo 2 · **Status:** aceita · **Obriga:** toda documentação e relatório
+
+### Problema
+
+Adotar VBO/VAO (DEC-008) cria uma tentação de relatório: subir um cubo ou uma
+esfera procedural, ver que desenha, e registrar "renderização funcionando" ou
+"suporte a modelo pesado". Isso seria falso duas vezes — nem o asset é original,
+nem o peso foi validado.
+
+### Decisão
+
+Testes do novo pipeline com geometria sintética ou placeholder são aceitáveis
+**apenas como teste de unidade do pipeline**. Exemplo legítimo: verificar que um
+VBO sobe, que um VAO binda, que um draw indexado produz os pixels esperados.
+
+Esses testes devem ser rotulados, sempre e sem exceção, como
+**"teste sintético de pipeline"**. Nunca como:
+
+- "suporte a modelo pesado validado";
+- "asset original funcionando";
+- substituto do trabalho pendente em faces/UV/ossos do BMD.
+
+### Por que a regra é permanente
+
+O bloqueio nº 1 continua de pé: **sem índices de face decodificados com
+confiança, nenhum modelo BMD pode ser renderizado como malha**. O ciclo 2
+localizou o array de triângulos (98,05% de índices plausíveis contra 2,35% no
+controle), mas o conteúdo interno do registro de 64 bytes **não** está
+determinado — o byte de polígono esperado deu 3,01%, indistinguível de
+aleatório.
+
+Um pipeline novo funcionando não muda esse estado. Ele cria a capacidade de
+desenhar; não cria o dado a desenhar. Confundir os dois faria o projeto parecer
+mais avançado do que está, que é exatamente a falha que a auditoria do ciclo 1
+corrigiu.
+
+### Como verificar o cumprimento
+
+Todo relatório que citar renderização deve dizer, na mesma frase, qual é a fonte
+da geometria: asset original decodificado, ou sintética. Se não disser, o
+relatório está incompleto.
