@@ -147,18 +147,22 @@ Contagens **reais** da árvore via `mutool meshimport`: 1.792.108 vértices,
 978.853 triângulos, 4.071 malhas. Razão de compartilhamento medida: 1,64 vértice
 por triângulo em vez de 3.
 
-| Medida | Mediana | Desvio | Min | Max |
+Cinco execuções completas do binário, dispersão **entre execuções** — não a
+interna que o benchmark já reporta, que é outra coisa:
+
+| Medida | Mediana das medianas | Min | Max | Amplitude |
 |---|---|---|---|---|
-| Expansão indexado → flat, por quadro | 21.459,9 µs | 7,31% | 18.908,7 | 25.369,5 |
-| Submissão indexada, por quadro | 837,3 µs | 3,84% | 789,5 | 1.004,5 |
-| Upload único do vertex buffer | 3.610,2 µs | 3,83% | — | — |
+| Expansão indexado → flat, por quadro | 20.502,7 µs | 19.332,2 | 20.644,1 | 6,40% |
+| Submissão indexada, por quadro | 935,7 µs | 848,5 | 944,2 | 10,23% |
+| Upload único do vertex buffer | 3.647,9 µs | 3.457,8 | 3.661,8 | 5,59% |
 
-Derivados: razão **25,63×** · **1.144.451** envios de vértice poupados por quadro
-(**38,97%**) · upload se paga em **0,18 quadro** a 60 FPS.
+Derivados: razão **21,91×** (entre execuções: 21,82× a 22,78×) · **1.144.451**
+envios de vértice poupados por quadro (**38,97%**) · upload se paga em **0,19
+quadro** a 60 FPS.
 
-**21.459,9 µs = 128,8% do orçamento inteiro de um quadro a 60 FPS** e **309,0%**
-do de 144 FPS. E é **CPU apenas** — não inclui driver, GPU nem barramento, então
-o quadro real é pior, não melhor.
+**20.502,7 µs = 123,0% do orçamento inteiro de um quadro a 60 FPS** e **295,2%**
+do de 144 FPS, em **todas as cinco execuções**. E é **CPU apenas** — não inclui
+driver, GPU nem barramento, então o quadro real é pior, não melhor.
 
 **O que este número sustenta e o que não sustenta.** Sustenta: o modelo expandido
 custa, em marshalling de CPU, mais que o orçamento inteiro de um quadro a 60 FPS
@@ -180,7 +184,7 @@ desempenho de quadro. Declarar ganho de FPS a partir dele violaria a regra
 permanente.
 
 A comparação válida é entre os dois caminhos de submissão nas mesmas condições:
-**25,63×** em marshalling de CPU, medido no mesmo processo, mesmos buffers,
+**21,91×** em marshalling de CPU, medido no mesmo processo, mesmos buffers,
 mesma máquina.
 
 ## 7. Arquivos alterados
@@ -275,11 +279,50 @@ os outros.
    eliminar, presente nos documentos que eu mesmo havia atualizado no ciclo
    anterior.
 
+4. **Números derivados digitados à mão, e por isso de outra execução.** Este é
+   o mais grave dos quatro, porque chegou a cinco documentos. A evidência de
+   DEC-008 tinha duas seções que **discordavam dentro do mesmo arquivo**: a
+   seção de resultado vinha de uma execução do benchmark, e a seção de contas
+   de fechamento foi calculada por um script com os valores **digitados** de uma
+   execução anterior. O relatório, `DECISIONS.md`, `CURRENT_STATE.md`,
+   `NEXT_TASK.md` e `CHANGELOG.md` citavam os valores digitados
+   (21.459,9 / 837,3 / 25,63×).
+
+   **Como foi detectado:** comparando os números do relatório contra a evidência
+   commitada. `grep -c "837" docs/evidence/ciclo4_dec008_submission_cost.log`
+   retornou **zero** — o número citado em cinco documentos não existia na
+   evidência que os sustentava.
+
+   **Correção estrutural, não cosmética:** `tools/gen_dec008_evidence.py` roda o
+   benchmark N vezes, faz parse da saída e deriva **todas** as contas dela.
+   Nenhum número derivado é digitado, então as duas seções não podem divergir.
+   O script também reporta a dispersão **entre execuções**, que é a que importa
+   para citar um número e que a versão anterior não media: 6,40% na expansão,
+   10,23% no indexado, 5,59% no upload.
+
+   **Os números corrigidos** (5 execuções completas): 20.502,7 µs contra 935,7
+   µs, razão 21,91× (21,82× a 22,78× entre execuções), 123,0% do orçamento de um
+   quadro a 60 FPS. **A conclusão não muda** — a expansão ainda excede o quadro
+   inteiro, em todas as cinco execuções — mas o número citado antes não era o
+   medido.
+
+   **Lição, e ela é a mesma do padrão (a)–(f) já registrado neste projeto:**
+   medir uma vez e publicar como se fosse a medição. A forma nova é mais
+   traiçoeira porque o número parecia ancorado em evidência versionada; só não
+   estava.
+
 **O que continua não construído:** a verificação automática que atacaria a causa
 — um teste que falhe se um documento negar algo que existe em `src/`, ou que
 compare contagens citadas em prosa contra a saída da ferramenta. Este é o
 segundo ciclo consecutivo que registra a ausência dela. Registrar sem construir
 é a mesma coisa que não ter registrado, e a próxima ocorrência virá.
+
+**O que este ciclo construiu a respeito, e é parcial:**
+`tools/gen_dec008_evidence.py` elimina a divergência *dentro de um* arquivo de
+evidência, tornando impossível derivar contas de valores digitados. **Não**
+verifica se os documentos citam a evidência corretamente — o erro que atingiu
+cinco arquivos só foi pego por inspeção manual. Essa verificação continua não
+construída.
 
 ---
 

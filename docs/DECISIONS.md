@@ -424,7 +424,7 @@ Os quatro eixos que a auditoria pediu, cada um com o que se sabe e de onde vem:
 
 | Eixo | Fixed-function / immediate mode (como o original) | VBO/VAO com draw indexado |
 |---|---|---|
-| **Capacidade de suportar malha pesada** | Teto estrutural. `glBegin`/`glEnd` envia um vértice por chamada; sem `glDrawElements` no binário, toda malha é submetida expandida. **Medido:** a expansão por quadro custa **21.459,9 µs** de marshalling de CPU para o volume desta árvore — **128,8% do orçamento inteiro de um quadro a 60 FPS**, e isso é só CPU, sem driver nem GPU | O volume único é enviado uma vez e fica residente. **Medido:** submissão indexada por quadro custa **837,3 µs** (**25,63×** menos) e **1.144.451 envios de vértice a menos por quadro (38,97%)** |
+| **Capacidade de suportar malha pesada** | Teto estrutural. `glBegin`/`glEnd` envia um vértice por chamada; sem `glDrawElements` no binário, toda malha é submetida expandida. **Medido:** a expansão por quadro custa **20.502,7 µs** de marshalling de CPU para o volume desta árvore — **123,0% do orçamento inteiro de um quadro a 60 FPS**, e isso é só CPU, sem driver nem GPU | O volume único é enviado uma vez e fica residente. **Medido:** submissão indexada por quadro custa **935,7 µs** (**21,91×** menos) e **1.144.451 envios de vértice a menos por quadro (38,97%)** |
 | **Número de draw calls** | Uma chamada por primitiva em immediate mode; display list agrupa mas é estática e opaca. Sem índice, não há como reduzir o volume dentro de uma chamada | Uma chamada por malha via `glDrawElements`, volume independente da contagem de vértice. Instancing disponível. **Contagem real de draw call em tempo de execução: BLOQUEADA** — exige contexto |
 | **Compatibilidade com hardware e drivers modernos** | OpenGL 1.1 fixed-function está **deprecado** desde GL 3.1 e **removido do perfil core** desde GL 3.2. Drivers modernos mantêm caminho de compatibilidade, mas em camadas de tradução (ex.: D3D12/Vulkan por baixo no Windows), o que tipicamente custa mais, não menos. Hardware antigo que roda o cliente original roda GL 2.0+ | GL 2.0 como piso, disponível em todo hardware que hoje roda o cliente original. Não exige driver recente nem troca de API. **Desempenho em driver específico: BLOQUEADO** |
 | **Complexidade de implementação** | Zero — é o que o original faz. Mas não atende ao requisito de conteúdo pesado, então o custo zero compra um teto intransponível | Moderada e conhecida: buffer + VAO + shader mínimo substituindo a função fixa. Mesmo conjunto de conceitos, sem biblioteca nova. Estimativa de esforço: **não medida**, e não será afirmada como prazo |
@@ -449,11 +449,11 @@ Escolher por facilidade de medição seria otimizar a métrica errada.
 
 | Medida | Valor | Desvio |
 |---|---|---|
-| Expansão indexado → flat, por quadro | 21.459,9 µs | 7,31% |
-| Submissão indexada, por quadro | 837,3 µs | 3,84% |
-| Upload único do vertex buffer | 3.610,2 µs | 3,83% |
-| Razão expandido/indexado | **25,63×** | — |
-| Upload se paga em | **0,18 quadro** a 60 FPS | — |
+| Expansão indexado → flat, por quadro | 20.502,7 µs | 6,40% (entre execuções) |
+| Submissão indexada, por quadro | 935,7 µs | 10,23% (entre execuções) |
+| Upload único do vertex buffer | 3.647,9 µs | 5,59% (entre execuções) |
+| Razão expandido/indexado | **21,91×** | — |
+| Upload se paga em | **0,19 quadro** a 60 FPS | — |
 
 Contagens reais da árvore (`mutool meshimport`): 1.792.108 vértices, 978.853
 triângulos, 4.071 malhas. Razão de compartilhamento medida: 1,64 vértice por

@@ -118,11 +118,19 @@ refinement.
 - **Causa da queda de 50,6% entre nível 3 e nível 4: `meshCount != 1` em
   100,00%** dos 4.257 arquivos. Zero falham por tamanho, versão ou campo
   ausente. É limite do parser, não do formato
-- **Expansão indexado → flat: 21.459,9 µs por quadro** (desvio 7,31%) contra
-  **837,3 µs** da submissão indexada (desvio 3,84%) — razão **25,63×**. A
-  expansão sozinha é **128,8% do orçamento inteiro de um quadro a 60 FPS**, e é
+- **Expansão indexado → flat: 20.502,7 µs por quadro** contra **935,7 µs** da
+  submissão indexada — razão **21,91×** (entre execuções: 21,82× a 22,78×). A
+  expansão sozinha é **123,0% do orçamento inteiro de um quadro a 60 FPS**, e é
   CPU apenas
-- Upload único do vertex buffer: 3.610,2 µs, pago em **0,18 quadro**
+- Upload único do vertex buffer: 3.647,9 µs, pago em **0,19 quadro**
+
+> **Correção registrada.** A primeira versão destes números (21.459,9 / 837,3 /
+> 25,63×) veio de uma execução do benchmark cujos valores foram **digitados** na
+> seção de contas da evidência, enquanto a seção de resultado veio de outra
+> execução. As duas discordavam dentro do mesmo arquivo. Os números acima saem
+> de `tools/gen_dec008_evidence.py`, que deriva tudo da saída do benchmark e
+> reporta a dispersão **entre** execuções (6,40% na expansão, 10,23% no
+> indexado), não só a interna.
 
 ### Corrigido
 

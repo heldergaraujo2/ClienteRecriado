@@ -1,12 +1,12 @@
 === EVIDENCIA DE DEC-008: custo do caminho de submissao (CPU) ===
-data: 2026-10-12T15:23:23Z
-HEAD ClienteRecriado: 4f0f6eb07401f721789e37355a957153f5815706
+data: 2026-10-12T15:40:51Z
+HEAD ClienteRecriado: c0d262afc28a62d9aa5b4c41c0a3068c7d83e4c0
 HEAD Cliente_ref    : 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
 hardware: 2 nucleos, Intel(R) Xeon(R) Processor @ 2.60GHz
 memoria : 3.8 GiB
 compilador: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
-flags: CXXFLAGS ?= $(CXXSTD) $(OPT) $(WARN) -Isrc
-comando: ./build/bench_assets
+flags: 
+comando: python3 tools/gen_dec008_evidence.py 5
 
 ---------------------------------------------------------------------------
 O QUE ESTA E O QUE NAO ESTA SENDO MEDIDO
@@ -35,56 +35,94 @@ Estado de cache: os buffers sao alocados uma vez e reutilizados entre
 repeticoes, entao estao RESIDENTES. Isso e o caso favoravel ao caminho
 expandido; ler de memoria nao residente pioraria a diferenca.
 
----------------------------------------------------------------------------
-RESULTADO
----------------------------------------------------------------------------
-Expand indexed -> flat (per frame)  20588.0  23472.9  23472.9  21103.3      67.21    3264.6
-    reps=20  mean=21103.3 us  stddev=1180.7 us (5.59% of mean)  min=19768.9  max=23574.4
-Indexed submission (per frame)        898.7    952.0    961.6    906.0      11.20   12464.3
-    reps=200  mean=906.0 us  stddev=26.5 us (2.92% of mean)  min=853.8  max=1062.8
-One-time vertex buffer upload        3655.3   3700.3   3739.2   3668.7      41.02   11221.6
-    reps=50  mean=3668.7 us  stddev=86.4 us (2.36% of mean)
 
+Gerado por tools/gen_dec008_evidence.py. Nenhum numero deste arquivo
+e digitado: todos sao derivados da saida do benchmark, que esta
+transcrita mais abaixo. Isso existe porque a versao anterior deste
+arquivo tinha uma secao de contas derivada de valores hardcoded de
+outra execucao, e as duas secoes discordavam entre si.
+
+execucoes completas do binario : 5
+
+---------------------------------------------------------------------------
+MEDICOES, COM DISPERSAO ENTRE EXECUCOES
+---------------------------------------------------------------------------
+
+O benchmark ja reporta desvio padrao INTERNO (entre as repeticoes de
+uma execucao). Isso nao e o mesmo que a dispersao ENTRE execucoes,
+que e a que importa para citar um numero. As duas sao reportadas.
+
+Expansao indexado -> flat, por quadro
+  medianas por execucao : 20563.6, 20502.7, 20644.1, 19332.2, 20351.2 us
+  mediana das medianas  : 20502.7 us
+  min / max             : 19332.2 / 20644.1 us
+  amplitude             : 1311.9 us (6.40% da mediana)
+  media reportada       : 20712.1 us (entre execucoes: 19652.0 a 20880.7)
+
+Submissao indexada, por quadro
+  medianas por execucao : 942.6, 935.7, 944.2, 848.5, 922.2 us
+  mediana das medianas  : 935.7 us
+  min / max             : 848.5 / 944.2 us
+  amplitude             : 95.7 us (10.23% da mediana)
+  media reportada       : 945.1 us (entre execucoes: 877.2 a 959.1)
+
+Upload unico do vertex buffer
+  medianas por execucao : 3647.9, 3661.8, 3648.0, 3457.8, 3640.2 us
+  mediana das medianas  : 3647.9 us
+  min / max             : 3457.8 / 3661.8 us
+  amplitude             : 204.0 us (5.59% da mediana)
+  media reportada       : 3659.1 us (entre execucoes: 3466.4 a 3670.5)
+
+---------------------------------------------------------------------------
+CONTAS DE FECHAMENTO - derivadas das medianas acima, nao digitadas
+---------------------------------------------------------------------------
+
+orcamento de 1 quadro a  60 FPS :   16666.7 us
+orcamento de 1 quadro a 144 FPS :    6944.4 us
+
+expansao por quadro             :   20502.7 us =  123.0% do orcamento de 60 FPS
+                                    20502.7 us =  295.2% do orcamento de 144 FPS
+
+razao expansao/indexado         :     21.91x  (entre execucoes: 21.82x a 22.78x)
+
+envios de vertice poupados/quadro: 1144451 (38.97%)
+quadros para o upload se pagar  :      0.19
+
+A expansao sozinha excede o orcamento INTEIRO de um quadro a 60 FPS em
+TODAS as 5 execucoes. Isso e CPU apenas: nao inclui driver, GPU nem
+barramento, entao o numero real de um quadro e pior, nao melhor.
+
+---------------------------------------------------------------------------
+SAIDA BRUTA DO BENCHMARK, EXECUCAO 1 DE 5
+---------------------------------------------------------------------------
+
+    reps=300  mean=27.8 us  stddev=3.0 us (10.86% of mean)  min=26.9  max=50.7
+    reps=300  mean=439.8 us  stddev=24.1 us (5.48% of mean)  min=400.7  max=534.6
+    reps=20  mean=7341.3 us  stddev=181.1 us (2.47% of mean)  min=7160.3  max=8018.3
+Expand indexed -> flat (per frame)  20563.6  22283.7  22283.7  20880.7      67.21    3268.5
+    reps=20  mean=20880.7 us  stddev=901.7 us (4.32% of mean)  min=19870.0  max=23679.6
+Indexed submission (per frame)        942.6    997.7   1038.0    953.4      11.20   11884.7
+    reps=200  mean=953.4 us  stddev=31.2 us (3.28% of mean)  min=873.5  max=1124.1
+One-time vertex buffer upload        3647.9   3712.6   3724.7   3656.2      41.02   11244.2
+    reps=50  mean=3656.2 us  stddev=75.4 us (2.06% of mean)
     bytes per frame, expanded :      67.21 MiB (2936559 vertex sends)
     bytes resident, indexed   :      52.22 MiB (1792108 unique + indices)
     ratio expanded/indexed    :       1.29x
     vertex sends saved per frame: 1144451 (38.97%)
-    NOTE: CPU marshalling only. Driver, GPU and bus cost are
-          BLOCKED in this environment; see DEC-008.
-
----------------------------------------------------------------------------
-CONTA DE FECHAMENTO
----------------------------------------------------------------------------
-orcamento de 1 quadro a  60 FPS :   16666.7 us
-orcamento de 1 quadro a 144 FPS :    6944.4 us
-
-expansao por quadro             :   21459.9 us  =  128.8% do orcamento de 60 FPS
-                                    21459.9 us  =  309.0% do orcamento de 144 FPS
-
-razao expansao/indexado         :     25.63x
-
-upload unico do vertex buffer   :    3610.2 us
-quadros para o upload se pagar  :      0.18  (a 0.18 s a 60 FPS)
-
-A expansao sozinha excede o orcamento INTEIRO de um quadro a 60 FPS.
-Isso e CPU apenas: nao inclui driver, GPU nem barramento, entao o
-numero real de um quadro e pior, nao melhor.
 
 ---------------------------------------------------------------------------
 LIMITE DA CONCLUSAO
 ---------------------------------------------------------------------------
-O que este resultado SUSTENTA: o modelo de submissao expandido custa, em
-marshalling de CPU, mais do que o orçamento inteiro de um quadro a 60 FPS para
-o volume de geometria que esta arvore de assets produz. Isso é independente de
-driver e de GPU, porque é trabalho que a CPU faz antes de qualquer chamada.
 
-O que este resultado NAO SUSTENTA: nenhum número de FPS, nenhum ganho de
-desempenho, nenhuma comparação de draw call em tempo real. A validação final de
-DEC-008 exige contexto gráfico e está BLOQUEADA. Ver a seção de critério de
-validação em DECISIONS.md.
+O que SUSTENTA: o modelo de submissao expandido custa, em marshalling
+de CPU, mais que o orcamento inteiro de um quadro a 60 FPS para o
+volume de geometria desta arvore. Independente de driver e de GPU,
+porque e trabalho que a CPU faz antes de qualquer chamada.
 
-Uma ressalva que precisa viajar com o número: as contagens são da árvore
-inteira carregada de uma vez, o que não é o que um quadro de jogo desenha. Um
-quadro desenha o subconjunto visível. A conclusão se mantém para cena com
-geometria comparável, e o benchmark está parametrizado para ser reexecutado
-com o volume real de uma cena quando houver renderer.
+O que NAO SUSTENTA: nenhum numero de FPS, nenhum ganho de desempenho,
+nenhuma comparacao de draw call em tempo real. A validacao final de
+DEC-008 exige contexto grafico e esta BLOQUEADA.
+
+Ressalvas: buffers RESIDENTES entre repeticoes, que e o caso FAVORAVEL
+ao caminho expandido. Contagens da arvore inteira, nao do subconjunto
+visivel de um quadro.

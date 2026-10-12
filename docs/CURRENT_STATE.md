@@ -229,12 +229,12 @@ contagens reais da árvore — 1.792.108 vértices, 978.853 triângulos:
 
 | Medida | Valor | Desvio |
 |---|---|---|
-| Expansão indexado → flat, por quadro | 21.459,9 µs | 7,31% |
-| Submissão indexada, por quadro | 837,3 µs | 3,84% |
-| Upload único do vertex buffer | 3.610,2 µs | 3,83% |
-| Razão expandido/indexado | **25,63×** | — |
+| Expansão indexado → flat, por quadro | 20.502,7 µs | 6,40% (entre execuções) |
+| Submissão indexada, por quadro | 935,7 µs | 10,23% (entre execuções) |
+| Upload único do vertex buffer | 3.647,9 µs | 5,59% (entre execuções) |
+| Razão expandido/indexado | **21,91×** | — |
 
-**21.459,9 µs = 128,8% do orçamento inteiro de um quadro a 60 FPS**, e é CPU
+**20.502,7 µs = 123,0% do orçamento inteiro de um quadro a 60 FPS**, e é CPU
 apenas — sem driver, sem GPU, sem barramento. O upload único se paga em 0,18
 quadro.
 
