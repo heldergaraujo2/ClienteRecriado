@@ -11,6 +11,7 @@
 //   meshimport <dir>                 run the full BMD -> internal mesh pipeline
 //   culltest <dir>                   measure frustum culling on imported meshes
 //   terrain <dir>                    read TerrainHeight grids and report smoothness
+//   bmdanim <dir>                    measure BMD animation record sizes
 //
 // Exit status is 0 on success, 1 on a usage error, 2 when a check found
 // problems. That distinction is what lets CI treat "verify found a corrupt
@@ -816,6 +817,109 @@ int CmdTerrain(int argc, char** argv) {
   return smooth_ok == parsed ? 0 : 2;
 }
 
+
+// Measures the animation block that follows the bones in BMD files. The finding
+// this reproduces is that the block size is boneCount * keyframes * 12, with 12
+// bytes being three floats. Having it as a command rather than a throwaway script
+// is what lets the number be re-checked after any parser change.
+//
+// This reports SIZE only. What the three floats per keyframe mean is not
+// determined, and this command deliberately does not interpret them.
+int CmdBmdAnim(int argc, char** argv) {
+  if (argc < 3) {
+    std::fprintf(stderr, "usage: mutool bmdanim <dir>\n");
+    return 1;
+  }
+  std::vector<mu::FileEntry> files;
+  if (!mu::WalkFiles(argv[2], &files)) {
+    std::fprintf(stderr, "error: cannot open directory '%s'\n", argv[2]);
+    return 1;
+  }
+  std::sort(files.begin(), files.end(),
+            [](const mu::FileEntry& a, const mu::FileEntry& b) {
+              return a.path < b.path;
+            });
+
+  std::size_t with_anim = 0;
+  std::size_t divisible = 0;
+  std::size_t single_bone = 0;
+  std::map<int, std::size_t> keyframes;
+
+  for (const mu::FileEntry& f : files) {
+    if (mu::ExtensionOf(f.path) != ".bmd") continue;
+    std::vector<uint8_t> raw;
+    if (!mu::ReadFile(f.path, &raw)) continue;
+    const mu::ByteView view(raw.data(), raw.size());
+    mu::BmdInfo info;
+    if (!mu::BmdProbe(view, &info) || !info.length_consistent) continue;
+    mu::ByteView payload = view.sub(info.payload_offset, info.payload_size);
+    std::vector<uint8_t> plain;
+    if (info.kind == mu::BmdKind::kPlainV0C) {
+      plain.assign(payload.data, payload.data + payload.size);
+      mu::BmdV0CDecrypt(plain.data(), plain.size());
+      bool printable = plain.size() >= 32;
+      for (std::size_t i = 0; printable && i < 32; ++i) {
+        const uint8_t c = plain[i];
+        if (c != 0 && (c < 32 || c > 126)) printable = false;
+      }
+      if (!printable) continue;
+      payload = mu::ByteView(plain.data(), plain.size());
+    }
+    if (payload.size < 52) continue;
+    auto u16 = [&payload](std::size_t o) {
+      return static_cast<std::size_t>(payload.data[o]) |
+             (static_cast<std::size_t>(payload.data[o + 1]) << 8);
+    };
+    const std::size_t mesh_count = u16(32);
+    const std::size_t bone_count = u16(34);
+    const std::size_t vc = u16(38);
+    const std::size_t nc = u16(40);
+    const std::size_t ntc = u16(42);
+    const std::size_t ntri = u16(44);
+    // Single mesh only: the multi-mesh layout is not confirmed, so including
+    // those files would measure an assumption rather than the format.
+    if (mesh_count != 1 || vc == 0 || ntri == 0 || bone_count == 0 ||
+        bone_count > 8) {
+      continue;
+    }
+    const std::size_t bones_start =
+        52 + vc * 16 + nc * 20 + ntc * 8 + ntri * 64 + 32;
+    if (bones_start > payload.size) continue;
+    const std::size_t remaining = payload.size - bones_start;
+    const std::size_t expected = bone_count * 59 - 1;
+    if (remaining <= expected) continue;
+
+    const std::size_t extra = remaining - expected;
+    ++with_anim;
+    const std::size_t unit = 12 * bone_count;
+    if (extra % unit == 0) {
+      ++divisible;
+      const int kf = static_cast<int>(extra / unit);
+      ++keyframes[kf];
+      if (bone_count == 1) ++single_bone;
+    }
+  }
+
+  std::printf("BMD animation block measurement for %s\n\n", argv[2]);
+  std::printf("  files with bytes after the bones   %8zu\n", with_anim);
+  if (with_anim == 0) {
+    std::printf("\n  no animation blocks found; no conclusion drawn.\n");
+    return 2;
+  }
+  std::printf("  extra divisible by 12*boneCount    %8zu  (%6.2f%%)\n", divisible,
+              100.0 * static_cast<double>(divisible) /
+                    static_cast<double>(with_anim));
+  std::printf("\n  keyframes per bone, where it divides:\n");
+  for (const auto& kv : keyframes) {
+    std::printf("    %4d keyframes : %4zu files\n", kv.first, kv.second);
+  }
+  std::printf("\n");
+  std::printf("  Model: animation = boneCount * keyframes * 12 bytes,\n");
+  std::printf("  12 bytes = 3 floats. SIZE ONLY - what the three floats mean\n");
+  std::printf("  is NOT determined and this tool does not interpret them.\n");
+  return 0;
+}
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     Usage();
@@ -830,6 +934,7 @@ int main(int argc, char** argv) {
   if (cmd == "meshimport") return CmdMeshImport(argc, argv);
   if (cmd == "culltest") return CmdCullTest(argc, argv);
   if (cmd == "terrain") return CmdTerrain(argc, argv);
+  if (cmd == "bmdanim") return CmdBmdAnim(argc, argv);
   if (cmd == "-h" || cmd == "--help" || cmd == "help") {
     Usage();
     return 0;

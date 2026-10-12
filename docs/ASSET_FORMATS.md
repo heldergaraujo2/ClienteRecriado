@@ -1125,32 +1125,42 @@ Três observações, todas registradas como observação e não como resultado:
 3. O mesmo arquivo da série `Rank0N` produz bytes idênticos nesta região, o que é
    esperado se compartilham o esqueleto.
 
-**O tamanho do registro foi medido.** Em 88 arquivos com conteúdo após os ossos, o
-número de bytes extras é divisível por `12 × boneCount` em **76 = 86,4%**:
+**O tamanho do registro foi medido sobre a árvore completa** (`mutool bmdanim`,
+evidência em `docs/evidence/ciclo2_bmdanim.log`). Em **500 arquivos** com conteúdo
+após os ossos, os bytes extras são divisiveis por `12 × boneCount` em
+**385 = 77,00%**:
+
+**Correção de uma generalização.** A primeira medição, feita por script com teto de
+3.000 arquivos varridos, encontrou 88 arquivos com animação e deu **86,4%**. Sobre
+a árvore completa são **500 arquivos e 77,00%**. O modelo se sustenta, mas o número
+publicado era de um subconjunto. É o quinto caso deste ciclo em que medir em
+subconjunto produziu número errado — os anteriores foram o cabeçalho BMD, o array
+de UV, o registro de triângulo e a suavidade de altura. Por isso a medição virou
+comando: um script com teto não declara o teto na saída, e o número parece geral.
 
 ```
 animação = boneCount × keyframes × 12 bytes
 12 bytes = 3 × f32
 ```
 
-Keyframes por osso, nos 76 que fecham:
+Keyframes por osso, nos 385 que fecham (trecho; a lista completa está na
+evidência):
 
 | Keyframes | Arquivos |
 |---|---|
-| 8 | 24 |
-| 14 | 10 |
-| 18 | 10 |
-| 20 | 8 |
-| 12, 28 | 4 cada |
-| 78 | 3 |
-| 38, 98 | 2 cada |
-| 4, 16, 26, 30, 43, 46, 48, 52, 158 | 1 cada |
+| 8 | 28 |
+| 14 | 28 |
+| 12 | 19 |
+| 10 | 11 |
+| 16 | 8 |
+| 4, 6, 15 | 1–2 cada |
 
-A concentração em 8, 14, 18 e 20 é coerente com comprimentos de animação; os
-valores isolados altos (78, 98, 158) provavelmente são arquivos com mais de uma
-ação, onde o modelo de uma ação só não se aplica.
+A concentração em valores pequenos e pares é coerente com comprimentos de
+animação; valores isolados altos provavelmente são arquivos com mais de uma ação,
+onde o modelo de uma ação só não se aplica.
 
-**Os 12 bytes que não fecham em 12 de 88 arquivos** não foram investigados.
+**Os 115 arquivos de 500 cujo extra não é divisível** não foram investigados.
+Podem ter mais de uma ação, ou o modelo pode não se aplicar a eles.
 
 **O que continua não determinado:** o que os três floats de cada keyframe
 representam. O dump mostra dois constantes e um que varia, o que sugere posição ou

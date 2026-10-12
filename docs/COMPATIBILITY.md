@@ -45,7 +45,7 @@ zero (`make clean && make test`). Saída completa em
 | Nomes de osso e tamanho do registro | **CONCLUÍDO — 98,0%** | Registro intercalado de 59 B (32 B nome + 27 B transformação); `boneCount` em payload 34. 901 de 919 arquivos cujo tamanho bate com `bc×59−1` |
 | Hierarquia de ossos | **CONCLUÍDO** | `u16` pai em +0 do bloco de 27 B; 65535 = raiz (75,9%), resto em índices pequenos. 6 floats 100% finitos |
 | **Ordem dos 6 floats de transformação** | **NÃO CONFIRMADO** | Padrão de dois grupos de três sugere posição + rotação, mas a ordem não foi verificada. Aplicar trocado daria esqueleto silenciosamente errado |
-| Tamanho do registro de animação | **PARCIAL — 86,4%** | `boneCount × keyframes × 12 B`, com 12 B = 3 `f32`. 76 de 88 arquivos; keyframes por osso concentrados em 8, 14, 18, 20 |
+| Tamanho do registro de animação | **PARCIAL — 77,00%** | `boneCount × keyframes × 12 B`, com 12 B = 3 `f32`. 385 de 500 arquivos na árvore completa; keyframes por osso concentrados em 8, 12, 14 |
 | **Conteúdo dos 3 floats de keyframe** | **BLOQUEADO** | Dois constantes e um variável num dump; leitura de exemplo, não resultado |
 | **Animação** | **BLOQUEADO** | Depende de ossos, que estão bloqueados |
 | 1.519 arquivos v0x0C | **BLOQUEADO** | A verificação de plausibilidade rejeitou a decifragem; causa não determinada |
