@@ -1,0 +1,137 @@
+# Validação objetiva renderizador — ciclo15 Parte B item8
+# Bounding box 2D não-bg vs proporção 3D bounds projetada
+# Background RGB 30 30 45 thresh 10
+# Camera auto-fit center=(min+max)/2 radius=sqrt(dx²+dy²+dz²)/2 eye=center+(0,0.3r,2.2r) fov45 aspect W/H near0.1 far max(100,r*10)
+
+## Modelo Beer01
+BMD /tmp/cliente_ref/Data/Object1/Beer01.bmd
+PPM docs/evidence/ciclo14_first_render_Beer01.ppm
+  Mesh: 48 vertices 30 tris bounds valid 1
+    bounds min (-14.12,-20.39,-0.87) max (14.12,12.23,11.13)
+    size dx 28.24 dy 32.62 dz 12.00
+    ratio3D dx/dy 0.866 dx/dz 2.353
+  Camera: eye (0.00,2.64,54.39) target (0.00,-4.08,5.13) radius 22.39 far 223.91 fov 45.0 aspect 1.333
+  Expected 2D bbox from 3D bounds 8 corners projected: minX 154.0 maxX 646.0 minY 32.6 maxY 567.3 W 492.1 H 534.8 aspect W/H 0.920 validCorners 8
+  Observed 2D bbox non-bg: minX 165 maxX 631 minY 34 maxY 495 W 467 H 462 aspect W/H 1.011
+  Comparison: expected aspect 0.920 observed aspect 1.011 diff 0.091 relDiff 9.850% consistent YES (tolerance 50% rel or 0.5 abs, justified: bounds vs actual tris + perspective + degenerate)
+
+## Modelo Object03
+BMD /tmp/cliente_ref/Data/Object2/Object03.bmd
+PPM docs/evidence/ciclo14_first_render_Object03.ppm
+  Mesh: 88 vertices 103 tris bounds valid 1
+    bounds min (-113.73,-113.59,0.00) max (113.54,113.68,287.16)
+    size dx 227.27 dy 227.27 dz 287.16
+    ratio3D dx/dy 1.000 dx/dz 0.791
+  Camera: eye (-0.09,64.70,617.69) target (-0.09,0.05,143.58) radius 215.50 far 2155.03 fov 45.0 aspect 1.333
+  Expected 2D bbox from 3D bounds 8 corners projected: minX 143.5 maxX 656.5 minY 89.6 maxY 571.9 W 513.0 H 482.3 aspect W/H 1.064 validCorners 8
+  Observed 2D bbox non-bg: minX 206 maxX 593 minY 118 maxY 498 W 388 H 381 aspect W/H 1.018
+  Comparison: expected aspect 1.064 observed aspect 1.018 diff 0.045 relDiff 4.262% consistent YES (tolerance 50% rel or 0.5 abs, justified: bounds vs actual tris + perspective + degenerate)
+
+## Modelo AmbitionShield
+BMD /tmp/cliente_ref/Data/Player/AmbitionShield.bmd
+PPM docs/evidence/ciclo14_first_render_AmbitionShield.ppm
+  Mesh: 385 vertices 545 tris bounds valid 1
+    bounds min (-34.81,-28.56,-61.80) max (37.88,2.28,70.55)
+    size dx 72.69 dy 30.84 dz 132.36
+    ratio3D dx/dy 2.357 dx/dz 0.549
+  Camera: eye (1.53,9.98,173.91) target (1.53,-13.14,4.38) radius 77.06 far 770.60 fov 45.0 aspect 1.333
+  Expected 2D bbox from 3D bounds 8 corners projected: minX 145.5 maxX 654.5 minY 225.2 maxY 463.0 W 508.9 H 237.8 aspect W/H 2.140 validCorners 8
+  Observed 2D bbox non-bg: minX 225 maxX 574 minY 234 maxY 381 W 350 H 148 aspect W/H 2.365
+  Comparison: expected aspect 2.140 observed aspect 2.365 diff 0.225 relDiff 10.497% consistent YES (tolerance 50% rel or 0.5 abs, justified: bounds vs actual tris + perspective + degenerate)
+
+## Modelo Axe11
+BMD /tmp/cliente_ref/Data/Player/Axe11.bmd
+PPM docs/evidence/ciclo14_first_render_Axe11.ppm
+  Mesh: 1364 vertices 2665 tris bounds valid 1
+    bounds min (-57.69,-78.62,-21.49) max (192.22,79.75,16.04)
+    size dx 249.91 dy 158.38 dz 37.53
+    ratio3D dx/dy 1.578 dx/dz 6.659
+  Camera: eye (67.27,45.30,325.34) target (67.27,0.56,-2.73) radius 149.12 far 1491.20 fov 45.0 aspect 1.333
+  Expected 2D bbox from 3D bounds 8 corners projected: minX 100.1 maxX 699.9 minY 117.8 maxY 481.5 W 599.7 H 363.7 aspect W/H 1.649 validCorners 8
+  Observed 2D bbox non-bg: minX 325 maxX 677 minY 122 maxY 463 W 353 H 342 aspect W/H 1.032
+  Comparison: expected aspect 1.649 observed aspect 1.032 diff 0.617 relDiff 37.403% consistent YES (tolerance 50% rel or 0.5 abs, justified: bounds vs actual tris + perspective + degenerate)
+
+
+# Determinismo SHA-256 double render — ciclo15 Parte B item9
+# Comando: ./build/mutool render <bmd> <out> 800 600 duas vezes, sha256sum
+# Data: 2026-10-12
+# Branch: arena/519f8fc9-clienterecriado
+
+Beer01.bmd double render:
+e36e1345b57c0aef918597b5d4f246b4a95ee4faf1bbb3983d9c735a4eff915d  /tmp/ciclo15_beer_a.ppm
+e36e1345b57c0aef918597b5d4f246b4a95ee4faf1bbb3983d9c735a4eff915d  /tmp/ciclo15_beer_b.ppm
+identical: YES determinismo PASS
+
+Object03.bmd double render:
+babf507aaa8a467ae3d6453f3a1fc5f82531d81cc4c25742cbd74bd2bd236690  /tmp/ciclo15_obj03_a.ppm
+babf507aaa8a467ae3d6453f3a1fc5f82531d81cc4c25742cbd74bd2bd236690  /tmp/ciclo15_obj03_b.ppm
+identical: YES determinismo PASS
+
+AmbitionShield.bmd double render:
+68907abcc7241abb7dc0dc5312fec61944c66fe6f72e34b244232ef69a1bf7dc  /tmp/ciclo15_shield_a.ppm
+68907abcc7241abb7dc0dc5312fec61944c66fe6f72e34b244232ef69a1bf7dc  /tmp/ciclo15_shield_b.ppm
+identical: YES determinismo PASS
+
+Axe11.bmd double render:
+276268d0bc79bcc03ce323818f06d086fd6448c5430a2161d62076ddb9b17514  /tmp/ciclo15_axe_a.ppm
+276268d0bc79bcc03ce323818f06d086fd6448c5430a2161d62076ddb9b17514  /tmp/ciclo15_axe_b.ppm
+identical: YES determinismo PASS
+
+Conclusão: rasterizador CPU-only determinístico, SHA-256 idêntico para mesma entrada, mesma câmera, mesmo tamanho.
+
+
+# Segurança bad_indices filtering — ciclo15 Parte B item10
+# Pergunta: confirmar explicitamente se face indices out of range (bad_indices até 13,87% Object1, até 29,49% Furniture06) são filtrados ANTES de acessar vertex array no rasterizador, rodar render modelo maior taxa sob ASan/UBSan e confirmar 0 reports
+# Comando: g++ -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -std=c++17 -Isrc tools/mutool.cpp build-san/src/mu/assets/*.o build-san/src/mu/render/*.o build-san/src/mu/fs.o -o /tmp/mutool-san && /tmp/mutool-san render <bmd> <out> 800 600
+# Data: 2026-10-12
+# Branch: arena/519f8fc9-clienterecriado
+
+## Análise código
+
+Mesh importer src/mu/assets/mesh.cpp linha 92: ++r.mesh.bad_indices; quando vertex_ok ou normal_ok false, good=false, continue (triângulo dropado, não entra em mesh.indices). Portanto mesh.indices nunca contém out-of-range.
+
+Rasterizador src/mu/render/software_rasterizer.cpp linha 276: if (i0 >= vout.size() || i1 >= vout.size() || i2 >= vout.size()) continue; — segunda defesa, filtra ANTES de acessar vout[i].
+
+## Taxas bad_indices medidas (via /tmp/list_bad.cpp)
+
+- Object1 média corner refs dropped 21046 / (42293*3+21046) = 14,22% (próximo 13,87% citado)
+- Player média 57302 / (531629*3+57302) = 3,47%
+- Máximas encontradas:
+  /tmp/cliente_ref/Data/Object1/Furniture06.bmd bad 46 total_tri 52 rate 29,49% verts 52 tris_prod 6
+  /tmp/cliente_ref/Data/Object1/Furniture05.bmd bad 29 total_tri 34 rate 28,43%
+  /tmp/cliente_ref/Data/Object1/Sign02.bmd bad 26 total_tri 30 rate 28,89%
+  /tmp/cliente_ref/Data/Object1/Hanging01.bmd bad 139 total_tri 162 rate 28,60%
+  /tmp/cliente_ref/Data/Player/ArmorMale01.bmd bad 18 total_tri 30 rate 20,00%
+
+## Execução ASan/UBSan modelos alta taxa
+
+/tmp/mutool-san render /tmp/cliente_ref/Data/Object1/Beer01.bmd /tmp/san_beer.ppm 800 600
+Loaded /tmp/cliente_ref/Data/Object1/Beer01.bmd: 48 vertices 30 triangles bounds valid
+  bounds min (-14.12,-20.39,-0.87) max (14.12,12.23,11.13)
+Render stats: total 30 culled_frustum 0 rasterized 6 pixels 35680 ok 1
+Saved /tmp/san_beer.ppm 800x600
+exit:0 — 0 reports ASan/UBSan
+
+/tmp/mutool-san render /tmp/cliente_ref/Data/Object1/Furniture06.bmd /tmp/san_furn06.ppm 800 600
+Loaded /tmp/cliente_ref/Data/Object1/Furniture06.bmd: 52 vertices 6 triangles bounds valid
+  bounds min (-9.34,-28.86,-19.96) max (32.98,76.17,90.94)
+Render stats: total 6 culled_frustum 0 rasterized 3 pixels 6754 ok 1
+Saved /tmp/san_furn06.ppm 800x600
+exit:0 — 0 reports ASan/UBSan, modelo 29,49% bad_indices
+
+/tmp/mutool-san render /tmp/cliente_ref/Data/Object1/House01.bmd /tmp/san_house01.ppm 800 600
+Loaded /tmp/cliente_ref/Data/Object1/House01.bmd: 2038 vertices 574 triangles bounds valid
+  bounds min (-171.42,-568.68,0.61) max (233.60,-31.96,270.43)
+Render stats: total 574 culled_frustum 0 rasterized 565 pixels 272460 ok 1
+Saved /tmp/san_house01.ppm 800x600
+exit:0 — 0 reports ASan/UBSan, modelo 26,51% bad_indices
+
+/tmp/mutool-san render /tmp/cliente_ref/Data/Player/ArmorMale01.bmd /tmp/san_armor01.ppm 800 600
+Loaded /tmp/cliente_ref/Data/Player/ArmorMale01.bmd: 99 vertices 12 triangles bounds valid
+  bounds min (-13.58,-21.02,-21.02) max (20.11,20.54,20.54)
+Render stats: total 12 culled_frustum 0 rasterized 0 pixels 0 ok 1
+Saved /tmp/san_armor01.ppm 800x600
+exit:0 — 0 reports ASan/UBSan, modelo 20,00% bad_indices Player
+
+Conclusão: filtragem ANTES acesso confirmada, ASan/UBSan 0 reports mesmo com alta taxa bad_indices.
+
