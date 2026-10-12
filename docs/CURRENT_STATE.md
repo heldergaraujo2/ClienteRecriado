@@ -268,11 +268,15 @@ Evidência: `evidence/ciclo2_test_final.log` (`make clean && make test`),
 - `src/mu/assets/mesh.hpp/.cpp` — representação interna de malha e importador BMD
   (caminho A). Contagens de 32 bits, índices separados, caixa delimitadora na
   importação. Não produz coordenadas de textura nem ossos, e diz por quê
+- `src/mu/assets/terrain.cpp` — leitor de altura de terreno (`TerrainParseHeight`,
+  `TerrainHeightSmoothness`), com tratamento de BMP e fallback marcado
 - `src/mu/render/cull.cpp` — frustum culling por caixa delimitadora, o primeiro
   módulo de renderização do projeto
 - `mutool meshimport <dir>` — pipeline BMD completo sobre a árvore real:
   8.408 malhas internas, 1.792.108 vértices, 978.853 triângulos
-- Testes: **315 checks, 0 failures**; ASan+UBSan 315/0; zero warnings sob 12 flags `-W`
+- `mutool culltest <dir>` — mede culling sobre malhas reais
+- `mutool terrain <dir>` — lê as 76 grades de altura reais e mede suavidade
+- Testes: **329 checks, 0 failures**; ASan+UBSan 329/0; zero warnings sob 12 flags `-W`
 
 **Bloqueado:**
 

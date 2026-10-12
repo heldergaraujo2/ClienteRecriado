@@ -1,5 +1,31 @@
 # Próxima tarefa
 
+## Decodificar o prefixo duplicado dos arquivos de altura
+
+Descoberta mais recente do ciclo 2, e a única com caminho concreto aberto.
+
+**O que se sabe, medido:** 47 dos 76 arquivos `TerrainHeight.OZB` abrem com `"BM"`
+e têm cabeçalho ilegível — `pixoff = 0`, `bpp = 0`, e o valor 40 onde deveria
+estar a largura. Os primeiros quatro bytes aparecem **duas vezes** (`"BM6\0"`
+seguido de `"BM6\0"`), o mesmo padrão de prefixo duplicado que o formato OZJ deste
+cliente usa.
+
+**Hipótese concreta a testar:** o cabeçalho BMP real começa após o prefixo
+duplicado, como no OZJ. Se for, `pixoff` e `bpp` ficam legíveis e a altura passa a
+ser lida pela estrutura em vez de por fallback.
+
+**Por que vale:** hoje 46 arquivos são lidos por fallback (grade final), o que
+funciona em 94,74% dos casos mas não é decodificação. O campo `header_ignored`
+marca isso no código.
+
+**Por que não é urgente:** o fallback já produz campo suave na maioria dos casos,
+e a escala vertical continua desconhecida — sem ela a altura é relativa, não
+métrica, e terreno não fica renderizável de qualquer forma.
+
+---
+
+
+
 > **Índice de UV: investigação ENCERRADA no ciclo 2.** Sete hipóteses descartadas
 > e documentadas em `ASSET_FORMATS.md`. Não retomar sem uma hipótese nova e
 > diferente das sete — repetir uma delas é desperdício. A próxima tarefa é a que
