@@ -238,32 +238,44 @@ Dados finais, pós todas as correções.
 
 ### Commits locais deste ciclo
 
+Oito commits, um por unidade coerente de trabalho, na ordem em que o trabalho foi
+feito. Nenhum acumula tarefas não relacionadas.
+
 ```
-77662f5 docs(arquitetura): itens 6 a 10 - pipeline VBO/VAO, limites do BMD, importacao dual, escalabilidade
-d3dcfcd feat(assets): array de triangulos BMD localizado com controle estatistico (item 5)
-92efef2 docs(ciclo2): evidência final, reclassificação por capacidade e auditoria de licenciamento
-4456202 docs: corrige o anexo do ciclo 2 e verifica a decifragem v0x0C por via independente
-bf1668c revert(assets): desfaz a troca de layout de registro — a medicao que a motivou estava errada
-e4dd633 docs: atribuição ISC, DEC-007, e correção da afirmação falsa de bloqueio de acesso
 6821d94 feat(assets): cifra v0x0C decifrada — nível 3 vai de 11,80% para 83,31%
+e4dd633 docs: atribuição ISC, DEC-007, e correção da afirmação falsa de bloqueio de acesso
+bf1668c revert(assets): desfaz a troca de layout de registro — a medicao que a motivou estava errada
+4456202 docs: corrige o anexo do ciclo 2 e verifica a decifragem v0x0C por via independente
+92efef2 docs(ciclo2): evidência final, reclassificação por capacidade e auditoria de licenciamento
+d3dcfcd feat(assets): array de triangulos BMD localizado com controle estatistico (item 5)
+77662f5 docs(arquitetura): itens 6 a 10 - pipeline VBO/VAO, limites do BMD, importacao dual, escalabilidade
+a98c10e docs: relatorio final do ciclo 2 com 11 itens e secao final de Git
 ```
 
-Sete commits, um por unidade coerente de trabalho, na ordem em que o trabalho foi
-feito. Nenhum acumula tarefas não relacionadas.
+**Nota sobre o hash deste relatório.** Este arquivo é commitado no último commit
+da lista. Um commit não pode conter o próprio hash, então a lista acima está
+completa e fechada: `a98c10e` é o commit que contém este relatório, e nenhum
+commit posterior a ele pertence ao ciclo 2. Se um hash de ponta for necessário,
+ele é obtido por `git rev-parse HEAD` no momento da leitura — não copiado daqui.
+Uma versão anterior desta seção citava `77662f5` como ponta e listava sete
+commits; ficou defasada pelo próprio commit que a criou, que é exatamente o erro
+que esta nota existe para impedir.
 
 ### Push
 
 **Realizado, sim.** `git push origin arena/519f8fc9-clienterecriado` após cada
-commit. Nenhuma falha de push ocorreu neste ciclo.
+commit, incluindo o deste relatório. Nenhuma falha de push ocorreu neste ciclo.
 
 ### Confirmação hash remoto == local
 
+Verificada após o push final deste relatório:
+
 ```
 $ git rev-parse HEAD
-77662f519781cab76229f81e062f18803f17fb7c
+a98c10e2cc19b314c0276cb8d9448a509f26972a
 
 $ git ls-remote origin arena/519f8fc9-clienterecriado
-77662f519781cab76229f81e062f18803f17fb7c	refs/heads/arena/519f8fc9-clienterecriado
+a98c10e2cc19b314c0276cb8d9448a509f26972a	refs/heads/arena/519f8fc9-clienterecriado
 ```
 
 **Idênticos.**
