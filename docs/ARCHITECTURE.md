@@ -211,10 +211,10 @@ Importador dos formatos do cliente para a representação interna.
 | Parte | Status |
 |---|---|
 | Decifragem v0x0C | **CONCLUÍDO E VALIDADO** (7.226 de 8.741; validação independente por normais unitárias a 99,98%) |
-| Posições de vértice | **CONCLUÍDO E VALIDADO** (8.401 arquivos, 83,26%) |
+| Posições de vértice | **CONCLUÍDO E VALIDADO** (8.406 arquivos, 83,31%) |
 | Normais | **CONCLUÍDO E VALIDADO** (99,91% com norma 1) |
 | Localização do array de triângulos | **CONCLUÍDO** (98,05% contra controle de 2,35%) |
-| Registro de triângulo (topologia) | **CONCLUÍDO, em C++** — 3 referências de 8 B em +0/+8/+16; `bmd_body.cpp` lê o array; 3.524.366 triângulos em 8.400 arquivos |
+| Registro de triângulo (topologia) | **CONCLUÍDO, em C++** — 3 referências de 8 B em +0/+8/+16; `bmd_body.cpp` lê o array; 3.681.664 triângulos em 8.405 arquivos |
 | Array de coordenadas UV | **CONCLUÍDO** — pares `f32`, zero não-finitos em 250.450 leituras |
 | Hierarquia de ossos | **CONCLUÍDO** — registro intercalado de 59 B; 98,68% dos 3.552 cujo tamanho fecha |
 | Tamanho do registro de animação | **PARCIAL — 77,00%** — `boneCount × keyframes × 12 B`, 385 de 500 |
@@ -236,8 +236,8 @@ fica `false` de propósito.
 |---|---|---|
 | 1 — estrutura válida | 10.023 | 99,34% |
 | 2 — decifrado | 8.571 | 84,95% |
-| 3 — vértice + normal | 8.401 | 83,26% |
-| 4 — topologia | 8.400 | 83,25% |
+| 3 — vértice + normal | **8.406** | **83,31%** |
+| 4 — topologia | **8.405** | **83,30%** |
 | 5 — ossos | 3.505 | 34,74% |
 | 6 — UV | **0** | **0,00%** |
 

@@ -101,8 +101,8 @@ suporte a asset original.
 |---|---|---|---|
 | 1 — estrutura de contêiner válida | magic + versão reconhecidos; para v0x0C o tamanho declarado confere | 10.023 | 99,34% |
 | 2 — payload obtível em claro | 1.245 plaintext + 100 bux + 7.226 v0x0C | 8.571 | 84,95% |
-| 3 — vértice + normal | posições e normais realmente lidas pelo parser | 8.401 | 83,26% |
-| 4 — topologia (índices de face) | triângulos lidos | 8.400 | 83,25% |
+| 3 — vértice + normal | posições e normais realmente lidas pelo parser | **8.406** | **83,31%** |
+| 4 — topologia (índices de face) | triângulos lidos | **8.405** | **83,30%** |
 | 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.505 | 34,74% |
 | 6 — UV | índice ligando canto de triângulo a coordenada de textura | **0** | **0,00%** |
 
@@ -143,7 +143,8 @@ total, medida no parser**: `meshCount != 1` em 100,00% dos casos.
 | payload curto demais para os counts | 0 | 0,00% | <!-- historico -->
 
 **Ciclo 5 — correção.** O parser foi estendido para multi-mesh. O layout por
-malha repete a mesma sequência do caso de malha única:
+malha repete a mesma sequência do caso de malha única (evidência em
+`evidence/ciclo5_bmd_multimesh.log`):
 
 ```
 [14 B header: vc,nc,ntc,ntri,texIdx,u48,u50]
@@ -151,19 +152,34 @@ vc*16 vertices, nc*20 normais, ntc*8 texcoords, ntri*64 triângulos,
 32 B nome de textura
 ```
 
-Concatenado `meshCount` vezes. A evidência bruta está em
-`evidence/ciclo5_bmd_multimesh.log`, gerada por `mutool bmdreport` sem números
-digitados.
+Concatenado `meshCount` vezes. Estrutura de loop inspirada em
+`xulek/muonline-bmd-viewer` (`bmd-loader.ts:348-422`, ISC), mas header 14 B vs
+10 B e triângulo diferente. Evidência bruta em `evidence/ciclo5_bmd_multimesh.log`,
+gerada por `mutool bmdreport` sem números digitados.
 
-Resultado:
+Resultado inicial ciclo 5 (antes da correção da regressão):
 
 | Nível | Arquivos | % | Triângulos |
 |---|---|---|---|
-| 3 — vértice + normal | 8.401 | 83,26% | — |
-| 4 — topologia | **8.400** | **83,25%** | **3.524.366** |
+| 3 — vértice + normal | 8.401 | 83,26% | — | <!-- historico -->
+| 4 — topologia | **8.400** | **83,25%** | **3.524.366** | <!-- historico -->
 
-Aumento de **4.251 arquivos** no nível 4 (de 4.149 para 8.400). O único arquivo
-de nível 3 sem topologia agora declara zero faces:
+**Ciclo 6 — correção da regressão 8.406→8.401 (item 1 auditoria ciclo 5).**
+
+Causa: limite fixo `>10000` rejeitava 5 arquivos reais com `ntri` 11.771–17.694
+(`Monster865.bmd` `ntri=15576`, `Ozarugold.bmd` `12616`, `bann.bmd` `11771`).
+Corrigido para verificação de overflow + limite `meshCount` 64 (observado máx 18).
+
+Resultado após correção (evidência `ciclo6_bmd_multimesh.log` e
+`ciclo6_level4_breakdown.log`):
+
+| Nível | Arquivos | % | Triângulos |
+|---|---|---|---|
+| 3 — vértice + normal | **8.406** | **83,31%** | — |
+| 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
+
+Aumento de **4.256 arquivos** no nível 4 (de 4.149 para 8.405). O único arquivo
+de nível 3 sem topologia declara zero faces (`Player/player.bmd`, `meshCount=0`):
 
 | Causa | Arquivos | % do 1 |
 |---|---|---|
@@ -172,27 +188,23 @@ de nível 3 sem topologia agora declara zero faces:
 | array declarado não cabe no payload | 0 | 0,00% |
 | payload curto demais para os counts | 0 | 0,00% |
 
-Distribuição de `meshCount` sobre os 8.401 arquivos de nível 3 (evidência em
-`ciclo5_bmd_multimesh.log`):
+Distribuição de `meshCount` sobre os 8.406 arquivos de nível 3 (evidência em
+`ciclo6_bmd_multimesh.log`): 0 em 1 (0,01%), 1 em 4.149 (49,36%), 2 em 2.280
+(27,12%), 3 em 1.086 (12,92%), 4 em 449 (5,34%), 5 em 190 (2,26%), 6 em 114
+(1,36%), 7 em 42 (0,50%), 8 em 38 (0,45%), 9 em 12, 10 em 10, 11 em 6, 12 em 7,
+13 em 2, 14 em 13, >15 em 7. Total multi-mesh 4.256 arquivos, todos parseados
+100%.
 
-| meshCount | Arquivos | % |
-|---|---|---|
-| 0 | 1 | 0,01% |
-| 1 | 4.149 | 49,39% |
-| 2 | 2.277 | 27,10% |
-| 3 | 1.086 | 12,93% |
-| 4 | 449 | 5,34% |
-| 5 | 190 | 2,26% |
-| 6 | 114 | 1,36% |
-| 7 | 40 | 0,48% |
-| 8 | 38 | 0,45% |
-| 9 | 12 | 0,14% |
-| 10 | 10 | 0,12% |
-| 11 | 6 | 0,07% |
-| 12 | 7 | 0,08% |
-| 13 | 2 | 0,02% |
-| 14 | 13 | 0,15% |
-| > 15 | 7 | 0,08% |
+**Validação estatística multi-mesh (item 3):** full-scan 4.256 arquivos, 12.590
+malhas, parsing 100%. Nome estrito em `tri_end-4` 1.796/12.590=14,27% vs controle
+0,0376% (razão 379×). Nome fraco 100% dos arquivos mas controle fraco 77,51%
+(0,67×, não discrimina). Evidência em `tools/validate_multimesh.cpp` e
+`evidence/ciclo6_multimesh_validation.log`.
+
+**Contabilidade nível 4 falhando (item 2):** total 10.090, nível 4 ok 8.405,
+falhando 1.685 = 1.483 OPAQUE (88,01%) + 67 inválidos (3,98%) + 134 geometria não
+parseada (7,95%) + 1 zero faces (0,06%). Multi-mesh 0. Evidência gerada por
+`tools/gen_level4_breakdown.py` em `evidence/ciclo6_level4_breakdown.log`.
 
 Isso não destrava renderização: o nível 6 (UV) continua em zero.
 

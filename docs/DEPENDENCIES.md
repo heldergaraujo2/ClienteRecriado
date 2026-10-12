@@ -145,3 +145,40 @@ consequência disso em caso de distribuição.
 projeto (vértice e normal começando com índice de osso e padding) **não
 correspondem** aos arquivos deste cliente. Foram medidas e descartadas; o layout
 usado aqui foi estabelecido contra os dados. Ver `docs/ASSET_FORMATS.md`.
+
+## 6. Conhecimento de terceiros incorporado — extensão multi-mesh (ciclo 5)
+
+| Item | Detalhe |
+|---|---|
+| Fonte | `xulek/muonline-bmd-viewer` — https://github.com/xulek/muonline-bmd-viewer |
+| Commit consultado | `3f11bf89f3702261174d8efa1436d56a15c7d97a` (24 jul 2026) |
+| Arquivo | `src/bmd-loader.ts`, linhas 348–422 |
+| Licença declarada | ISC (campo `license` do `package.json`) |
+| O que foi usado | **Estrutura de loop** sobre `meshCount` e ordem dos campos por malha: `numVertices`, `numNormals`, `numTexCoords`, `numTriangles`, `textureIndex`, depois arrays e nome de textura 32 B |
+| O que **não** foi usado | Código TypeScript não copiado; layout de triângulo daquele projeto (polygon byte em +0, vertexIndex em +2, normalIndex em +10, texCoordIndex em +18) **não corresponde** aos dados deste cliente (medido: vertex em +0/+8/+16, polygon byte não é 3/4 em 97% dos casos). Header por malha deste projeto é **14 B** (`vc,nc,ntc,ntri,texIdx,u48,u50`) vs 10 B da fonte; busca de nome com delta -4 é descoberta deste projeto |
+| Onde está | `src/mu/assets/bmd_body.cpp` (parser multi-mesh, com atribuição em comentário) |
+| Validação | 4.256 arquivos multi-mesh (12.590 malhas) parseados 100%, taxa de nome estrito em `tri_end-4` 14,27% vs controle 0,0376% (razão 379×) |
+
+**Verificação de que nada foi copiado em bloco (ciclo 5):**
+
+```
+$ git show --stat 3a44591
+ docs/evidence/ciclo5_bmd_multimesh.log | 105 ++++++++
+ src/mu/assets/bmd_body.cpp             | 437 +++++++++++++++++++++++++--------
+ tests/test_assets.cpp                  |  25 +-
+ tools/mutool.cpp                       |   6 +-
+ 4 files changed, 461 insertions(+), 112 deletions(-)
+```
+
+Nenhum arquivo `.ts` adicionado. Clone de consulta em `/tmp/bmdref`, fora do repo, não commitado: `git ls-files | grep -ci "bmdref"` retorna `0`.
+
+**Atribuição no código-fonte** (`src/mu/assets/bmd_body.cpp`, após correção do ciclo 6):
+
+```cpp
+// Provenance: loop structure over meshCount and per-mesh field order inspired
+// by xulek/muonline-bmd-viewer (src/bmd-loader.ts:348-422, ISC). The 14-byte
+// header and triangle layout are this project's own measurements, not that
+// project's tables, which were refuted for these files.
+```
+
+**Ressalva idêntica à da cifra:** repositório sem arquivo LICENSE, licença apenas no package.json, e-mail de exemplo. Ver LICENSING.md.

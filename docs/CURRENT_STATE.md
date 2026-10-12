@@ -187,13 +187,14 @@ everywhere it appears.
 |---|---|---|
 | 1 — estrutura válida | 10.023 | 99,34% |
 | 2 — decifrado | 8.571 | 84,95% |
-| 3 — vértice + normal | 8.401 | 83,26% |
-| 4 — faces | 8.400 | 83,25% |
+| 3 — vértice + normal | **8.406** | **83,31%** |
+| 4 — faces | **8.405** | **83,30%** |
 | 5 — ossos | 3.505 | 34,74% |
 | 6 — UV | **0** | **0,00%** |
 
-Os níveis **não** são cumulativos na mesma população: o nível 4 conta só malha
-única; o nível 5 é 3.505 de 4.119 elegíveis (85,09%), que sobre a árvore é 34,74%.
+Os níveis **não** são cumulativos na mesma população: o nível 4 é subconjunto
+estrito do nível 3; o nível 5 é 3.505 de 4.119 elegíveis (85,09%), que sobre a
+árvore é 34,74%.
 
 **Nenhum nível é modelo renderizável.** Nível 6 é zero — sem índice de UV por canto
 não há textura. Nove hipóteses descartadas; investigação encerrada.
@@ -203,10 +204,42 @@ seção seguinte.
 
 ---
 
-# Ciclo 5 — estado atual (auditoria ciclo 4, itens 1-5)
+# Ciclo 6 — estado atual (auditoria ciclo 5, itens 1-5)
 
-> **Base:** `7d10a18` (fim ciclo 4) → HEAD `e32a659` (6 commits). Auditoria do
-> ciclo 4 exigiu 5 esclarecimentos antes de fechar DEC-008 e iniciar multi-mesh.
+> **Base:** `56777bd` (fim ciclo 5) → HEAD atual. Auditoria do ciclo 5 exigiu 5 itens antes de fechar multi-mesh.
+
+## O que este ciclo resolveu
+
+| Item da auditoria | Resultado |
+|---|---|
+| 1 — regressão nível 3 (8.406→8.401) | **Corrigido.** Causa: limite fixo `>10000` rejeitava 5 arquivos reais com `ntri` 11.771–17.694 (`Monster865.bmd` 15576, `Ozarugold.bmd` 12616, `bann.bmd` 11771). Corrigido para verificação de overflow + limite `meshCount` 64. Nível 3 volta a 8.406, nível 4 vai a 8.405 (+5). Teste de regressão adicionado: `TestBmdMultiMeshLargeCounts` etc. |
+| 2 — contabilidade 1.690 falhando nível 4 | **Produzida.** Total 10.090, nível 4 ok 8.405, falhando 1.685 = 1.483 OPAQUE (88,01%) + 67 inválidos (3,98%) + 134 geometria não parseada (7,95%) + 1 zero faces (0,06%). Multi-mesh 0. Evidência gerada por `tools/gen_level4_breakdown.py` em `evidence/ciclo6_level4_breakdown.log` e `ciclo5_level4_breakdown.log`. |
+| 3 — validação estatística multi-mesh | **Feita.** Full-scan 4.256 arquivos multi-mesh (12.590 malhas), parsing 100%. Nome estrito em `tri_end-4` 14,27% vs controle 0,0376% (379×). Nome fraco 100% mas controle 77,51% (0,67×, não discrimina). Evidência `evidence/ciclo6_multimesh_validation.log`. |
+| 4 — licenciamento referência externa | **Esclarecido.** Referência `xulek/muonline-bmd-viewer` commit `3f11bf89f3702261174d8efa1436d56a15c7d97a`, `bmd-loader.ts:348-422`, licença ISC. Loop inspirado, header 14 B vs 10 B e triângulo diferente são medições deste projeto. Ver `LICENSING.md` e `DEPENDENCIES.md` §6, atribuição em `bmd_body.cpp`. `git show --stat 3a44591` confirma nenhum `.ts` copiado. |
+| 5 — segurança e robustez multi-mesh | **Implementado.** `meshCount` limitado a 64 (observado máx 18), overflow checado, `make test-san` 384/0 sem reports. Testes: `TestBmdMultiMeshExtremeMeshCount` (0xFFFF), `TestBmdMultiMeshTruncated`, `TestBmdMultiMeshOverflow`. Evidência `evidence/ciclo6_test_san_final.log` e `ciclo5_test_san_final.log`. |
+
+## Métricas atuais (10.090 arquivos)
+
+| Nível | Arquivos | % | Triângulos |
+|---|---|---|---|
+| 1 — estrutura válida | 10.023 | 99,34% | — |
+| 2 — payload em claro | 8.571 | 84,95% | — |
+| 3 — vértice+normal | **8.406** | **83,31%** | — |
+| 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
+| 5 — ossos | 3.505 | 34,74% | — |
+| 6 — UV | 0 | 0,00% | — |
+
+Level 4b: multi-mesh 0 (0%), zero faces 1 (100%, `Player/player.bmd`, `meshCount=0`). Distribuição meshCount: 0 em 1 (0,01%), 1 em 4.149 (49,36%), 2 em 2.280 (27,12%), 3 em 1.086 (12,92%), resto conforme `ciclo6_bmd_multimesh.log`.
+
+## Testes
+
+384 checks, 0 failures · 40 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 384/0.
+
+---
+
+# Ciclo 5 — estado (fechado, com regressão conhecida)
+
+> **Base:** `7d10a18` (fim ciclo 4) → HEAD `e32a659` (6 commits). Auditoria do ciclo 4 exigiu 5 esclarecimentos antes de fechar DEC-008 e iniciar multi-mesh.
 
 ## O que este ciclo resolveu
 
@@ -216,7 +249,7 @@ seção seguinte.
 | 2 — texto final da decisão em DECISIONS.md | **Registrado.** Blockquote com "VBO + VAO com buffers indexados é o piso mínimo" + 4 condições objetivas de revisão (Parte B, conteúdo pesado, hardware mínimo, glDrawElements encontrado). |
 | 3 — rotular tamanho da amostra | **Feito.** `PERFORMANCE_BASELINE.md` §2.1a: "Amostra pequena (N=5), indicativa, não definitiva" + limites que importam mais que N. |
 | 4 — verificação automatizada doc↔código | **Construída.** `tools/check_docs_consistency.py` 36 verificações, 0 falhas. Falha se número na linha da tabela diverge, número proibido sem marcador, include gráfico em src/, nível 4 > nível 3. Testes de injeção provam não ser vacuosa. Comando documentado em `AGENTS.md` §4. |
-| 5 — extensão multi-mesh | **Concluída.** Parser estendido para `meshCount>1`. Nível 4: 4.149 (41,12%) → **8.400 (83,25%)**, +4.251 arquivos, triângulos 1.221.030 → 3.524.366. Evidência `ciclo5_bmd_multimesh.log`. |
+| 5 — extensão multi-mesh | **Concluída (com regressão).** Parser estendido para `meshCount>1`. Nível 4: 4.149 (41,12%) → **8.400 (83,25%)**, +4.251 arquivos, triângulos 1.221.030 → 3.524.366. Evidência `ciclo5_bmd_multimesh.log`. Regressão nível 3: 8.406→8.401 (5 arquivos) devido a limite fixo 10k, corrigida no ciclo 6. |
 
 ## DEC-008 — texto final, sem ambiguidade
 
@@ -232,32 +265,34 @@ BLOCKED.
 Condições de revisão: Parte B menor que volume, conteúdo pesado sai do escopo,
 hardware mínimo sobe, glDrawElements encontrado no binário original.
 
-## Métricas atuais (10.090 arquivos)
+## Métricas ciclo 5 (10.090 arquivos) — com regressão
 
 | Nível | Arquivos | % | Triângulos |
 |---|---|---|---|
 | 1 — estrutura válida | 10.023 | 99,34% | — |
 | 2 — payload em claro | 8.571 | 84,95% | — |
-| 3 — vértice+normal | 8.401 | 83,26% | — |
-| 4 — topologia | **8.400** | **83,25%** | **3.524.366** |
+| 3 — vértice+normal | 8.401 | 83,26% | — | <!-- historico -->
+| 4 — topologia | **8.400** | **83,25%** | **3.524.366** | <!-- historico -->
 | 5 — ossos | 3.505 | 34,74% | — |
 | 6 — UV | 0 | 0,00% | — |
 
-Level 4b: multi-mesh 0 (0%), zero faces 1 (100%). Distribuição meshCount: 1 em
+Level 4b ciclo 5: multi-mesh 0 (0%), zero faces 1 (100%). Distribuição meshCount: 1 em
 4.149 (49,39%), 2 em 2.277 (27,10%), 3 em 1.086 (12,93%), resto conforme
 `ciclo5_bmd_multimesh.log`.
 
-## Testes
+## Testes ciclo 5
 
 373 checks, 0 failures · 36 verificações doc↔código, 0 falhas · 0 warnings 12 flags.
 
 Trava DEC-010: 0 includes gráficos em src/ (verificado por check_docs_consistency).
 
-## Próxima tarefa
+## Próxima tarefa ciclo 5
 
 Parsing completo de ossos (hierarquia + transformação). Nível 4 agora é
 83,25%, praticamente igual ao nível 3. Próximo bloqueio para skinning é nível 5
 (34,74%). Ver `NEXT_TASK.md`.
+
+
 
 ---
 

@@ -222,6 +222,44 @@ v0x0C está quebrada, isso é **resultado de terceiros validado por este projeto
 não resultado derivado por este projeto. As demais chaves (XOR-3 do bux, layout
 do corpo v0x0A) foram derivadas de forma independente neste repositório.
 
+### Extensão multi-mesh — mesma fonte, uso parcial (ciclo 5)
+
+| Campo | Valor |
+|---|---|
+| Repositório | `xulek/muonline-bmd-viewer` |
+| URL | https://github.com/xulek/muonline-bmd-viewer |
+| Commit consultado | `3f11bf89f3702261174d8efa1436d56a15c7d97a` |
+| Arquivo | `src/bmd-loader.ts`, linhas 348–422 |
+| Licença declarada | ISC (campo `license` do `package.json`) |
+| O que foi inspirado | Estrutura de loop `for meshIndex in 0..meshCount-1` e ordem dos campos por malha: `numVertices`, `numNormals`, `numTexCoords`, `numTriangles`, `textureIndex`, depois arrays e nome de textura 32 B |
+| O que **não** foi copiado | Código TypeScript não copiado; header de 14 B (`vc,nc,ntc,ntri,texIdx,u48,u50`) vs 10 B da fonte; layout de triângulo da fonte (polygon em +0, vertex em +2, normal em +10, texCoord em +18) **refutado** neste projeto (polygon 3/4 em 3,01% ≈ aleatório, vertex em +0/+8/+16 com 97,66% de validade). Busca de nome com delta -4 é descoberta deste projeto |
+| Onde está | `src/mu/assets/bmd_body.cpp` |
+
+**Verificação de cópia em bloco:**
+
+```
+$ git show --stat 3a44591
+ docs/evidence/ciclo5_bmd_multimesh.log | 105 ++++++++
+ src/mu/assets/bmd_body.cpp             | 437 +++++++++++++++++++++++++--------
+ tests/test_assets.cpp                  |  25 +-
+ tools/mutool.cpp                       |   6 +-
+```
+
+Nenhum `.ts` adicionado. `git ls-files | grep -i bmdref` retorna 0. Clone em `/tmp/bmdref`, fora do repo.
+
+**Atribuição no código** (`src/mu/assets/bmd_body.cpp`):
+
+```cpp
+// Provenance: loop structure over meshCount and per-mesh field order inspired
+// by xulek/muonline-bmd-viewer (src/bmd-loader.ts:348-422, ISC). The 14-byte
+// header and triangle layout are this project's own measurements, not that
+// project's tables, which were refuted for these files.
+```
+
+**Ressalva idêntica:** sem arquivo LICENSE, licença apenas no package.json, e-mail de exemplo. Ver seção 8 da cifra.
+
+**Correção de redação do relatório de ciclo 5:** o relatório dizia "a referência externa mostra o padrão exato de parsing multi-mesh". O padrão **exato** não é o da referência: header de 14 B vs 10 B, triângulo diferente, delta -4 descoberto aqui. O que a referência mostrou foi a **estrutura de loop** e a ordem dos campos, que foi validada e estendida. Redação corrigida neste documento e em `ASSET_FORMATS.md`.
+
 Texto **padrão** da licença ISC, transcrito aqui para referência — não copiado
 do repositório, que não o traz:
 
