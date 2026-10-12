@@ -98,9 +98,9 @@ vendorizado no build — mas é uma obrigação de atribuição e pertence aqui.
 | Item | Detalhe |
 |---|---|
 | Fonte | `xulek/muonline-bmd-viewer` — https://github.com/xulek/muonline-bmd-viewer |
-| Commit consultado | `3f11bf89f3702261174d8efa1436d56a15c7d97a` (24 jul 2026) |
+| Commit consultado | `3f11bf89f3702261174d8efa1436d56a15c7d97a` — `git log -1 --format=fuller` em `docs/evidence/ciclo6_bmdref_commit_date.log` mostra `xulek <xulek121@gmail.com>` 2026-07-24, branch `main` |
 | Arquivo | `src/crypto/file-cryptor.ts` |
-| Licença declarada | ISC (campo `license` do `package.json`) |
+| Licença declarada | ISC (campo `license` do `package.json` apenas — sem arquivo LICENSE, e-mail placeholder `xulek@example.com`) — **NÃO CONFIRMADA** (item 0 ciclo 6) |
 | O que foi usado | Algoritmo e tabela de 16 bytes da cifra do payload BMD v0x0C |
 | O que **não** foi usado | Nenhum arquivo. Não há TypeScript nem código copiado neste repositório |
 | Onde está | `src/mu/assets/bmd.hpp` (`kBmdV0CKey`) e `src/mu/assets/bmd.cpp` (`BmdV0CDecrypt`), com atribuição em comentário no próprio código |
@@ -151,9 +151,9 @@ usado aqui foi estabelecido contra os dados. Ver `docs/ASSET_FORMATS.md`.
 | Item | Detalhe |
 |---|---|
 | Fonte | `xulek/muonline-bmd-viewer` — https://github.com/xulek/muonline-bmd-viewer |
-| Commit consultado | `3f11bf89f3702261174d8efa1436d56a15c7d97a` (24 jul 2026) |
+| Commit consultado | `3f11bf89f3702261174d8efa1436d56a15c7d97a` — evidência bruta em `docs/evidence/ciclo6_bmdref_commit_date.log`, autor commit `xulek121@gmail.com`, `package.json` author `xulek@example.com` placeholder, branch `main` |
 | Arquivo | `src/bmd-loader.ts`, linhas 348–422 |
-| Licença declarada | ISC (campo `license` do `package.json`) |
+| Licença declarada | ISC (campo `license` do `package.json` apenas, sem LICENSE) — **NÃO CONFIRMADA** (item 0 ciclo 6) |
 | O que foi usado | **Estrutura de loop** sobre `meshCount` e ordem dos campos por malha: `numVertices`, `numNormals`, `numTexCoords`, `numTriangles`, `textureIndex`, depois arrays e nome de textura 32 B |
 | O que **não** foi usado | Código TypeScript não copiado; layout de triângulo daquele projeto (polygon byte em +0, vertexIndex em +2, normalIndex em +10, texCoordIndex em +18) **não corresponde** aos dados deste cliente (medido: vertex em +0/+8/+16, polygon byte não é 3/4 em 97% dos casos). Header por malha deste projeto é **14 B** (`vc,nc,ntc,ntri,texIdx,u48,u50`) vs 10 B da fonte; busca de nome com delta -4 é descoberta deste projeto |
 | Onde está | `src/mu/assets/bmd_body.cpp` (parser multi-mesh, com atribuição em comentário) |
