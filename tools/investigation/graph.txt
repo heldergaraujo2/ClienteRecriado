@@ -1,0 +1,30 @@
+* 65bb1c4 fix(ciclo13-item1): corrige discrepância test 469 vs test-san 389 — sanitização agora cobre 100% checks
+* ed88a52 docs(ciclo12): relatório final 10 itens C1-C3 D1-D5 E1-E3 469 checks pushado
+* fd830db feat(ciclo12-E3): propõe próxima tarefa incremental com ganho mensurável real neste ambiente
+* eb7fbe4 feat(ciclo12-E2): esqueleto main loop update/render/present com predição frame budget sem GL
+* 7ead107 feat(ciclo12-E1): avalia dependências áudio/rede/interface com versão/licença/segurança
+* a97b605 feat(ciclo12-D5): esqueleto Win32 wglCreateContext BLOCKED documentado
+* 208c7de feat(ciclo12-D4): documenta plano otimização consistente com dados medidos LOD/streaming/draw calls
+* 9c4acc0 feat(ciclo12-D3): frustum culling com bounding boxes reais + testes D3
+* 4f061bb feat(ciclo12-D2): implementa skinning LBS CPU strict sem GL
+* 7bfb39e feat(ciclo12-D1): implementa preparação CPU-side de vertex/index buffer em layout indexado (VBO/VAO)
+* 8bdd357 feat(ciclo12-C3): consolida limites reais BMD conhecidos vs desconhecidos com base em tudo medido
+* c0a87eb feat(ciclo12-C2): define Caminho B glTF 2.0 para assets pesados customizados, DEC-013
+* 6aeff55 feat(ciclo12-C1): define representação interna única malha+esqueleto com pesos skinning, implementa e testa
+* 72bffa8 test(ciclo12-item2): ASan+UBSan make test-san cobre OPT-004 word-at-a-time ozj.cpp, 0 reports, edge remaining<8
+* c45b0a0 fix(ciclo12-item1): reconcilia 1271x vs 1846x ratio loose — valor definitivo 1846,28x
+* 91599fa docs(ciclo11-final): atualiza CURRENT_STATE e NEXT_TASK com fechamento ciclo11 8 itens
+* 4f74539 docs(ciclo11): relatório final itens 1-8 com 10 itens + ESTADO DO GIT
+* 49825c5 perf(ciclo11-item8): implementa CAND-003 → OPT-004 word-at-a-time JPEG scan 11,8x
+* 28c9259 docs(ciclo11-item7): cria STATUS_FINAL.md com métricas corrigidas 3693/1186, provas e ratios per file
+* 50331cc fix(ciclo11-item6): C1-C3 D1-D5 E1-E3 com provas e ratios per file corrigidos
+* 7a9aa03 evidence(ciclo11-item5): valida estatisticamente 62 plausíveis animação com controle mesma classe — não confirmado
+* 107815b evidence(ciclo11-item4): investiga rigor IceGolem step 0x33 vs 0x3D full-scan 1503 OPAQUE, 0 variantes plausíveis — tentativa falha
+* 0589adf evidence(ciclo11-item3): explica quedas 3800->3693 loose e 1601->1186 strict com exemplos concretos e razão técnica ciclo detection
+* b9f7af6 fix(ciclo11-item2): corrige afirmação ratio infinito para limite superior estatístico 1/N
+* 1728d5f evidence(ciclo11-item1): explica salto 5,43x->1846x com números exatos antes/depois correção unidade e ciclo detection
+* 5444152 docs(ciclo10): finaliza ESTADO DO GIT com HEAD 3b24987 push confirmado remoto==local, 6 commits ciclo10
+* 3b24987 docs(ciclo10-faseE): atualiza TEST_RESULTS 231->389 checks, lista 35 testes com novas entradas multi-mesh e ossos ciclo detection
+* 42058dc docs(ciclo10): relatório final Fases A-D com 11 itens + ESTADO DO GIT, 4 commits 0d84b0f..0ba72db
+* 0ba72db security(ciclo10-faseD): adiciona 9.5 detecção ciclo OOM-safe e 9.6 vetorização bux segura
+* 9d09382 perf(ciclo10-faseC): vetoriza bux cipher 880 MB/s -> 3437 MB/s 3.9x (CAND-002 -> OPT-003)

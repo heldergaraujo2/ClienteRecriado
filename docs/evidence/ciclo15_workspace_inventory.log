@@ -1,0 +1,70 @@
+# Inventário workspace — ciclo15 Parte A item1
+# Lista tudo fora do diretório do repositório ClienteRecriado criado/usado durante investigação projeto
+# Comando: find /tmp -type f 2>/dev/null + listagem manual de diretórios mencionados em relatórios anteriores
+# Data geração: 2026-10-12
+# Branch: arena/519f8fc9-clienterecriado
+# Base: 972fabcea1b0d4e80345f0f5abd287b46d819455 main
+# Referência Cliente_ref hash 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9 intacto
+
+## Arquivos em /tmp criados durante ciclos 1-14 (investigação)
+
+### Scripts/ferramentas de descoberta (categoria a — DEVEM ser preservados no repo)
+
+/tmp/add_skinning_nontrivial.py — 2071 bytes Oct 12 21:22 — ciclo13 item4 adiciona teste rotação 90° Z não-trivial, pergunta respondida: D2 classificação otimista só identity/self-loop/zero, evidência ciclo13_c1_e3_detailed.log
+/tmp/bench_ozt.cpp — 3061 bytes Oct 12 21:26 — ciclo13 item10 benchmark OztToRgbaTopDown old vs new 2-pixel swap, pergunta: ganho otimização OZT, evidência ciclo13_bench_after.log
+/tmp/bench_ozt2.cpp — 2026 bytes Oct 12 21:26 — ciclo13 item10 benchmark OztToBgraTopDown GL_BGRA direct 10,2×, pergunta: CAND-001 OPT-005 speedup, evidência ciclo13_bench_after.log
+/tmp/cull_scale.cpp — 2466 bytes Oct 12 21:24 — ciclo13 item5 medição culling escala real 8406 bounds reais, pergunta: D3 classificação otimista 3 casos unitários vs escala real, evidência ciclo13_cull_scale.log
+/tmp/cull_scale2.cpp — 2049 bytes Oct 12 21:24 — ciclo13 item5 segunda ferramenta culling identity VP 7,88% culled, pergunta: frustum -1..1 clip cube, evidência ciclo13_cull_scale.log
+/tmp/debug_beer.cpp — 1326 bytes Oct 12 21:48 — ciclo14 B debug Beer01.bmd triângulos degenerados v1,1,1, pergunta: por que rasterizador só 6/30 tris, evidência ciclo14_first_render_validation.md
+/tmp/debug_bonfire.cpp — 2541 bytes Oct 12 21:48 — ciclo14 B debug Bonfire01.bmd clip ndc, pergunta: por que culled_frustum 72, evidência ciclo14_first_render_validation.md
+/tmp/debug_bonfire2.cpp — 3255 bytes Oct 12 21:48 — ciclo14 B debug Bonfire áreas degeneradas idx 1,1,1 area 0, pergunta: triângulos degenerados, evidência ciclo14_first_render_validation.md
+/tmp/find_bones.cpp — 1329 bytes Oct 12 21:49 — ciclo14 B encontra arquivos com bones, pergunta: identificar modelos com ossos para render, evidência ciclo14_first_render_*.ppm
+/tmp/test_frustum.cpp — 1674 bytes Oct 12 21:48 — ciclo14 B teste frustum culling com câmera 0,0,5 olhando origem, pergunta: por que Bonfire culled, evidência ciclo14_culling_camera.md
+/tmp/fix_makefile.py — 2412 bytes Oct 12 21:18 — ciclo13 item1 fix Makefile test-san 389 vs 469 discrepância, pergunta: sanitização cobrir 100% checks, evidência ciclo13_test_san_full.log
+/tmp/fix_makefile2.py — 2355 bytes Oct 12 21:20 — ciclo13 item1 segunda tentativa fix Makefile, mesma pergunta
+/tmp/update_ozt.py — 3305 bytes Oct 12 21:26 — ciclo13 item10 atualiza ozt.cpp com otimização 2px + BGRA direct, pergunta: implementar OPT-005, evidência ciclo13_bench_after.log
+/tmp/update_bench.py — 874 bytes Oct 12 21:27 — ciclo13 item10 atualiza bench_assets.cpp com bench OztToBgraTopDown, pergunta: medir speedup GL_BGRA
+/tmp/run_bux10.sh — 170 bytes Oct 12 21:44 — ciclo14 A2 roda N=10 benchmark BuxCrypt mediana, pergunta: reconciliação pico 3437 vs mediana, evidência ciclo14_buxcrypt_10runs.log
+/tmp/test.log — 11554 bytes Oct 12 21:20 — log de testes intermediário ciclo13
+/tmp/reflog.txt — 611 bytes Oct 12 21:21 — reflog git incident ciclo13, evidência ciclo13_git_incident.log
+/tmp/graph.txt — 3219 bytes Oct 12 21:21 — graph log git incident
+
+### Clones de repositórios externos re-obteníveis (categoria b — NÃO precisam ser commitados, mas URL/commit documentado)
+
+/tmp/cliente_ref — clone de https://github.com/heldergaraujo2/Cliente.git — 29,060 files 2,372.04 MB 10,090 BMD — re-obtenível via git clone, hash 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9 documentado em REFERENCE_AUDIT.md, LICENSING.md, DEPENDENCIES.md, CURRENT_STATE.md, STATUS_FINAL.md
+/tmp/bmdref — clone de https://github.com/xulek/muonline-bmd-viewer commit 3f11bf89f3702261174d8efa1436d56a15c7d97a — re-obtenível via rm -rf /tmp/bmdref && git clone https://github.com/xulek/muonline-bmd-viewer /tmp/bmdref, evidência docs/evidence/ciclo6_bmdref_commit_date.log com Author xulek <xulek121@gmail.com> AuthorDate 2026-07-24 21:10:59 +0200 CommitDate idem, package.json author xulek <xulek@example.com> placeholder license ISC sem LICENSE file, histórico 2025-07-02 a 2026-07-24 com desordem 2025-11-09 clock skew, nada copiado em bloco git ls-files | grep -ci bmdref 0
+/tmp/compare_old_new — mencionado em relatórios anteriores como diretório temporário para comparar versões, não existe atualmente em /tmp, se existiu era volátil e re-criável
+
+### Dados brutos voláteis grandes (categoria c — NÃO commitar, documentar caminho e hash)
+
+/tmp/cliente_ref/Data/ — cópia completa árvore Data 2,4 GB 29,060 files — NÃO commitar viola regra não publicar assets proprietários, documentar caminho /tmp/cliente_ref/Data e hash origem https://github.com/heldergaraujo2/Cliente.git commit 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9, inventário em REFERENCE_AUDIT.md §4.2/4.3, bmdreport 10090 files
+/tmp/cliente_ref/ScreenShots/ — 51,7 MB screenshots — NÃO commitar, não deveriam shippar conforme SECURITY.md
+/tmp/cliente_ref/Data/Custom/ etc — assets proprietários — NÃO commitar
+
+### Artefatos de build/binários temporários (categoria d — descartáveis, código-fonte já no repo)
+
+/tmp/bench_ozt — binário compilado de bench_ozt.cpp — 17240 bytes — descartável, fonte preservada
+/tmp/bench_ozt2 — binário de bench_ozt2.cpp — 17240 bytes — descartável
+/tmp/cull_scale — binário de cull_scale.cpp — 56608 bytes — descartável
+/tmp/cull_scale2 — binário de cull_scale2.cpp — 56536 bytes — descartável
+/tmp/debug_beer — binário de debug_beer.cpp — 85712 bytes — descartável
+/tmp/debug_bonfire — binário de debug_bonfire.cpp — 116040 bytes — descartável
+/tmp/debug_bonfire2 — binário de debug_bonfire2.cpp — 120040 bytes — descartável
+/tmp/find_bones — binário de find_bones.cpp — 85976 bytes — descartável
+/tmp/test_frustum — binário de test_frustum.cpp — 47416 bytes — descartável
+/tmp/test.ppm, /tmp/test_*.ppm — imagens PPM temporárias 1,4 MB cada — descartáveis, versões finais em docs/evidence/ciclo14_first_render_*.ppm já commitadas
+/tmp/arena-workspace/coding.patch, coding.diff, coding-numstat.txt — patches temporários do ambiente Arena — descartáveis
+
+## Diretórios de trabalho temporário mencionados em relatórios anteriores
+
+- /tmp/bmdref — clone xulek/muonline-bmd-viewer — não existe atualmente, re-obtenível, documentado
+- /tmp/cliente_ref — clone Cliente — existe atualmente /tmp/cliente_ref, 7 dirs, 29k files, re-obtenível, hash documentado
+- /tmp/compare_old_new — mencionado ciclo11? Não existe atualmente, volátil re-criável
+- /tmp/ — todos os scripts acima já listados
+
+## Conclusão inventário
+
+Total arquivos fora repo criados/usados: ~30 scripts/ferramentas categoria (a) DEVEM ser preservados, 2 clones categoria (b) re-obteníveis documentados, 1 árvore Data 2,4GB categoria (c) NÃO commitar, ~15 binários categoria (d) descartáveis.
+
+Próximo passo Parte A item2-3: classificar e mover categoria (a) para tools/investigation/ com cabeçalho ciclo pergunta referência log.
+
