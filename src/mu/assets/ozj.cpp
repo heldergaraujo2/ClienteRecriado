@@ -62,10 +62,36 @@ Status ProbeFrom(ByteView file, std::size_t start, OzjImage* out) {
       i += seg_len;
       bool found_marker = false;
       while (i + 1 < file.size) {
+        // Word-at-a-time fast path for 0xFF search (CAND-003 -> OPT-004)
+        // JPEG entropy-coded data is ~99.6% non-FF bytes (1/256), so skipping
+        // 8 bytes at a time when no FF is present gives ~8x reduction in loop
+        // iterations. Correctness: escape rules FF 00 and FF D0..D7 are still
+        // honoured byte-by-byte after locating FF.
+        std::size_t remaining = file.size - i;
+        if (remaining >= 8) {
+          uint64_t chunk = 0;
+          std::memcpy(&chunk, file.data + i, 8);
+          // Turn 0xFF bytes into 0x00, then detect zero bytes.
+          uint64_t x = chunk ^ 0xFFFFFFFFFFFFFFFFULL;
+          uint64_t has_zero = (x - 0x0101010101010101ULL) & ~x & 0x8080808080808080ULL;
+          if (has_zero == 0) {
+            i += 8;
+            continue;
+          }
+          // At least one 0xFF in this 8-byte window, find first.
+          for (int k = 0; k < 8; ++k) {
+            if (file.data[i + static_cast<std::size_t>(k)] == 0xFF) {
+              i += static_cast<std::size_t>(k);
+              break;
+            }
+          }
+        }
         if (file.data[i] != 0xFF) {
           ++i;
           continue;
         }
+        // Need next byte to decide if this FF ends the scan.
+        if (i + 1 >= file.size) break;
         const uint8_t next = file.data[i + 1];
         if (next == 0x00 || (next >= 0xD0 && next <= 0xD7)) {
           i += 2;  // stuffed byte or restart marker: still inside the scan

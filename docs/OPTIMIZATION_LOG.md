@@ -216,7 +216,7 @@ not remove the need for it. Note that OZT stores rows bottom-up, which happens
 to match GL's default `GL_UNPACK` orientation, so the flip may not be needed at
 all for direct upload. That needs verifying, not assuming.
 
-### CAND-003 — Word-at-a-time search in the JPEG scan skip
+### CAND-003 — Word-at-a-time search in the JPEG scan skip — IMPLEMENTED as OPT-004 (ciclo11 item8)
 
 **Evidence.** `OzjProbe` on a 512x512 JPEG with a 200 KB entropy-coded segment
 costs 179.2 µs median and 272.7 µs at p99. The dominant cost is scanning for the
@@ -232,3 +232,64 @@ prefix test must still pass.
 **Risk.** Moderate. The two escape rules — `FF 00` is a stuffed literal and
 `FF D0..D7` is a restart marker — must survive the vectorisation exactly. A
 subtle error here means a texture silently reports the wrong dimensions.
+
+**Result ciclo11 item8:** IMPLEMENTED as OPT-004, 179.2us -> 15.2us median 11.8x speedup, p99 272.7us -> 32.2us 8.47x, real OZJ 13928 files 13832 ok 96 fail preserved, evidence `ciclo11_opt003_ozj_benchmark.log`.
+
+---
+
+## OPT-004 — Word-at-a-time JPEG scan search (CAND-003 implemented)
+
+**Status: KEPT.**
+
+### Problem observed
+
+`OzjProbe` walks JPEG marker chain, SOS segment followed by entropy-coded data of unspecified length free to contain any byte including 0x00 and 0xFF. Only way past it is to scan for next marker honouring two escape rules: FF 00 stuffed literal FF, FF D0..D7 restart markers belong to scan. Original scalar loop `if data[i]!=0xFF i++ else check next` costs 179.2us median 272.7us p99 for 512x512 + 200KB scan, dominant cost in texture inventory.
+
+### Evidence
+
+Before (scalar byte-by-byte):
+
+```
+OzjProbe 512x512 + 200KB scan  med 179.2 us  p99 272.7 us  MB 0.19
+```
+
+After (word-at-a-time 8B):
+
+```
+OzjProbe 512x512 + 200KB scan  med 15.2 us  p95 22.5 us  p99 32.2 us  mean 16.7 us  MB 0.19  MB/s 12525.2
+```
+
+Speedup median 11.79x, p99 8.47x, throughput ~1060 -> 12525 MB/s.
+
+Real OZJ tree: 13928 files, 13832 ok 96 fail (same as before), evidence `/tmp/test_ozj_real.cpp`.
+
+### Hypothesis
+
+JPEG entropy-coded data has ~0.39% FF bytes (1/256), so 8-byte chunks have no FF 99.6% of time. Skipping 8 bytes at a time when no FF present reduces loop iterations ~8x. When FF present, find first FF in window byte-by-byte and handle escape rules.
+
+### Change
+
+`src/mu/assets/ozj.cpp`: SOS handling loop rewritten with fast path:
+
+- remaining>=8, memcpy 8B chunk, x=chunk ^ 0xFFFFFFFFFFFFFFFF, has_zero = (x - 0x0101010101010101) & ~x & 0x8080808080808080
+- has_zero==0 => no FF in 8B, i+=8 continue
+- else find first FF in 8B window via loop k=0..7, i+=k, then byte-by-byte handle FF 00 and FF D0..D7
+- Unaligned safe via memcpy, no strict-aliasing, no read past file.size (check remaining>=8 and i+1 < file.size before accessing next)
+- Preserves escape rules exactly
+
+### Test
+
+- `make test`: 389 checks 0 failures
+- Real OZJ: 13832 ok 96 fail same as before
+- `bench_assets`: synthetic JPEG 512x512 + 200KB scan 200 reps median 15.2us
+
+### Side effects
+
+- No extra memory, only 8B chunk on stack
+- Uses memcpy for unaligned safe loads
+- Correctness verified with real tree and synthetic
+
+### Decision
+
+**Keep.** 11.8x improvement on texture inventory path, verified correctness, low risk.
+
