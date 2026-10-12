@@ -1,0 +1,224 @@
+# Evidência substantiva C1 até E3 — ciclo13 itens 4-8
+# Para CADA item: (a) assinatura/trecho relevante código, (b) nome e corpo resumido teste que valida, (c) saída real execução teste
+
+## C1 — Representação interna única malha+esqueleto com pesos skinning
+
+### (a) Código src/mu/assets/mesh.hpp
+struct BoneWeight { uint32_t bone; float weight; };
+struct Mesh {
+  std::string name;
+  std::vector<Vec3> positions;
+  std::vector<Vec3> normals;
+  std::vector<Vec2> texcoords;
+  std::vector<uint32_t> indices;
+  std::vector<std::vector<BoneWeight>> bone_weights; // C1 adicionado
+  bool has_texcoords = false;
+  bool has_bone_weights = false; // C1 adicionado
+  Bounds bounds;
+  size_t skipped_vertices = 0;
+  size_t bad_indices = 0;
+};
+struct Bone { std::string name; int32_t parent; Vec3 position; Vec3 rotation; };
+struct Skeleton { std::vector<Bone> bones; bool has_bones = false; };
+
+### (b) Teste TestMeshInternalRepresentation
+- Cria Mesh TestMesh 3 vértices positions normals texcoords indices has_texcoords true, bone_weights 3 vértices 1 e 2 influências has_bone_weights true, bounds valid, Skeleton Root parent kNoBoneParent e Child parent 0 has_bones true
+- Verifica tamanhos, has flags, bounds, parent refs, soma pesos ~1.0
+- Código em tests/test_assets.cpp ~linha 1800
+
+### (c) Saída real
+[ RUN  ] mesh internal representation (C1)
+[  OK  ] mesh internal representation (C1)
+
+## C2 — Caminho B formato glTF 2.0
+
+### (a) Código docs/DECISIONS.md DEC-013
+DEC-013 Caminho B formato glTF 2.0 escolhido para assets pesados customizados (não originais)
+Comparação 4 alternativas:
+- glTF 2.0: skinning SIM, PBR SIM, maturidade ALTA tinygltf/cgltf single-header MIT, licença MIT
+- FBX: SDK proprietário licença restritiva maturidade BAIXA
+- OBJ: sem skinning/PBR
+- Collada: XML verboso
+Decisão: glTF 2.0 single-header MIT tinygltf/cgltf, Caminho B não substitui Caminho A explicitamente
+
+### (b) Teste
+Não tem teste código, é decisão documentada — validado por existência arquivo DECISIONS.md e referência em ARCHITECTURE.md §9.1
+
+### (c) Saída real
+Arquivo docs/DECISIONS.md contém DEC-013
+
+## C3 — Limites reais BMD conhecidos vs desconhecidos
+
+### (a) Código
+src/mu/assets/bmd_body.cpp linha 44: if (bone_count == 0 || bone_count > 64) return false;
+- Teto aceitação 64, parser rejeita >64 segurança visited[64]
+
+### (b) Teste e medição
+Tool /tmp/find_max_bones3.cpp e /tmp/find_max_vert.cpp
+- WalkFiles Data 10090 .bmd, BmdProbe length_consistent, BmdV0CDecrypt Printable, BmdParseBodyV0A complete
+- max_bc 63 file Item/Stick32.bmd total_bones 7879 (has_bones true)
+- max_mc 30 file Object157/Object06.bmd geral, 9 com ossos Object74/Object40.bmd
+- max_vc 22987 file Custom/Monster/Ozarugold.bmd
+- max_ntri 39193
+- Materiais 1 por mesh observado sbow06_R.jpg etc
+
+### (c) Saída real
+max_mc 30 file /tmp/cliente_ref/Data/Object157/Object06.bmd
+max_bc 63 file /tmp/cliente_ref/Data/Item/Stick32.bmd total_bones 7879
+max_vc 22987 file /tmp/cliente_ref/Data/Custom/Monster/Ozarugold.bmd
+max_ntri 39193
+E docs/ASSET_FORMATS.md atualizado com tabela limites conhecidos vs desconhecidos consolidada ciclo12 C3
+
+## D1 — Preparação vertex/index buffer CPU-side VBO/VAO sem GL
+
+### (a) Código src/mu/render/buffers.hpp
+struct PackedVertex { float px,py,pz,nx,ny,nz,u,v; uint32_t bone_ids[4]; float bone_weights[4]; uint32_t weight_count; };
+struct PackedBuffers { std::vector<PackedVertex> vertices; std::vector<uint32_t> indices; bool has_texcoords, has_bone_weights; Bounds bounds; size_t skipped_vertices, bad_indices; bool ok; std::string problem; };
+PackedBuffers PackMeshForUpload(const Mesh& mesh);
+- Valida positions non-empty, normals size match, texcoords size match quando has true, bone_weights size match quando has true
+- Copia UV senão 0,0, empacota até 4 pesos, valida indices múltiplo 3 dropa triângulos bad index, quando indices vazio sequencial 0..N-1, ComputeBounds
+
+### (b) Teste TestPackMeshForUpload
+- Tri 3 vértices pos 0,0,0/1,0,0/0,1,0 normal 0,0,1 uv 0,0/1,0/0,1 bone 0 weight 1.0 indices 0,1,2 bounds valid
+- Verifica byte a byte: vertices[0] px==0 py==0 pz==0 nx==0 ny==0 nz==1 u==0 v==0 bone_ids[0]==0 bone_weights[0]==1.0 weight_count==1, vertices[1] px==1 u==1, indices 0,1,2
+- Sem texcoords/bone_weights uv 0,0 weight_count 0 has false
+- Bad indices drop triângulo bad count 1 indices size 3
+
+### (c) Saída real
+[ RUN  ] pack mesh for upload (D1)
+[  OK  ] pack mesh for upload (D1)
+
+## D2 — Skinning LBS CPU strict sem GL — com transformação NÃO-TRIVIAL
+
+### (a) Código src/mu/render/skinning.hpp
+struct Mat4 { float m[16]; static Mat4 Identity(); };
+struct SkinnedResult { std::vector<Vec3> positions; bool ok; std::string problem; };
+bool ValidateSkeletonForSkinning(const Skeleton& skel, std::string* problem_out);
+SkinnedResult ApplySkinningLBS(const Mesh& mesh, const Skeleton& skel, const std::vector<Mat4>& boneTransforms);
+Vec3 TransformPoint(const Mat4& mat, const Vec3& p);
+- Mat4 Identity diagonal 1, TransformPoint row-major mat*vec4(p,1)
+- ValidateSkeletonForSkinning: has_bones true, bones non-empty, parent range [-1,N-1] kNoBoneParent=-1 self-loop parent==i rejeita cycle visited[64]
+- ApplySkinningLBS strict count: positions non-empty normals mismatch, se has_bone_weights false retorna original zero movement ok=true, se true exige bone_weights size == positions size, skeleton validado, boneTransforms size == skeleton bones size strict, sum weight_i*(bone*pos) wsum normalize se !=1 skip invalid bone id fail safe empty weight retorna original, sem GL headers
+
+### (b) Teste TestSkinningLBS com transformação NÃO-TRIVIAL
+- (a) identity bones -> original: 3 vértices com pesos 1.0 e 0.5+0.5 2 bones identity skinned==original
+- (b) self-loop fails safe: Skeleton bone parent==0 self-loop -> !ok, invalid parent 5 out of range -> !ok
+- (c) mesh without bone_weights zero movement: 2 vértices sem pesos retorna original ok
+- (d) NÃO-TRIVIAL rotação 90° Z: cálculo manual rotação Z 90° cos=0 sin=1 transforma (1,0,0)->(0,1,0) matriz row-major [0 -1 0 0; 1 0 0 0; 0 0 1 0; 0 0 0 1] aplicando (1,0,0,1) x'=0 y'=1 z'=0 portanto vértice (1,0,0) deve ir para (0,1,0) após skinning peso 1.0 bone 0, verifica fabs x-0<1e-5 y-1<1e-5 z-0<1e-5
+
+### (c) Saída real
+[ RUN  ] skinning LBS CPU strict (D2)
+[  OK  ] skinning LBS CPU strict (D2)
+
+## D3 — Frustum culling com bounding boxes reais + medição escala real
+
+### (a) Código src/mu/render/cull.hpp/.cpp
+struct Plane { Vec3 normal; float d; };
+struct Frustum { Plane planes[6]; }; // left,right,bottom,top,near,far
+enum class CullResult { kOutside, kInside, kIntersect };
+Frustum FrustumFromViewProjection(const float m[16]); // Gribb-Hartmann sum/diff rows column-major
+CullResult CullBox(const Frustum& f, const Bounds& box); // p-vertex test conservative safe, invalid box -> kIntersect fail safe
+bool IsVisible(const Frustum& f, const Bounds& box); // true para kInside e kIntersect, false só kOutside, invalid true
+float PlaneDistance(const Plane& p, const Vec3& v);
+
+### (b) Testes
+- TestFrustumCull: unitário pontual frustum manual x>=0 x<=10 unbounded Y/Z
+  (a) inside kept box 2..8 kInside IsVisible true
+  (b) outside culled box -8..-2 kOutside IsVisible false, box 12..18 kOutside
+  (c) invalid never culled Bounds valid=false IsVisible true kIntersect fail safe
+- TestFrustumCullRealBounds: unitário com bounds reais Mesh sintético 4 vértices 0..1 ComputeBounds PackMeshForUpload
+  (a) inside 0..1 frustum 0..10 kInside IsVisible true bounds e packed.bounds
+  (b) outside -20..-10 kOutside IsVisible false
+  (c) invalid true kIntersect
+- Medição escala real: /tmp/cull_scale.cpp WalkFiles Data 10090 .bmd BmdProbe BmdV0CDecrypt Printable BmdParseBodyV0A complete extrai body.vertices -> Vec3 -> ComputeBounds bounds reais total com bounds 8406
+  Frustum 0..10 X: total 10090 with_bounds 8406 invalid 0 inside 7 outside 233 intersect 8166 culled 233 culled_ratio 2.77%
+  Frustum identity VP -1..1 clip cube: with_bounds 8406 inside 2 outside 662 intersect 7742 culled_ratio 7.88%
+
+### (c) Saída real
+[ RUN  ] frustum cull
+[  OK  ] frustum cull
+[ RUN  ] frustum cull real bounds (D3)
+[  OK  ] frustum cull real bounds (D3)
+Escala real: total_bmd 10090 with_bounds 8406 invalid 0 inside 7 outside 233 intersect 8166 culled 233 total 8406 culled_ratio 2.77%
+identity VP: with_bounds 8406 inside 2 outside 662 intersect 7742 culled_ratio 7.88%
+
+## D4 — Plano otimização consistente com dados medidos LOD/streaming/draw calls
+
+### (a) Código docs/RENDERING.md §12.6
+Plano com dados medidos:
+- (a) LOD: medido 10.090 BMD 8.406 geometria vértices máximo 22.987 campo u16 teto 65.535 triângulos máximo 39.193 geral 15.390 com ossos malhas máximo 30 geral 9 com ossos bones máximo 63 total 7879 ratio per file 1846,28× 1.792.108 vértices únicos 978.853 triângulos 4.071 meshes sharing 1,64 vs 3 63,9% reenvios, plano Caminho A LOD bloqueado bloqueio #1 cifra 85% Caminho B MSFT_lod glTF
+- (b) Streaming: medido textura soma teórica w*h*4 2.893,80 MB estimativa teórica não medição sem GPU BMD 10.090 8.406 geometria 3.693 bones loose 43,93% 1.186 strict 14,11% 85% cifrado v0x0C bloqueio #1 buffers PackMeshForUpload CPU-side VBO/VAO sem GL, skeleton PackSkeletonForUpload valida parent self-loop cycle visited[64], plano orçamento VRAM LRU/LFU mip sob demanda carregar bounds primeiro depois geometria quando IsVisible true
+- (c) Draw calls: medido sem glGenBuffers/glBufferData sem VBO sem glDrawElements sem indexed sem glGenFramebuffers sem FBO glBegin/glEnd immediate Main.exe client-side glDrawArrays Main.dll re-marshal per draw per frame expandido 67,21 MiB per draw corner sends 2.936.559 unique 1.792.108 reenviados 63,9% frustum culling p-vertex conservative safe IsVisible true invalid fail safe, buffers D1 índices flat drop bad, plano VBO/IBO batching DEC-008 PackMeshForUpload flat vertices+indices pronto glBufferData+glDrawElements agrupar por material 1 textura por mesh sbow06_R.jpg reduzir bind culling antes bind custo 1 comparação vs 6 planos
+
+### (b) Teste
+Não tem teste código, é documentação — validado por existência arquivo e consistência com dados medidos
+
+### (c) Saída real
+Arquivo docs/RENDERING.md §12.6 existe com 59 linhas novas
+
+## D5 — Esqueleto Win32 wglCreateContext BLOCKED
+
+### (a) Código src/mu/platform/win32_window.hpp topo
+// SPDX-License-Identifier: MIT
+// D5 — Esqueleto Win32 + WGL (NÃO COMPILADO, BLOCKED — requer Windows + GPU)
+// Objetivo: documentar sequência correta de chamadas wglCreateContext, sem compilar neste ambiente Linux sem Windows SDK/GPU
+// Sequência correta (Main.exe faz wglCreateContext/wglMakeCurrent em janela GDI com ChoosePixelFormat/SetPixelFormat + SwapBuffers):
+// 1. RegisterClassExW com CS_OWNDC
+// 2. CreateWindowExW
+// 3. GetDC
+// 4. PIXELFORMATDESCRIPTOR pfd = { sizeof, 1, PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER, PFD_TYPE_RGBA, 32, ... }
+// 5. ChoosePixelFormat(hdc, &pfd)
+// 6. SetPixelFormat(hdc, pf, &pfd) — só pode ser chamado 1× por janela no GDI
+// 7. wglCreateContext(hdc)
+// 8. wglMakeCurrent(hdc, hglrc)
+// 9. Loop mensagens: PeekMessage/TranslateMessage/DispatchMessage, timeBeginPeriod(1) ou QueryPerformanceCounter para timing (recomendado QPC, Main.exe usa timeGetTime 1ms)
+// 10. Render: glClear, desenha via VBO/VAO (DEC-008), SwapBuffers(hdc)
+// 11. Cleanup: wglMakeCurrent(nullptr,nullptr), wglDeleteContext, ReleaseDC, DestroyWindow, UnregisterClass
+// Por que BLOCKED: ambiente Linux sem Windows SDK (sem <windows.h>, sem wgl.h), sem GPU, sem OPENGL32.dll, compilar exigiria cross-compile mingw + headers Windows + link opengl32.lib, execução exige Windows real com driver GL, testes automatizados não podem criar janela Win32 nem contexto GL aqui — registrar como BLOCKED com justificativa não PASS/FAIL, não incluir <windows.h> nem <GL/gl.h> para não quebrar build Linux; arquivo é apenas documentação + esqueleto
+// Estado: D5 CONCLUÍDO ciclo12 como esqueleto documentado, BLOCKED para compilação e teste, conforme regra de não inventar testes Windows sem acesso hardware
+
+### (b) Teste TestWin32GLSkeletonBlocked
+- Win32GLConfig width 800 height 600 Win32GLWindow win, CreateGLWindow cfg &win -> !created !win.created BLOCKED Linux sem Windows SDK/GPU, GetWin32GLStatus kBlockedNoWindowsSDK, DestroyGLWindow !created
+
+### (c) Saída real
+[ RUN  ] win32 wgl skeleton BLOCKED (D5)
+[  OK  ] win32 wgl skeleton BLOCKED (D5)
+
+## E1 — Dependências áudio/rede/interface + arquitetura áudio
+
+### (a) Código docs/DEPENDENCIES.md §7 e docs/AUDIO.md
+- Áudio: wzAudio.dll 212KB imports vorbisfile DSOUND WINMM Ogg Vorbis via DirectSound, Audio.dll 35KB imports MSVCP140 VCRUNTIME140 WINHTTP bcrypt WININET, vorbisfile.dll 999KB ogg.dll 53KB Xiph 1.3.x BSD-style, DSOUND 2 imports, WINMM 12 imports, Data/Sound 1.020 wav 211,9MB SFX, 61 mp3 193,8MB +3 ogg música
+- Biblioteca pretendida: miniaudio MIT + stb_vorbis PD/MIT + dr_mp3 PD, estrutura mu/audio/audio.hpp interface AudioEngine, decoder.hpp pluggable, mixer.cpp 32 vozes, integração MainLoop::DoUpdate chama AudioEngine::Update, streaming SFX quando IsVisible true, música streaming buffer duplo, culling SFX posicionais só se visível ou próximo
+
+### (b) Teste
+TestAudioEngine proposto 1.020 checks WAV header duração >0 sem playback BLOCKED sem áudio device, atualmente mutool scan classifica 1.020 WAV
+
+### (c) Saída real
+mutool scan 29.060 files inclui 1.020 WAV, vorbisfile.dll 999KB ogg.dll 53KB presentes CONFIRMADO
+
+## E2 — Main loop + rede estrutura pacotes
+
+### (a) Código src/mu/platform/main_loop.hpp/.cpp e docs/NETWORK.md
+- MainLoop: FrameBudget target_fps target_frame_ms update_ms render_ms present_ms total_ms slack_ms over_budget frame_index, InputState quit_requested, UpdateResult visible_objects culled_objects elapsed_ms, RenderResult draw_calls_prepared triangles_submitted elapsed_ms, PresentResult elapsed_ms, MainLoop ctor target_fps Tick(InputState) retorna FrameBudget ordem update->render->present mede via high_resolution_clock QPC em Windows real, SetTargetFps PredictOverBudget média móvel 30 frames >90% budget History 120 frames
+- Network: WS2_32 32 imports WSASend CONFIRMADO, WININET 15 CRYPT32 33 urlmon 2 IPHLPAPI 1 MAC CONFIRMADO, ListaPatch.txt formato path CRC32 SIZE CONFIRMADO 188 linhas 116 match, Lua ProtocolCore.lua existência CONFIRMADA estrutura interna DESCONHECIDO, pacotes header size+opcode+payload PROVÁVEL baseado conhecimento público MU Online não medição binário protegido, criptografia pacotes BLOQUEADO VMProtect, anti-cheat heartbeat DESCONHECIDO presença CONFIRMADA comportamento BLOQUEADO, servidor valida movimento PROVÁVEL
+
+### (b) Teste TestMainLoopSkeleton
+- Tick target_fps 60 target_frame_ms 16-17 frame_index 0 total_ms>=0 segunda Tick frame_index 1 History size 2 PredictOverBudget false com histórico pequeno SetTargetFps 144 target_frame_ms 6-7
+
+### (c) Saída real
+[ RUN  ] main loop skeleton update/render/present (E2)
+[  OK  ] main loop skeleton update/render/present (E2)
+
+## E3 — Próxima tarefa + fluxo telas
+
+### (a) Código docs/INTERFACE.md e docs/NEXT_TASK.md
+- Fluxo login→server→char→world: Launcher.exe .NET CONFIRMADO 15,6MB, Login Settings.ini [AutoLogin] User Password SaveData plaintext CONFIRMADO 1.011 bytes, Seleção Servidor Data/Local/Filter.bmd ServerList.bmd PROVÁVEL BLOCKED sem Windows/GPU, Seleção Personagem Data/Player/ 2.516 arquivos CONFIRMADO Player/*.bmd com bones 63 max skinning LBS D2 CONFIRMADO, Mundo Data/ 29.060 arquivos 2.372 MB Object1..Object110 Monster 945 NPC 335 Skill 369 Effect 353 Interface 835 etc CONFIRMADO
+- Como consome assets: Login Interface 835 Local 366 Font Tahoma/Arial GDI32 14 USER32 83 wglUseFontBitmapsA CONFIRMADO imports DESCONHECIDO layout, ServerSelect Local Filter.bmd ServerList.bmd BMD BmdProbe BmdBody ComputeBounds PackMeshForUpload D1 culling D3 CONFIRMADO parsing 8.406 BLOQUEADO lista, CharSelect Player 2.516 Item 3.585 Mesh C1 bone_weights Skeleton has_bones skinning LBS D2 rotação 90° não-trivial (0,1,0) buffers D1 VBO/VAO culling D3 CONFIRMADO C1/D1/D2/D3 DESCONHECIDO UI, World Object* Monster NPC Skill Effect Map 79 .map att 105 ozb 100 obj 81 Custom/Script 22 Lua ScriptEffect Effect 6 Cg shaders Terrain 265 classified 100% 97 .att still encrypted BuxCrypt 880 MB/s 40ms map load OztToRgbaTopDown 62,4us median p99 138,6us 2,2× tail frustum culling 8406 bounds reais culled 2,77% a 7,88% escala real streaming bounds primeiro depois geometria quando IsVisible true LOD Caminho A bloqueado bloqueio #1 cifra 85% Caminho B MSFT_lod glTF draw calls 67,21 MiB per draw 2,9M corner sends 63,9% reenvios sem glDrawElements VBO/IBO batching DEC-008 CONFIRMADO medido BLOQUEADO render real
+- Próxima tarefa E3: otimizar BuxCrypt 1 MiB 1135,7us 880,5 MB/s mais lento per-byte 131KB terrain ~150us 265 arquivos ~40ms serial map load gargalo medido load-time e OztToRgbaTopDown 256x256 62,4us median p99 138,6us 4003,6 MB/s BGRA→RGBA+flip vertical puro CPU p99 2,2× median tail hitch 1024x1024 ~1,1ms blocking, OzjProbe já otimizado 179,2us→15,2us 11,79× speedup prova word-at-a-time funciona, ganho mensurável via bench_assets BuxCrypt 880→3000+ MB/s 40ms→<15ms OztToRgbaTopDown 62,4us→~6us só copy ou SIMD 2-4× speedup p99 tail reduzido
+
+### (b) Teste
+Não tem teste código para fluxo telas, é documentação — validado por existência arquivo
+
+### (c) Saída real
+Arquivo docs/INTERFACE.md existe, docs/NEXT_TASK.md existe com E3
+

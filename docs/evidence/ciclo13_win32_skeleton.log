@@ -1,0 +1,77 @@
+# D5 — Esqueleto Win32 — comentário literal topo arquivo + lista verificação Windows real
+# Ciclo13 item7
+
+## Comentário literal topo src/mu/platform/win32_window.hpp
+// SPDX-License-Identifier: MIT
+// D5 — Esqueleto Win32 + WGL (NÃO COMPILADO, BLOCKED — requer Windows + GPU)
+// Objetivo: documentar sequência correta de chamadas wglCreateContext, sem compilar neste ambiente Linux sem Windows SDK/GPU
+//
+// Sequência correta (Main.exe faz wglCreateContext/wglMakeCurrent em janela GDI com ChoosePixelFormat/SetPixelFormat + SwapBuffers):
+// 1. RegisterClassExW com CS_OWNDC (cada janela tem DC próprio, necessário para GL)
+// 2. CreateWindowExW
+// 3. GetDC
+// 4. PIXELFORMATDESCRIPTOR pfd = { sizeof, 1, PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER, PFD_TYPE_RGBA, 32, ... }
+// 5. ChoosePixelFormat(hdc, &pfd)
+// 6. SetPixelFormat(hdc, pf, &pfd) — só pode ser chamado 1× por janela no GDI
+// 7. wglCreateContext(hdc)
+// 8. wglMakeCurrent(hdc, hglrc)
+// 9. Loop mensagens: PeekMessage/TranslateMessage/DispatchMessage, timeBeginPeriod(1) ou QueryPerformanceCounter para timing (recomendado QPC, Main.exe usa timeGetTime 1ms)
+// 10. Render: glClear, desenha via VBO/VAO (DEC-008), SwapBuffers(hdc)
+// 11. Cleanup: wglMakeCurrent(nullptr,nullptr), wglDeleteContext, ReleaseDC, DestroyWindow, UnregisterClass
+//
+// Por que BLOCKED:
+// - Este ambiente é Linux sem Windows SDK (sem <windows.h>, sem wgl.h), sem GPU, sem OPENGL32.dll
+// - Compilar exigiria cross-compile mingw + headers Windows + link opengl32.lib, e execução exige Windows real com driver GL
+// - Testes automatizados não podem criar janela Win32 nem contexto GL aqui — registrar como BLOCKED com justificativa, não como PASS/FAIL
+// - Não incluir <windows.h> nem <GL/gl.h> para não quebrar build Linux; este arquivo é apenas documentação + esqueleto
+//
+// Estado: D5 CONCLUÍDO ciclo12 como esqueleto documentado, BLOCKED para compilação e teste, conforme regra de não inventar testes Windows sem acesso hardware
+
+#ifndef MU_PLATFORM_WIN32_WINDOW_HPP
+#define MU_PLATFORM_WIN32_WINDOW_HPP
+
+// Este header NÃO inclui <windows.h> propositalmente — é esqueleto, não compila em Windows ainda
+// Quando compilar em Windows, incluir <windows.h> e <GL/gl.h> e linkar opengl32.lib
+
+## Comentário literal topo src/mu/platform/win32_window.cpp
+// SPDX-License-Identifier: MIT
+// D5 — Esqueleto implementação BLOCKED
+// Este arquivo NÃO compila em Windows ainda — é esqueleto documentado, retorna BLOCKED neste ambiente
+// Quando portar para Windows, descomentar includes e implementar sequência real
+
+#include "mu/platform/win32_window.hpp"
+
+// NÃO incluir <windows.h> aqui para não quebrar build Linux
+// Em Windows real:
+// #include <windows.h>
+// #include <GL/gl.h>
+// #pragma comment(lib, "opengl32.lib")
+
+namespace mu {
+namespace platform {
+
+bool CreateGLWindow(const Win32GLConfig& /*cfg*/, Win32GLWindow* out) {
+  // Sequência real Windows (documentada em header):
+  // RegisterClassExW(CS_OWNDC)
+  // CreateWindowExW
+
+## Lista do que precisa ser verificado em ambiente Windows real (conforme header)
+- RegisterClassExW com CS_OWNDC (cada janela tem DC próprio necessário para GL)
+- CreateWindowExW
+- GetDC
+- PIXELFORMATDESCRIPTOR pfd = { sizeof, 1, PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER, PFD_TYPE_RGBA, 32, ... }
+- ChoosePixelFormat(hdc, &pfd)
+- SetPixelFormat(hdc, pf, &pfd) — só pode ser chamado 1× por janela no GDI
+- wglCreateContext(hdc)
+- wglMakeCurrent(hdc, hglrc)
+- Loop mensagens: PeekMessage/TranslateMessage/DispatchMessage, timeBeginPeriod(1) ou QueryPerformanceCounter para timing (recomendado QPC, Main.exe usa timeGetTime 1ms)
+- Render: glClear, desenha via VBO/VAO (DEC-008), SwapBuffers(hdc)
+- Cleanup: wglMakeCurrent(nullptr,nullptr), wglDeleteContext, ReleaseDC, DestroyWindow, UnregisterClass
+- Por que BLOCKED: ambiente Linux sem Windows SDK (sem <windows.h>, sem wgl.h), sem GPU, sem OPENGL32.dll, compilar exigiria cross-compile mingw + headers Windows + link opengl32.lib, execução exige Windows real com driver GL, testes automatizados não podem criar janela Win32 nem contexto GL aqui — registrar como BLOCKED com justificativa não PASS/FAIL, não incluir <windows.h> nem <GL/gl.h> para não quebrar build Linux, arquivo é apenas documentação + esqueleto
+- Estado: D5 CONCLUÍDO ciclo12 como esqueleto documentado, BLOCKED para compilação e teste, conforme regra não inventar testes Windows sem acesso hardware
+
+## Status BLOCKED documentado
+- Win32GLStatus enum: kBlockedNoWindowsSDK, kBlockedNoGPU, kBlockedNoDisplay, kOk só em Windows real com GPU
+- TestWin32GLSkeletonBlocked verifica CreateGLWindow falha safe !created !win.created, GetWin32GLStatus kBlockedNoWindowsSDK, DestroyGLWindow !created
+- Makefile adiciona win32_window.cpp como stub compilável Linux que retorna BLOCKED, real Windows compilation BLOCKED
+

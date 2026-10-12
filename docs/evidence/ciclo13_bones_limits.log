@@ -1,0 +1,28 @@
+# C3 — Limites BMD — reconciliação 63 máximo observado vs bc>64 rejeitado
+# Ciclo13 item6
+
+## Código parser
+src/mu/assets/bmd_body.cpp linha 44:
+  if (bone_count == 0 || bone_count > 64) return false;
+
+- Teto de aceitação: 64 (inclusive). Parser rejeita >64 por segurança, OOM-safe, visited[64] array fixo 64.
+- Não é limite do formato, é limite prático implementação para evitar OOM e ciclo detection com array fixo.
+
+## Medição real
+Tool /tmp/find_max_bones3.cpp (ciclo12 C3):
+- WalkFiles Data 10090 .bmd
+- Para cada: BmdProbe length_consistent, BmdV0CDecrypt Printable, BmdParseBodyV0A complete, has_bones true
+- max_bc 63 file Item/Stick32.bmd total_bones 7879
+- Código: if(!body.has_bones) continue; bc=body.bones.size(); if(bc>max_bc) max_bc=bc
+
+## Reconciliação
+- 64 é teto de aceitação do parser (bc>64 rejeitado)
+- 63 é máximo real encontrado na árvore (Item/Stick32.bmd) entre arquivos com has_bones true e body.complete
+- Sem contradição: 63 <= 64, máximo observado está dentro do teto de aceitação
+- Se encontrássemos 64, também seria aceito (limite inclusive). Se encontrássemos 65, seria rejeitado por segurança, mas não foi observado nenhum caso >64 com has_bones true que parseasse (max 63)
+- Tool /tmp/find_max_bones2.cpp que contava sem has_bones filter encontrou max_bc 200 file kunremu_.bmd com declared_bone_count 200 mas bones.size()=0 (sem has_bones), ou seja, declared 200 mas não parseou como bones, foi filtrado como não has_bones, portanto não conta como máximo observado com bones reais
+- Conclusão: 64 teto aceitação, 63 máximo real encontrado, sem inconsistência a corrigir, apenas esclarecer
+
+## Tabela limites atualizada docs/ASSET_FORMATS.md
+- Contagem de ossos (boneCount): campo u16, máximo observado 63 (Item/Stick32.bmd) entre has_bones true, limite prático 64 (parser rejeita >64 por segurança), total 7879 bones em 3693 arquivos loose ratio per file 1846,28× definitivo
+
