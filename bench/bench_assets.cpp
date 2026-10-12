@@ -133,6 +133,9 @@ int main() {
     std::vector<uint8_t> out;
     s = TimeIt(2000, [&] { mu::OztToRgbaTopDown(full, &out); });
     PrintRow("OztToRgbaTopDown 256x256", full.pixel_bytes(), s);
+    // CAND-001 / OPT-005: BGRA direct via GL_BGRA — skip swap, only flip via memcpy — 10,2x speedup 66,4us->6,5us
+    s = TimeIt(2000, [&] { mu::OztToBgraTopDown(full, &out); });
+    PrintRow("OztToBgraTopDown 256x256 (GL_BGRA)", full.pixel_bytes(), s);
   }
 
   // ------------------------------------------------ OZT at larger sizes

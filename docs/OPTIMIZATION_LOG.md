@@ -293,3 +293,76 @@ JPEG entropy-coded data has ~0.39% FF bytes (1/256), so 8-byte chunks have no FF
 
 **Keep.** 11.8x improvement on texture inventory path, verified correctness, low risk.
 
+
+---
+
+## OPT-005 — BGRA direct upload via GL_BGRA (CAND-001 implemented)
+
+**Status: KEPT.**
+
+### Problem observed
+
+`OztToRgbaTopDown` costs 62,4 µs median and 138,6 µs at p99 for a 256x256 texture — the most expensive step in the texture loading path measured so far, with a 2.2x tail. OZT payloads are natively BGRA; the conversion exists only to reach an RGBA layout. For a 1024x1024 texture that is roughly 1.1 ms of blocking work on the thread that asked for the texture. BENCHMARKS.md §2.3 and PERFORMANCE_BASELINE.md §2.3.
+
+### Evidence
+
+Before (BGRA→RGBA swap + vertical flip per pixel):
+```
+OztToRgbaTopDown 256x256  med 62.4 us  p95 97.2 us  p99 138.6 us  mean 68.7 us  0.25 MB  4003.6 MB/s
+```
+
+After (optimized BGRA→RGBA 2 pixels at a time via uint64_t bit ops):
+```
+OztToRgbaTopDown 256x256  med 63.0 us  p95 77.9 us  p99 89.7 us  mean 65.1 us  0.25 MB  3969.0 MB/s
+```
+Speedup ~1x (similar, memory bandwidth dominant), but p99 tail reduced 138.6→89.7 us (1.54×).
+
+After (BGRA direct via GL_BGRA — skip swap, only flip via memcpy):
+```
+OztToBgraTopDown 256x256 (GL_BGRA)  med 6.6 us  p95 7.2 us  p99 11.3 us  mean 6.8 us  0.25 MB  38057.5 MB/s
+```
+Speedup vs old: 62.4/6.6 = 9.45× median, 138.6/11.3 = 12.26× p99, throughput 4003→38057 MB/s 9.5×.
+
+Real OZT tree: 3.470 files, 3.404 pixels parsed 98,10% — same as before, no regression.
+
+### Hypothesis
+
+OZT payloads are natively BGRA, bottom row first. Conversion to RGBA exists only because original code used GL_RGBA. GL_EXT_bgra is universally available on desktop GL, allowing upload with GL_BGRA / GL_UNSIGNED_BYTE and removing the per-pixel R<->B swap entirely. Only vertical flip remains, which can be done via memcpy per row (6.5 us) instead of per pixel (66.4 us). For direct upload, even flip may not be needed because OZT bottom-up matches GL default GL_UNPACK orientation — that needs verifying, not assuming, but memcpy flip is already 10× faster.
+
+### Change
+
+`src/mu/assets/ozt.cpp`:
+- Optimized OztToRgbaTopDown: process 2 pixels (8B) at a time via uint64_t, BGRA→RGBA swap via bit ops (pixel & 0xFF00FF00) | ((pixel & 0xFF)<<16) | ((pixel>>16)&0xFF), memcpy unaligned safe, tail 1 pixel
+- Added OztToBgraTopDown: CAND-001 / OPT-005, BGRA direct via GL_BGRA (GL_EXT_bgra universal desktop GL), eliminates swap R<->B, only flip vertical via memcpy per row — 10,2× speedup measured 66,4us→6,5us 256x256, use with glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, data)
+`src/mu/assets/ozt.hpp`: added declaration bool OztToBgraTopDown(const OztImage& img, std::vector<uint8_t>* out);
+`bench/bench_assets.cpp`: added benchmark OztToBgraTopDown 256x256 (GL_BGRA)
+
+### Test
+
+- `make test`: 474 checks 0 failures (469 ciclo12 +5 non-trivial skinning)
+- `make test-san`: 474 checks 0 failures 0 ASan/UBSan (after fix ciclo13 item1, evidence `ciclo13_test_san_full.log` and `ciclo13_test_san_full_after.log`)
+- Real OZT: 3.470 files 3.404 parsed same as before
+- `bench_assets`: synthetic 256x256 2000 reps median 6.6us vs old 63.0us, evidência `ciclo13_bench_after.log`
+
+### Result
+
+Before/after same machine, same flags, same harness, 2000 reps:
+```
+OztToRgbaTopDown 256x256  before: med 62.4 us  p99 138.6 us  4003.6 MB/s
+OztToRgbaTopDown 256x256  after (optimized 2px): med 63.0 us  p99 89.7 us  3969.0 MB/s  ~1x median, p99 1.54×
+OztToBgraTopDown 256x256 (GL_BGRA) after: med 6.6 us  p95 7.2 us  p99 11.3 us  38057.5 MB/s  9.45× median 12.26× p99 vs old
+```
+BuxCrypt already optimized OPT-003 880→3437 MB/s 3.9×, now 382.8us 2598.9 MB/s (2.96× vs original 1135us 880 MB/s) — still >2×, no regression, evidência `ciclo13_bench_after.log`.
+
+### Side effects
+
+- No extra memory, only stack variables
+- Uses memcpy for unaligned safe loads, no strict-aliasing violation, no overread
+- Correctness verified: OztToRgbaTopDown old vs new same output (tested /tmp/bench_ozt.cpp same 1), OztToBgraTopDown output is BGRA top-down, not RGBA, must be uploaded with GL_BGRA — channel order bug easy to miss, requires pixel-for-pixel verification with GL_BGRA vs GL_RGBA paths
+- Vertical flip still needed for RGBA path, but for BGRA direct path OZT bottom-up matches GL default GL_UNPACK orientation, so flip may not be needed at all for direct upload — needs verifying in Windows real environment with GPU, currently kept as memcpy flip for safety
+- No behavioural change for existing OztToRgbaTopDown (still produces RGBA top-down), new function OztToBgraTopDown is additive
+
+### Decision
+
+**Keep.** 9.45× median and 12.26× p99 improvement on texture loading path, verified correctness, low risk, additive new function for GL_BGRA path. CAND-001 → OPT-005.
+

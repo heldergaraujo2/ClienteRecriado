@@ -37,40 +37,20 @@ struct OztImage {
   uint32_t width = 0;
   uint32_t height = 0;
   uint32_t bits_per_pixel = 0;
-  uint8_t image_type = 0;      ///< From the embedded TGA header.
-  bool has_footer = false;     ///< Whether a 26-byte TGA footer is present.
-
-  /// Bytes present after the pixel payload. 26 is the standard TGA footer;
-  /// 0 and 30 also occur in the reference asset base. Reported rather than
-  /// rejected, because the payload is fully determined by the header.
+  uint8_t image_type = 0;
+  bool has_footer = false;
   std::size_t trailer_size = 0;
-
-  /// Offset of the first pixel byte. Normally 22, but 26 for the variant that
-  /// carries an extra 4-byte marker in front of the signature.
   std::size_t pixel_offset = 0;
-
-  /// Decoded pixels, BGRA order, row 0 = bottom row (TGA convention).
-  /// Empty unless OztRead() is asked to decode.
   std::vector<uint8_t> pixels;
-
   std::size_t pixel_bytes() const {
     return static_cast<std::size_t>(width) * height * (bits_per_pixel / 8);
   }
 };
 
-/// Validates an OZT header and fills in the geometry, without copying pixels.
-/// Use this for inventories and integrity checks; it touches 22 bytes.
 Status OztProbe(ByteView file, OztImage* out);
-
-/// Validates and copies the pixel payload into out->pixels.
 Status OztRead(ByteView file, OztImage* out);
-
-/// Converts the native BGRA bottom-up payload to top-down RGBA, which is what
-/// glTexImage2D wants for GL_RGBA/GL_UNSIGNED_BYTE. Returns false on overflow.
 bool OztToRgbaTopDown(const OztImage& img, std::vector<uint8_t>* out);
-
-/// Writes a valid OZT from RGBA top-down pixels. Used to generate test
-/// fixtures from scratch - the repository contains no original assets.
+bool OztToBgraTopDown(const OztImage& img, std::vector<uint8_t>* out);
 bool OztWriteRgba(uint32_t width, uint32_t height, const uint8_t* rgba,
                   bool with_footer, std::vector<uint8_t>* out);
 
