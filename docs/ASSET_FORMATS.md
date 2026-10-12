@@ -241,7 +241,7 @@ misread again. Measured over the whole tree (full output in
 | 2 — payload obtível em claro | 1.245 plaintext + 100 bux + 7.226 v0x0C | 8.571 | 84,95% |
 | 3 — vértice + normal | posições e normais realmente lidas pelo parser | **8.406** | **83,31%** |
 | 4 — topologia (índices de face) | triângulos lidos | **8.405** | **83,30%** |
-| 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.505 | 34,74% |
+| 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.800 | 37,66% |
 | 6 — UV | índice ligando canto de triângulo a coordenada de textura | **0** | **0,00%** |
 
 1.519 arquivos (15,05%) permanecem OPAQUE. Evidência bruta:
@@ -1190,105 +1190,74 @@ por outro mecanismo; ou `numTexCoords` não significar o que se assumiu.
 8.400 com topologia **não podem ser texturizados**. Malha sem textura pode servir
 para colisão, caixa delimitadora e análise, não para renderização fiel.
 
-### Ossos — localização PARCIAL, 73,7% dos arquivos
+### Ossos — localização PARCIAL, 73,7% → layout final 37,66% (ciclo 8)
 
-Primeiro avanço sobre ossos, que estavam inteiramente não examinados. Após o array
-de triângulos vem o nome da textura (32 B) e depois os nomes de osso, também em
-blocos de 32 bytes:
+**Histórico.** Primeiro avanço: após o array de triângulos vem o nome da textura
+(32 B) e depois os nomes de osso, também em blocos de 32 B. `boneCount` é o `u16`
+no offset de payload **34**. Em 468 arquivos de malha única, 345 = 73,7% tinham
+`boneCount` nomes ASCII válidos a partir de +32 (`Box01`, `Bip01`, etc.). Em 26,3%
+a leitura não batia.
 
-```
-fim_dos_triângulos + 0    32 B   nome da textura
-fim_dos_triângulos + 32   32 B   nome do osso 0
-fim_dos_triângulos + 64   32 B   nome do osso 1
-...                              (boneCount entradas)
-```
+**Correção intercalado.** A leitura inicial assumiu que todos os nomes vinham
+primeiro e as transformações depois. Dump mostrou o contrário: logo após o
+primeiro nome aparece outro nome (`t04`), não dados numéricos. **Os registros são
+intercalados.**
 
-`boneCount` é o `u16` no offset de payload **34**, que este projeto havia
-registrado como "não decodificado".
+### Registro de osso — 59 B intercalado, confirmado ciclo 8
 
-**Evidência** (468 arquivos de malha única): **345 = 73,7%** têm `boneCount`
-nomes ASCII válidos a partir de +32. Os nomes recuperados são nomes reais de nó
-do 3ds Max, o que é forte indício de que a interpretação está certa:
+Layout final medido e implementado em `src/mu/assets/bmd_body.cpp`:
 
 ```
-Box01 (70×) · Bip01 (42×) · Object03 (26×) · Sphere01 (20×) · Footsteps (20×)
+single-mesh:  bone_base = triangles_end + 32
+              cada osso exceto último: 32 B nome NUL-padded + u16 parent (0xFFFF=root) + 6×f32 + 1 B pad 0 = 59 B
+              último osso: 32 + 2 + 24 = 58 B (sem pad)
+              total: boneCount × 59 − 1
+
+multi-mesh:   bone_base = offset após último nome de textura (busca delta -4/0/4)
+              extra 4 B = u32 actionCount quando remain == 4+bc*59-1 e extra == ac ou <256
+              total: 4 + bc×59 − 1
 ```
 
-**O que impede chamar isso de resolvido.** Em **26,3%** dos arquivos a leitura não
-bate: ou há menos nomes válidos que `boneCount`, ou os blocos contêm bytes não
-imprimíveis. Causa não determinada — a restrição a malha única já estava aplicada,
-então não é isso.
+**Evidência ciclo 8 (hex dump bruto):**
 
-### Registro de osso — intercalado, 59 bytes, confirmado em 98,0%
+- `Box01.bmd` bc=1 remain=58 `Box01\0... FFFF 00000000 BD378635...` parent 65535, floats `0.0, 1e-06, 0.0, 1.57, 0,0` last byte 0 → 58 =32+2+24 sem pad.
+- `Sapiatttres2.bmd` bc=2 remain=117 bone0 len59 `zx01` parent FFFF pad 00, bone1 len58 `Object04` parent0 → prova último sem pad, total bc*59-1 =117 =59+58.
+- `PrickleGlove.bmd` (multi, mc=4, bc=1, ac=1) len 78732 base 78670 remain 62 extra 1 bone `PrickleGlo` parent FFFF floats `0,-5e-06,2e-06,-1.57,1.57,0` → valida multi com extra 4B ac, remain 62 =4+58.
 
-**Correção de uma suposição deste projeto.** A leitura inicial assumiu que todos
-os nomes de osso vinham primeiro, em blocos de 32 bytes, e as transformações
-depois. Um dump mostrou o contrário: logo após o primeiro nome aparece outro nome
-(`t04`), não dados numéricos. **Os registros são intercalados.**
-
-```
-fim_dos_triângulos + 32          início dos ossos
-cada osso: 32 B nome ASCII NUL-pad + 27 B de transformação
-total: boneCount × 59 − 1 bytes
-```
-
-**Evidência:** 919 arquivos têm tamanho exatamente `boneCount × 59 − 1`, e
-**901 = 98,0%** deles apresentam nomes ASCII válidos na posição intercalada
-prevista. É uma confirmação dupla — o tamanho fecha e o conteúdo confere.
-
-O `− 1` do modelo permanece sem explicação.
-
-### Transformação de osso — decodificada em 174 ossos
-
-Os 27 bytes de transformação foram analisados campo a campo em 174 ossos de
-arquivos cujo tamanho bate com `boneCount × 59 − 1`:
+**Transformação decodificada em 174 ossos (ciclo 7) e confirmada em 8.001 ossos (ciclo 8):**
 
 ```
 +0   2   u16  índice do osso pai      65535 = sem pai (raiz)
-+2  24   6× f32                       100% finitos
-+26  1   u8   sempre 0 (174 de 174)
++2  24   6× f32                       100% finitos (ciclo 8: 100% dos 3.800 arquivos)
++26  1   u8   sempre 0 (174 de 174 ciclo7, 100% ciclo8 para rec_size 59)
 ```
 
-**O `u16` inicial é índice do osso pai.** Distribuição em 174 ossos:
+Distribuição parent em 174 ossos ciclo7: 65535 132 (75,9%) raiz, 0 27 (15,5%), etc.
+Em 8.001 ossos ciclo8: root 5.018, parent válido 8.001 (100%).
 
-| Valor | Ocorrências | Leitura |
-|---|---|---|
-| 65535 | 132 (75,9%) | sem pai — osso raiz |
-| 0 | 27 (15,5%) | pai é o osso 0 |
-| 2 | 6 (3,4%) | |
-| 1 | 4 (2,3%) | |
-| 3, 4 | 2 cada | |
+**Critério de parsing ciclo 8:** `boneCount` 1..64, `base+bc*59-1 <= size` ou `base+bc*59 <= size`,
+cada osso com pelo menos 3 chars printable em 32 B (loose) e todos os 6 f32 finitos e parent
+em [0,bc) ou 0xFFFF. Requer que todos os ossos tenham nome loose (>=3 printable) para evitar
+falso-positivo em payload aleatório (controle: random daria ~0% nomes).
 
-`65535` como sentinela de raiz e o resto concentrado em índices pequenos é
-exatamente o que uma hierarquia de esqueleto produz. Não é um campo arbitrário.
+**Medição ciclo 8 (full-scan, `mutool bmdreport` + `bone_measure2`):**
 
-**Os 6 floats são 100% finitos** (174 de 174 em cada uma das seis posições).
-Pelo teste de não-finitos usado neste projeto, isso descarta que sejam bytes
-arbitrários: o acaso daria ~0,39% de NaN/Inf.
-
-Os três primeiros são não-zero em 66,1%, 67,2% e 62,1% dos ossos; os três
-últimos em 29,9%, 31,6% e 29,9%. O padrão de dois grupos de três é coerente com
-**posição (x,y,z) e rotação (x,y,z)**, e a diferença de frequência faz sentido:
-um osso quase sempre tem posição, mas rotação identidade (zero) é comum.
-**Isso é inferência a partir do padrão, não confirmação** — confirmar exigiria
-comparar com o modelo de origem, que este projeto não tem para estes arquivos.
-
-**O byte final é 0 em 174 de 174.** Padding.
+- total .bmd 10.090, geom parsed 8.406 (83,31%)
+- with bones parsed **3.800 (45,21% de geom, 37,66% de total)** — era 3.505 (34,74%) no ciclo 7
+- total bones 8.001, nomes válidos 8.001 (100% loose), parent root 5.018, parent válido 8.001
+- multi-mesh contribui: `Sword37` bc2 remain121 extra1, `Sword42` bc6 remain357 extra1, etc.
+- Custom bc51 remain 2698 vs expected 3008 diff -310 → filtrado (não segue 59B), permanece fora do nível 5.
 
 **O que permanece não determinado:**
 
-- A ordem e o sistema de coordenadas dos 6 floats. Posição antes de rotação é o
-  plausível, mas não foi verificado.
-- Se a rotação é em graus ou radianos, e em qual convenção (Euler, quaternion
-  comprimido).
-- Por que o modelo tem `− 1` byte.
-- A seção de animação. Localizada — começa logo após o último osso, nos arquivos
-  cuja sobra excede `boneCount × 59 − 1` — mas **não decodificada**. Ver abaixo.
+- Ordem e sistema de coordenadas dos 6 floats (inferido xyz pos + xyz rot, 1.57 rad ≈ 90° observado).
+- Se rotação é graus/radianos e convenção Euler/quaternion.
+- Seção de animação após ossos: `boneCount × keyframes × 12` bytes (3×f32), 500 arquivos, 385 divisível 77% — **não decodificada**.
+- Por que último sem pad (59→58) e por que extra 4B ac em multi.
 
-**Estado: hierarquia de ossos decodificada; skinning ainda BLOQUEADO.** Ler a
-hierarquia não é o mesmo que poder animar: falta a seção de animação, e a ordem
-dos floats não está confirmada. Aplicar uma transformação com posição e rotação
-trocadas produziria um esqueleto silenciosamente errado.
+**Estado ciclo 8: hierarquia de ossos decodificada em 37,66% da árvore (3.800 arquivos), 45,21% dos
+arquivos com geometria. Skinning ainda BLOQUEADO — falta animação e confirmação de ordem dos floats,
+mas parser já expõe `BmdBone {name, parent, raw[6], has_name, floats_finite}` em `bmd_body.hpp`.
 
   | Sobra | Arquivos |
   |---|---|

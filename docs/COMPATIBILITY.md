@@ -103,7 +103,7 @@ suporte a asset original.
 | 2 — payload obtível em claro | 1.245 plaintext + 100 bux + 7.226 v0x0C | 8.571 | 84,95% |
 | 3 — vértice + normal | posições e normais realmente lidas pelo parser | **8.406** | **83,31%** |
 | 4 — topologia (índices de face) | triângulos lidos | **8.405** | **83,30%** |
-| 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.505 | 34,74% |
+| 5 — ossos parseáveis | registros de osso localizáveis e legíveis | 3.800 | 37,66% |
 | 6 — UV | índice ligando canto de triângulo a coordenada de textura | **0** | **0,00%** |
 
 1.519 arquivos (15,05%) permanecem OPAQUE no nível 2.
@@ -127,7 +127,7 @@ por teste, não inferida:
   inteira por `TestTopologyIsSubsetOfGeometry`.
 - **Os níveis 3, 4 e 5 não formam cadeia.** O nível 5 (ossos) não exige
   `meshCount == 1`; um arquivo pode ter ossos sem topologia e vice-versa.
-  Comparar 8.400 com 3.505 como se o segundo fosse subconjunto do primeiro é
+  Comparar 8.400 com 3.800 como se o segundo fosse subconjunto do primeiro é
   errado.
 
 #### Por que o nível 4 caía 50,6% — e não cai mais (corrigido no ciclo 5)

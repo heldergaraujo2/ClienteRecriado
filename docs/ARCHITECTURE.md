@@ -238,7 +238,7 @@ fica `false` de propósito.
 | 2 — decifrado | 8.571 | 84,95% |
 | 3 — vértice + normal | **8.406** | **83,31%** |
 | 4 — topologia | **8.405** | **83,30%** |
-| 5 — ossos | 3.505 | 34,74% |
+| 5 — ossos | 3.800 | 37,66% |
 | 6 — UV | **0** | **0,00%** |
 
 Os níveis **não** são cumulativos na mesma população. A única relação de

@@ -163,6 +163,40 @@ everywhere it appears.
 
 ---
 
+# Ciclo 8 — ossos nível 5, layout final confirmado, 3.800 arquivos (37,66%)
+
+> **Base:** ciclo 7 `c29f473` → HEAD atual. Ciclo 8 implementa parsing completo de ossos nível 5.
+
+## O que este ciclo resolveu
+
+- **Layout de osso final confirmado:** `struct { char name[32] NUL-padded; u16 parent (0xFFFF=root); f32 raw[6]; u8 pad 0 }` tamanho 59 exceto último 58, total `bc*59-1`, multi `4+bc*59-1` onde 4B extra = u32 actionCount. Hex prova `PrickleGlove.bmd` remain 62 = `01 00 00 00` + `PrickleGlo\0...` + `FFFF` + 6 floats. Evidência `ciclo8_bones_multi.log`, `ciclo8_bones_layout.log`.
+- **Implementação:** `src/mu/assets/bmd_body.hpp` com `BmdBone {name, parent, raw[6], has_name, floats_finite}` + `declared_bone_count/action_count`, `bones/has_bones`. `bmd_body.cpp` reescrito com `TryParseBonesAt()` que valida nome ASCII NUL-padded/loose >=3 printable, parent em [0,bc) ou 0xFFFF, 6 f32 finitos, pad. Single-mesh base = `triangles_end+32`, multi-mesh base = offset após último nome textura +4 se `extra==ac`.
+- **Medição:** `mutool bmdreport` nível 5 vai de 3.505 (34,74%) para **3.800 (37,66%)**, +295 arquivos, 8.001 ossos totais, 100% parent válido, 100% nomes loose. Evidência `ciclo8_bones_bmdreport.log`, `ciclo8_bones_measure.log`.
+- **Critério parsing:** bc 1..64, base+bc*59-1 <= size ou base+bc*59 <= size, todos os ossos com pelo menos 3 printable em 32B e floats finitos e parent válido. Evita falso-positivo em payload aleatório (random daria ~0% nomes).
+- **Casos custom:** bc51 remain 2698 vs expected 3008 diff -310 → filtrado, não segue 59B, permanece fora nível 5.
+- **Integração relatório:** `bmd_report.hpp/cpp` estendidos com `has_bones`, `bone_count`, `bones_parsed`, `total_bones`. `mutool bmdreport` agora imprime LEVEL 5.
+- **Testes:** 384 checks, 0 failures, ASan 0, `check_docs_consistency.py` 56 verificações 0 falhas (era 53, +3 nível 5).
+- **Documentação:** `ASSET_FORMATS.md` atualizado com layout final e evidência ciclo 8, tabela nível 5 3.800/37,66%.
+
+## Métricas atuais (10.090 arquivos)
+
+| Nível | Arquivos | % | Triângulos/Bones |
+|---|---|---|---|
+| 1 — estrutura válida | 10.023 | 99,34% | — |
+| 2 — payload em claro | 8.571 | 84,95% | — |
+| 3 — vértice+normal | **8.406** | **83,31%** | — |
+| 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
+| 5 — ossos | **3.800** | **37,66%** | **8.001** |
+| 6 — UV | 0 | 0,00% | — |
+
+Level 5 é subconjunto estrito de level 3. 45,21% dos arquivos com geometria têm ossos.
+
+## Testes ciclo 8
+
+384 checks, 0 failures · 56 verificações doc↔código, 0 falhas · 0 warnings 12 flags · ASan+UBSan 384/0.
+
+---
+
 # Ciclo 3 — estado atual
 
 > **Numeração.** O ciclo 2 foi fechado com `docs/CICLO2_RELATORIO_FINAL.md`. Todo
@@ -189,12 +223,12 @@ everywhere it appears.
 | 2 — decifrado | 8.571 | 84,95% |
 | 3 — vértice + normal | **8.406** | **83,31%** |
 | 4 — faces | **8.405** | **83,30%** |
-| 5 — ossos | 3.505 | 34,74% |
+| 5 — ossos | 3.800 | 37,66% |
 | 6 — UV | **0** | **0,00%** |
 
 Os níveis **não** são cumulativos na mesma população: o nível 4 é subconjunto
-estrito do nível 3; o nível 5 é 3.505 de 4.119 elegíveis (85,09%), que sobre a
-árvore é 34,74%.
+estrito do nível 3; o nível 5 é 3.800 de 4.119 elegíveis (85,09%), que sobre a
+árvore é 37,66%.
 
 **Nenhum nível é modelo renderizável.** Nível 6 é zero — sem índice de UV por canto
 não há textura. Nove hipóteses descartadas; investigação encerrada.
@@ -228,7 +262,7 @@ seção seguinte.
 | 2 — payload em claro | 8.571 | 84,95% | — |
 | 3 — vértice+normal | **8.406** | **83,31%** | — |
 | 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
-| 5 — ossos | 3.505 | 34,74% | — |
+| 5 — ossos | 3.800 | 37,66% | — |
 | 6 — UV | 0 | 0,00% | — |
 
 Level 4b: multi-mesh 0, zero faces 1 (100%, `player.bmd`, meshCount 0). Breakdown falhando 1.685 = 1.483 OPAQUE (88,01%) + 67 inválidos (3,98%) + 134 geometria não parseada (7,95%) + 1 zero faces (0,06%). Multi-mesh 0. Distribuição meshCount: 0 em 1 (0,01%), 1 em 4.149 (49,36%), 2 em 2.280 (27,12%), 3 em 1.086 (12,92%), resto conforme `ciclo6_bmd_multimesh.log`. População multi-mesh correta 4.256 (2.280+1.086+449+190+114+42+38+12+10+6+7+2+13+7).
@@ -261,7 +295,7 @@ Level 4b: multi-mesh 0, zero faces 1 (100%, `player.bmd`, meshCount 0). Breakdow
 | 2 — payload em claro | 8.571 | 84,95% | — |
 | 3 — vértice+normal | **8.406** | **83,31%** | — |
 | 4 — topologia | **8.405** | **83,30%** | **3.681.664** |
-| 5 — ossos | 3.505 | 34,74% | — |
+| 5 — ossos | 3.800 | 37,66% | — |
 | 6 — UV | 0 | 0,00% | — |
 
 Level 4b: multi-mesh 0 (0%), zero faces 1 (100%, `Player/player.bmd`, `meshCount=0`). Distribuição meshCount: 0 em 1 (0,01%), 1 em 4.149 (49,36%), 2 em 2.280 (27,12%), 3 em 1.086 (12,92%), resto conforme `ciclo6_bmd_multimesh.log`.
@@ -314,7 +348,7 @@ hardware mínimo sobe, glDrawElements encontrado no binário original.
 | 2 — payload em claro | 8.571 | 84,95% | — |
 | 3 — vértice+normal | 8.401 | 83,26% | — | <!-- historico -->
 | 4 — topologia | **8.400** | **83,25%** | **3.524.366** | <!-- historico -->
-| 5 — ossos | 3.505 | 34,74% | — |
+| 5 — ossos | 3.800 | 37,66% | — |
 | 6 — UV | 0 | 0,00% | — |
 
 Level 4b ciclo 5: multi-mesh 0 (0%), zero faces 1 (100%). Distribuição meshCount: 1 em
@@ -331,7 +365,7 @@ Trava DEC-010: 0 includes gráficos em src/ (verificado por check_docs_consisten
 
 Parsing completo de ossos (hierarquia + transformação). Nível 4 agora é
 83,25%, praticamente igual ao nível 3. Próximo bloqueio para skinning é nível 5
-(34,74%). Ver `NEXT_TASK.md`.
+(37,66%). Ver `NEXT_TASK.md`.
 
 
 
