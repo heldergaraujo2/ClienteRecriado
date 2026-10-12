@@ -27,6 +27,7 @@
 #define MU_ASSETS_TERRAIN_HPP
 
 #include <cstdint>
+#include <vector>
 
 #include "mu/assets/format.hpp"
 
@@ -69,6 +70,39 @@ bool TerrainTryBuxDecrypt(std::vector<uint8_t>* data);
 /// Fraction of bytes below 0x40 in the first n bytes. Terrain attribute and map
 /// payloads are dominated by small values; ciphertext is not.
 double SmallByteDensity(const uint8_t* data, std::size_t n);
+
+/// Height field for one world, read from TerrainHeight.OZB.
+///
+/// Note the filename: terrain HEIGHT is not in the .att files. Those carry tile
+/// attributes. The height lives in a separate OZB per world, and despite the
+/// extension it is NOT bux-encrypted -- it opens with zeroes, and applying the
+/// bux key would turn those zeroes into spurious height. The classifier in this
+/// module already decides by content rather than extension, and this file is a
+/// documented case proving that choice right.
+struct TerrainHeight {
+  /// One byte of height per grid cell, row-major, kTerrainGridSize per row.
+  std::vector<uint8_t> cells;
+  /// Bytes before the grid. Contents not determined; kept so a round trip does
+  /// not silently drop data this project cannot yet interpret.
+  std::size_t prefix_size = 0;
+  bool complete = false;
+};
+
+/// Reads a TerrainHeight file. The body is taken as the trailing
+/// kTerrainGridSize^2 bytes, which is what measurement supports: the file is
+/// 66,618 bytes, 1,082 of prefix plus 65,536 of body.
+///
+/// The vertical scale is unknown, so these values are relative rather than
+/// metric. Rendering needs a scale factor this project has not established.
+Status TerrainParseHeight(ByteView file, TerrainHeight* out);
+
+/// Mean absolute difference between horizontally adjacent cells.
+///
+/// This is the test that distinguishes height from arbitrary bytes: terrain is a
+/// smooth field, so the measured value is around 4.4 against roughly 85.3 for
+/// independent random bytes. Exposed so the evidence in docs/ASSET_FORMATS.md can
+/// be reproduced by a test rather than only by a script.
+double TerrainHeightSmoothness(const TerrainHeight& h);
 
 }  // namespace mu
 

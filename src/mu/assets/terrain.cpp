@@ -101,3 +101,43 @@ bool TerrainTryBuxDecrypt(std::vector<uint8_t>* data) {
 }
 
 }  // namespace mu
+
+namespace mu {
+
+Status TerrainParseHeight(ByteView file, TerrainHeight* out) {
+  *out = TerrainHeight{};
+  const std::size_t body =
+      static_cast<std::size_t>(kTerrainGridSize) * kTerrainGridSize;
+  if (file.size < body) {
+    return Status::Make(Status::kTruncated,
+                        "terrain height file shorter than one grid");
+  }
+  // The grid is the trailing part of the file. Everything before it is a prefix
+  // whose contents are not determined, so it is measured and reported rather
+  // than interpreted.
+  out->prefix_size = file.size - body;
+  out->cells.assign(file.data + out->prefix_size, file.data + file.size);
+  out->complete = out->cells.size() == body;
+  return out->complete ? Status::Ok()
+                       : Status::Make(Status::kTruncated,
+                                      "terrain height grid incomplete");
+}
+
+double TerrainHeightSmoothness(const TerrainHeight& h) {
+  const std::size_t n = h.cells.size();
+  if (n <= kTerrainGridSize) return 0.0;
+  // Horizontal neighbours only. Including vertical ones would mix two different
+  // strides into one number and make the result harder to compare against the
+  // ~85.3 expected for independent random bytes.
+  unsigned long long sum = 0;
+  std::size_t count = 0;
+  for (std::size_t i = 1; i < n; ++i) {
+    const int a = h.cells[i];
+    const int b = h.cells[i - 1];
+    sum += static_cast<unsigned long long>(a > b ? a - b : b - a);
+    ++count;
+  }
+  return count ? static_cast<double>(sum) / static_cast<double>(count) : 0.0;
+}
+
+}  // namespace mu

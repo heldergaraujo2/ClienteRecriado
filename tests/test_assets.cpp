@@ -583,6 +583,7 @@ void TestMeshFromBmd();
 void TestComputeBounds();
 void TestFrustumCull();
 void TestFrustumFromViewProjection();
+void TestTerrainHeight();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -611,6 +612,7 @@ const Test kTests[] = {
     {"compute bounds", TestComputeBounds},
     {"frustum cull", TestFrustumCull},
     {"frustum from view projection", TestFrustumFromViewProjection},
+    {"terrain height", TestTerrainHeight},
     {"bmd body parses verified layout", TestBmdBodyParsesVerifiedLayout},
     {"bmd body rejects bad input", TestBmdBodyRejectsBadInput},
     {"bmd report levels are separate", TestBmdReportLevelsAreSeparate},
@@ -1336,6 +1338,73 @@ void TestFrustumFromViewProjection() {
   straddle.max = {1.5f, 0.25f, 0.25f};
   straddle.valid = true;
   CHECK(mu::IsVisible(f, straddle));
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// TerrainHeight.OZB. The point of the smoothness assertion is that it is the
+// same kind of test that validated the texcoord array and the v0x0C cipher: a
+// property arbitrary bytes do not have, with the chance expectation stated. A
+// test that only checked the length would pass on any file of the right size.
+// ---------------------------------------------------------------------------
+namespace {
+
+void TestTerrainHeight() {
+  const std::size_t kBody = 256u * 256u;
+
+  // A smooth synthetic field: height varies slowly across the grid, which is
+  // what real terrain does. Built here so the expected smoothness is known
+  // without reading a real asset.
+  std::vector<std::uint8_t> file(1082u + kBody, 0);
+  for (std::size_t y = 0; y < 256; ++y) {
+    for (std::size_t x = 0; x < 256; ++x) {
+      file[1082u + y * 256u + x] =
+          static_cast<std::uint8_t>((x + y) / 4);  // gentle ramp
+    }
+  }
+  const mu::ByteView view(file.data(), file.size());
+  mu::TerrainHeight h;
+  const mu::Status st = mu::TerrainParseHeight(view, &h);
+  CHECK(st.ok());
+  CHECK(h.complete);
+  CHECK_EQ(1082u, h.prefix_size);
+  CHECK_EQ(kBody, h.cells.size());
+
+  // Smooth field: adjacent difference is small. The ramp advances by 1 every
+  // four cells, so horizontal steps are 0 or 1.
+  const double smooth = mu::TerrainHeightSmoothness(h);
+  CHECK(smooth < 1.0);
+
+  // The same size filled with independent bytes must score far worse. This is
+  // the control: without it, "smooth" proves nothing.
+  std::vector<std::uint8_t> noisy = file;
+  std::uint32_t s = 12345;
+  for (std::size_t i = 1082; i < noisy.size(); ++i) {
+    s = s * 1103515245u + 12345u;
+    noisy[i] = static_cast<std::uint8_t>((s >> 16) & 0xff);
+  }
+  mu::TerrainHeight hn;
+  CHECK(mu::TerrainParseHeight(mu::ByteView(noisy.data(), noisy.size()), &hn).ok());
+  const double noisy_smooth = mu::TerrainHeightSmoothness(hn);
+  // Independent uniform bytes average about 85.3. Allow a wide margin and still
+  // assert the gap is large: this is the assertion that carries the finding.
+  CHECK(noisy_smooth > 60.0);
+  CHECK(noisy_smooth > smooth * 20.0);
+
+  // A file shorter than one grid is a failure, not a partial success.
+  std::vector<std::uint8_t> tiny(100, 0);
+  mu::TerrainHeight ht;
+  CHECK(!mu::TerrainParseHeight(mu::ByteView(tiny.data(), tiny.size()), &ht).ok());
+  CHECK(!ht.complete);
+
+  // Exactly one grid, no prefix, must work.
+  std::vector<std::uint8_t> bare(kBody, 7);
+  mu::TerrainHeight hb;
+  CHECK(mu::TerrainParseHeight(mu::ByteView(bare.data(), bare.size()), &hb).ok());
+  CHECK_EQ(0u, hb.prefix_size);
+  CHECK_EQ(kBody, hb.cells.size());
+  CHECK(mu::TerrainHeightSmoothness(hb) == 0.0);
 }
 
 }  // namespace
