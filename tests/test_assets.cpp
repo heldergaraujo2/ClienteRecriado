@@ -21,6 +21,7 @@
 #include "mu/assets/bmd_body.hpp"
 #include "mu/assets/mesh.hpp"
 #include "mu/render/cull.hpp"
+#include "mu/render/buffers.hpp"
 #include "mu/assets/bmd_report.hpp"
 #include "mu/assets/format.hpp"
 #include "mu/assets/manifest.hpp"
@@ -596,6 +597,7 @@ void TestBmdBonesExtremeCount();
 void TestBmdBonesTruncated();
 void TestBmdBonesOverflow();
 void TestMeshInternalRepresentation();
+void TestPackMeshForUpload();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -641,6 +643,7 @@ const Test kTests[] = {
     {"bmd bones truncated payload", TestBmdBonesTruncated},
     {"bmd bones overflow check", TestBmdBonesOverflow},
     {"mesh internal representation (C1)", TestMeshInternalRepresentation},
+    {"pack mesh for upload (D1)", TestPackMeshForUpload},
 };
 
 }  // namespace
@@ -1964,6 +1967,67 @@ void TestMeshInternalRepresentation() {
     }
     CHECK(std::fabs(sum-1.0f) < 0.001f);
   }
+}
+
+
+
+void TestPackMeshForUpload() {
+  // D1: empacotamento Mesh -> PackedBuffers para VBO/VAO, sem GL
+  mu::Mesh mesh;
+  mesh.name = "Tri";
+  mesh.positions = {{0,0,0}, {1,0,0}, {0,1,0}};
+  mesh.normals = {{0,0,1}, {0,0,1}, {0,0,1}};
+  mesh.texcoords = {{0,0}, {1,0}, {0,1}};
+  mesh.indices = {0,1,2};
+  mesh.has_texcoords = true;
+  mu::BoneWeight w0; w0.bone=0; w0.weight=1.0f;
+  mesh.bone_weights = {{w0}, {w0}, {w0}};
+  mesh.has_bone_weights = true;
+
+  auto packed = mu::PackMeshForUpload(mesh);
+  CHECK(packed.ok);
+  CHECK(packed.vertices.size()==3);
+  CHECK(packed.indices.size()==3);
+  CHECK(packed.has_texcoords);
+  CHECK(packed.has_bone_weights);
+  CHECK(packed.bounds.valid);
+  // Byte-by-byte verification against known case
+  // Vertex 0: pos 0,0,0 normal 0,0,1 uv 0,0 bone 0 weight 1.0
+  CHECK(packed.vertices[0].px==0.0f && packed.vertices[0].py==0.0f && packed.vertices[0].pz==0.0f);
+  CHECK(packed.vertices[0].nx==0.0f && packed.vertices[0].ny==0.0f && packed.vertices[0].nz==1.0f);
+  CHECK(packed.vertices[0].u==0.0f && packed.vertices[0].v==0.0f);
+  CHECK(packed.vertices[0].bone_ids[0]==0 && packed.vertices[0].bone_weights[0]==1.0f);
+  CHECK(packed.vertices[0].weight_count==1);
+  // Vertex 1: pos 1,0,0 uv 1,0
+  CHECK(packed.vertices[1].px==1.0f && packed.vertices[1].u==1.0f);
+  // Indices
+  CHECK(packed.indices[0]==0 && packed.indices[1]==1 && packed.indices[2]==2);
+
+  // Test without texcoords and bone weights
+  mu::Mesh mesh2;
+  mesh2.positions = {{0,0,0}, {1,0,0}};
+  mesh2.normals = {{0,0,1}, {0,0,1}};
+  mesh2.indices = {0,1,0};
+  mesh2.has_texcoords = false;
+  mesh2.has_bone_weights = false;
+  auto packed2 = mu::PackMeshForUpload(mesh2);
+  CHECK(packed2.ok);
+  CHECK(packed2.vertices[0].u==0.0f && packed2.vertices[0].v==0.0f);
+  CHECK(packed2.vertices[0].weight_count==0);
+  CHECK(packed2.has_texcoords==false);
+  CHECK(packed2.has_bone_weights==false);
+
+  // Test bad indices dropped
+  mu::Mesh mesh3;
+  mesh3.positions = {{0,0,0}, {1,0,0}, {0,1,0}};
+  mesh3.normals = {{0,0,1}, {0,0,1}, {0,0,1}};
+  mesh3.indices = {0,1,2, 0,1,5}; // second triangle has bad index 5
+  mesh3.has_texcoords = false;
+  mesh3.has_bone_weights = false;
+  auto packed3 = mu::PackMeshForUpload(mesh3);
+  CHECK(packed3.ok);
+  CHECK(packed3.indices.size()==3); // only first triangle kept
+  CHECK(packed3.bad_indices==1);
 }
 
 
