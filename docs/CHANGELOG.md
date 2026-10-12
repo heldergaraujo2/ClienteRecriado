@@ -92,6 +92,59 @@ refinement.
   [`SECURITY.md`](SECURITY.md).
 - 12 `Thumbs.db` files (677,376 bytes) are shipped in the asset tree.
 
+## Ciclo 5 — auditoria do ciclo 4 (itens 1-5) e extensão multi-mesh
+
+### Corrigido (auditoria item 1)
+
+- **DEC-008 comparava custo de carregamento com orçamento de quadro.** A expansão
+  índice→flat é custo de CARREGAMENTO, não por quadro. O que se repete por quadro
+  é o **volume** de submissão (1,29×, 63,9% envios redundantes) com custo BLOCKED
+  (driver/barramento). Corrigido em `bench/bench_assets.cpp`, `DECISIONS.md`
+  §3.1 e `RENDERING.md` §3.1, com justificativa técnica citando `RENDERING.md`
+  §3: "re-marshalled per draw" é driver relendo array, não reconstruindo.
+- **Evidência regenerada:** `ciclo4_dec008_submission_cost.log` agora separa
+  CARREGAMENTO (19.190,9 µs vs 3.493,1 µs, razão 5,49×, 5,14×–5,62× entre execuções,
+  N=5) de VOLUME POR QUADRO (67,21 MiB vs 52,22 MiB, 1,29×). Limite da conclusão
+  corrigido para não afirmar FPS.
+
+### Adicionado (auditoria itens 2-4)
+
+- **Texto da decisão sem ambiguidade** em `DECISIONS.md`: blockquote "VBO + VAO
+  com buffers indexados é o piso mínimo" + 4 condições objetivas de revisão
+  (Parte B, conteúdo pesado, hardware mínimo, glDrawElements encontrado).
+- **Nota de amostra pequena** em `PERFORMANCE_BASELINE.md` §2.1a: "Amostra
+  pequena (N=5), indicativa, não definitiva" + limites que importam mais que N.
+- **Verificação automatizada doc↔código** `tools/check_docs_consistency.py`:
+  36 verificações, 0 falhas. Roda `mutool bmdreport` e falha se número na linha
+  da tabela diverge, número proibido sem `<!-- historico -->`, include gráfico
+  em src/, nível 4 > nível 3. Testes de injeção: número divergente, percentual
+  divergente, nível 6 não zero, número proibido — todos falham; restaurado passa.
+  Comando documentado em `AGENTS.md` §4 como obrigatório.
+
+### Adicionado (auditoria item 5 — multi-mesh)
+
+- **Parser multi-mesh** em `bmd_body.cpp`: loop sobre `meshCount`, cada malha com
+  header 14 B (vc,nc,ntc,ntri,texIdx,u48,u50) + arrays + 32 B nome textura.
+  Nome sistematicamente 4 bytes antes (end-4) — busca com delta.
+- **Resultado:** nível 4: 4.149 (41,12%) → **8.400 (83,25%)**, +4.251 arquivos,
+  triângulos 1.221.030 → **3.524.366**. Nível 3: 8.406 → 8.401 (-5, 0,06%).
+  Level 4b: multi-mesh 0 (0%), zero faces 1 (100%).
+- **Evidência:** `ciclo5_bmd_multimesh.log` — full-scan sem números digitados.
+
+### Corrigido
+
+- `mutool.cpp:461` dizia "Single-mesh files only" após extensão multi-mesh.
+  Corrigido para "Multi-mesh supported since ciclo 5".
+- `COMPATIBILITY.md` e `ASSET_FORMATS.md` atualizados para 8.401/8.400 e
+  3.524.366 triângulos, com causa corrigida e distribuição meshCount atualizada.
+
+### Testes
+
+373 checks, 0 falhas (era 372 — multi-mesh agora conta) · 36 verificações docs,
+0 falhas · 0 warnings 12 flags.
+
+---
+
 ## Ciclo 4 — pendências da auditoria do ciclo 3 e DEC-008 completa
 
 ### Adicionado

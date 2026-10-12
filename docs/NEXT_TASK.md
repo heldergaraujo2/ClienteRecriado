@@ -1,87 +1,75 @@
 # Próxima tarefa
 
-> **Ciclo 4 fechado** com `docs/CICLO4_RELATORIO.md`. Atualizado no mesmo ciclo
-> em que mudou, conforme a regra permanente.
+> **Ciclo 5 fechado** com `docs/CICLO5_RELATORIO.md`. Base `7d10a18` → HEAD
+> `e32a659` + relatório (7 commits). Auditoria do ciclo 4 resolvida.
 
 ## O que mudou neste ciclo
 
-`DEC-008` estava incompleta e era o que bloqueava tudo. **Foi completada** em
-`DECISIONS.md` (DEC-008-A), com medição real onde este ambiente permite medir e
-`BLOQUEADO` declarado onde não permite. A trava de `DEC-010` sobre código de
-backend **deixou de valer por ausência de decisão** — mas continua valendo por
-ausência de ambiente, e esse é um motivo diferente que precisa ficar separado.
+**Multi-mesh foi implementado.** Nível 4 foi de 4.149 (41,12%) para **8.400
+(83,25%)**, +4.251 arquivos, triângulos de 1.221.030 para 3.524.366. Evidência em
+`evidence/ciclo5_bmd_multimesh.log`. A causa de 100% da queda (meshCount !=1)
+agora é 0% — só 1 arquivo sem topologia, que declara zero faces.
 
-> **Correção do ciclo 5.** Uma versão anterior comparava a expansão com o
-> orçamento de um quadro. **Era inválido**: a expansão é custo de
-> **carregamento**. O que se repete por quadro é o **volume** de submissão, e o
-> custo dele está `BLOCKED`.
+DEC-008 foi corrigida: expansão é custo de CARREGAMENTO (19.190,9 µs, 5,49×,
+5,14×–5,62× entre execuções, N=5), não por quadro. Volume por quadro é quantidade
+exata (1,29×, 63,9% redundantes) com custo BLOCKED.
 
-O critério de validação tem três partes: **A** (carregamento, medido — expandir
-custa **5,49×** mais que subir o buffer indexado), **A'** (volume por quadro,
-quantidade exata — **1,29×** e **63,9%** de envios redundantes) e **B** (custo
-por quadro, `BLOQUEADA` — sem contexto GL).
+Verificação automatizada `check_docs_consistency.py` construída (36 verificações,
+0 falhas) com testes de injeção que provam não ser vacuosa.
 
-## Próxima tarefa: estender o parser BMD para multi-mesh
+## Próxima tarefa: parsing completo de ossos
 
-**Por que esta, e não outra.** É a única descoberta do ciclo 4 que virou
-trabalho conhecido em vez de pesquisa:
+**Por que esta, e não outra.** Nível 4 agora é 83,25%, praticamente igual ao
+nível 3 (83,26%). O gargalo para malha montável foi removido. Próximo bloqueio
+para renderização com skinning é nível 5 (ossos): 3.505 arquivos (34,74%) hoje.
 
-- O item 1 da auditoria mediu que a queda do nível 3 para o nível 4 (8.406 →
-  4.149, perda de 50,6%) tem **causa única e total: `meshCount != 1` em 100,00%
-  dos 4.257 arquivos**. Nenhum falha por tamanho, versão ou campo ausente.
-- A causa é **deste parser**, não do formato. Ele lê um bloco de triângulos; com
-  várias malhas a mesma sequência se repete e ler um bloco leria o errado em
-  silêncio.
-- A sequência por malha é a mesma já verificada. Falta iterar e somar offsets.
-  É **implementação conhecida**, não investigação.
-- Recupera **4.257 arquivos** — mais do que o parser lê hoje (4.149).
-- É testável neste ambiente: não depende de GPU, contexto nem Windows.
+Já temos:
+
+- Nomes de osso em 73,7% dos arquivos de malha única (345/468), nomes reais do
+  3ds Max (Box01, Bip01 etc)
+- Registro de osso intercalado 59 B, confirmado em 98,0% (901/919) com tamanho
+  `boneCount*59-1`
+- Transformação: u16 pai (65535=raiz 75,9%) + 6 f32 100% finitos + 1 B zero,
+  hierarquia decodificada
+- Animação: 385/500 =77,00% com `boneCount*keyframes*12` bytes
+
+O que falta:
+
+- Ordem dos 6 floats: posição (x,y,z) + rotação (x,y,z) é inferência a partir de
+  frequência de não-zero (66% vs 30%), não confirmação
+- Sistema de coordenadas, graus vs radianos, convenção Euler
+- Por que modelo tem -1 byte
+- Seção de animação: 3 floats por keyframe, 2 constantes +1 variando, não
+  determinado o que representam
+
+É testável sem GPU: parsing puro CPU, evidência automática como em ciclo 5.
 
 **Critério de aceite:**
 
-1. `mutool bmdreport` nível 4 acima de 4.149, com o denominador na saída
-2. `skip_multi_mesh` caindo de 4.257 para o resto irredutível, medido e não estimado
-3. Testes novos cobrindo malha com 2 e com 3 blocos, gerados em fixture
-4. `TestTopologyIsSubsetOfGeometry` continuando a passar — a exaustividade das
-   causas de pulo é o que impede uma quinta causa de aparecer em silêncio
-5. Zero regressão: 372 checks atuais continuam passando, ASan+UBSan limpo
+1. `mutool bmdreport` nível 5 acima de 3.505, com evidência bruta versionada
+2. `make test` e `make test-san` limpos (373 checks)
+3. `check_docs_consistency.py` 0 falhas
+4. Documentação de ordem dos floats com evidência, não inferência
+5. Zero regressão em nível 4 (8.400)
 
-**O que isso NÃO destrava, e precisa ser dito antes de começar:** o nível 6 (UV)
-continua em **zero**. Um modelo sem textura pode ser desenhado; um modelo
-texturizado não. Multi-mesh aumenta a malha montável, não a renderizável.
+**O que isso NÃO destrava:** nível 6 (UV) continua zero. Modelo com esqueleto
+pode ser animado sem textura; texturizado não.
 
 ## Depois disso
 
 | Tarefa | Por quê | Bloqueio |
 |---|---|---|
-| Ordem dos 6 `f32` de transformação de osso | "posição antes de rotação" é inferência, não medição. Sem isso, esqueleto animado é chute | nenhum — testável aqui |
-| Conteúdo dos 3 `f32` de keyframe | 77,00% dos arquivos têm o bloco; o conteúdo não foi determinado | nenhum — testável aqui |
-| Escala vertical da altura de terreno | três caminhos fechados; sem ela, terreno tem proporção errada | nenhum — testável aqui |
-| Índice de UV por canto | **nove** hipóteses descartadas. Critério de parada ativo: não reabrir sem hipótese genuinamente nova | investigação, não implementação |
-| Backend VBO/VAO | decisão registrada, implementação conhecida | **GPU/contexto — BLOQUEADO** |
-| Validação da parte B de DEC-008 | benchmark em contexto real | **GPU/contexto — BLOQUEADO** |
-| Baseline de FPS/frametime/VRAM | objetivo declarado do projeto | **GPU — BLOQUEADO** |
-
-## O que não adianta retomar
-
-**As nove hipóteses de UV.** Todas testadas e descartadas, com controle válido
-em cada uma. A nona (bytes 24..59 do triângulo como coordenadas UV por canto)
-deu 79,42% em [0,1] — contra bytes aleatórios (24,82%) pareceria forte, razão
-3,2×. **Esse controle é inválido**: a pergunta é "estes `f32` são UV", então o
-controle correto é outro `f32` que não seja UV. O array de normais dá 70,34%,
-razão de apenas **1,13×**. Rejeitada. A regra ficou registrada: **o controle tem
-que ser da mesma classe do que se testa.**
-
-**Criptoanálise dos 1.519 opacos.** XOR periódico (P=1..32), CFB, CBC-like,
-rolling-sub e chaves derivadas já foram tentados. Sem fonte nova, não há o que
-fazer.
+| Índice de UV por canto | 9 hipóteses descartadas, critério de parada | investigação |
+| Escala vertical altura | 3 caminhos fechados | testável aqui |
+| Backend VBO/VAO | decisão registrada | GPU/contexto BLOCKED |
+| Parte B DEC-008 | benchmark real | GPU/contexto BLOCKED |
+| Baseline FPS/VRAM | objetivo do projeto | GPU BLOCKED |
 
 ## Verificação de conformidade, permanente
 
 ```
+python3 tools/check_docs_consistency.py   # 36 verificações, 0 falhas
 grep -rn "glGenBuffers\|wglCreateContext\|glDrawElements\|GL/gl.h" src/
 ```
 
-Deve retornar **apenas comentários**. Se retornar código, ele foi escrito sem
-ambiente que o execute e deve ser revertido. Verificado no ciclo 4: uma
-ocorrência, comentário em `mesh.hpp:20`, zero includes gráficos em `src/`.
+Deve retornar apenas comentários. Verificado no ciclo 5: 0 includes gráficos.

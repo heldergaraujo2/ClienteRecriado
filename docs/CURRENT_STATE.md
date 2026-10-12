@@ -203,6 +203,64 @@ seção seguinte.
 
 ---
 
+# Ciclo 5 — estado atual (auditoria ciclo 4, itens 1-5)
+
+> **Base:** `7d10a18` (fim ciclo 4) → HEAD `e32a659` (6 commits). Auditoria do
+> ciclo 4 exigiu 5 esclarecimentos antes de fechar DEC-008 e iniciar multi-mesh.
+
+## O que este ciclo resolveu
+
+| Item da auditoria | Resultado |
+|---|---|
+| 1 — natureza da medição DEC-008 | **Corrigido.** Expansão é custo de CARREGAMENTO (19.190,9 µs, 5,49×), não por quadro. Volume por quadro é quantidade exata (1,29×, 63,9% redundantes) com custo BLOCKED. Evidência regenerada por `gen_dec008_evidence.py` N=5. |
+| 2 — texto final da decisão em DECISIONS.md | **Registrado.** Blockquote com "VBO + VAO com buffers indexados é o piso mínimo" + 4 condições objetivas de revisão (Parte B, conteúdo pesado, hardware mínimo, glDrawElements encontrado). |
+| 3 — rotular tamanho da amostra | **Feito.** `PERFORMANCE_BASELINE.md` §2.1a: "Amostra pequena (N=5), indicativa, não definitiva" + limites que importam mais que N. |
+| 4 — verificação automatizada doc↔código | **Construída.** `tools/check_docs_consistency.py` 36 verificações, 0 falhas. Falha se número na linha da tabela diverge, número proibido sem marcador, include gráfico em src/, nível 4 > nível 3. Testes de injeção provam não ser vacuosa. Comando documentado em `AGENTS.md` §4. |
+| 5 — extensão multi-mesh | **Concluída.** Parser estendido para `meshCount>1`. Nível 4: 4.149 (41,12%) → **8.400 (83,25%)**, +4.251 arquivos, triângulos 1.221.030 → 3.524.366. Evidência `ciclo5_bmd_multimesh.log`. |
+
+## DEC-008 — texto final, sem ambiguidade
+
+> **Decisão: VBO + VAO com buffers indexados (`GL_ARRAY_BUFFER` +
+> `GL_ELEMENT_ARRAY_BUFFER` + `glDrawElements`) é o piso mínimo do pipeline de
+> renderização da reconstrução.** Immediate mode e submissão não indexada estão
+> excluídos como caminho de produção. Permanecem OpenGL; não há troca de API.
+
+Justificativa: carregamento 5,49× (19.190,9 µs vs 3.493,1 µs, N=5, 5,14×–5,62×),
+volume por quadro 1,29× e 63,9% envios redundantes — quantidade exata, custo
+BLOCKED.
+
+Condições de revisão: Parte B menor que volume, conteúdo pesado sai do escopo,
+hardware mínimo sobe, glDrawElements encontrado no binário original.
+
+## Métricas atuais (10.090 arquivos)
+
+| Nível | Arquivos | % | Triângulos |
+|---|---|---|---|
+| 1 — estrutura válida | 10.023 | 99,34% | — |
+| 2 — payload em claro | 8.571 | 84,95% | — |
+| 3 — vértice+normal | 8.401 | 83,26% | — |
+| 4 — topologia | **8.400** | **83,25%** | **3.524.366** |
+| 5 — ossos | 3.505 | 34,74% | — |
+| 6 — UV | 0 | 0,00% | — |
+
+Level 4b: multi-mesh 0 (0%), zero faces 1 (100%). Distribuição meshCount: 1 em
+4.149 (49,39%), 2 em 2.277 (27,10%), 3 em 1.086 (12,93%), resto conforme
+`ciclo5_bmd_multimesh.log`.
+
+## Testes
+
+373 checks, 0 failures · 36 verificações doc↔código, 0 falhas · 0 warnings 12 flags.
+
+Trava DEC-010: 0 includes gráficos em src/ (verificado por check_docs_consistency).
+
+## Próxima tarefa
+
+Parsing completo de ossos (hierarquia + transformação). Nível 4 agora é
+83,25%, praticamente igual ao nível 3. Próximo bloqueio para skinning é nível 5
+(34,74%). Ver `NEXT_TASK.md`.
+
+---
+
 # Ciclo 4 — estado atual
 
 > **Numeração.** O ciclo 3 foi fechado com `docs/CICLO3_RELATORIO.md`. Este ciclo
