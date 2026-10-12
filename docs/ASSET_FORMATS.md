@@ -971,8 +971,25 @@ então não é isso.
 
 **O que não foi determinado:**
 
-- O registro de transformação de cada osso. Nos dumps aparecem floats logo após
-  os nomes, mas sem estrutura identificada.
+- O registro de transformação de cada osso. Medido em 759 arquivos com nomes
+  válidos, o que resta após os blocos de nome é:
+
+  | Sobra | Arquivos |
+  |---|---|
+  | 26 bytes | 627 |
+  | 53 bytes | 60 |
+  | 368 bytes | 23 |
+  | 80 bytes | 9 |
+
+  A concentração em 26 bytes para arquivos de um osso é forte e sugere um bloco
+  de **26 bytes por osso** após todos os nomes — não 24, como daria um conjunto
+  simples de 6 floats. Para dois ossos a sobra é 53, e não 52: **um byte de
+  diferença que este projeto não explicou.**
+
+  Sem fechar essa conta não é possível afirmar o layout. 26 bytes não se
+  decompõem em floats de forma inteira (6×4 = 24, sobram 2), o que sugere um
+  campo `u16` — possivelmente o índice do osso pai — seguido de 6 floats.
+  **Isso é hipótese, não resultado.**
 - A hierarquia pai/filho.
 - A seção de animação, que vem depois dos ossos.
 - Por que 26,3% falham.
