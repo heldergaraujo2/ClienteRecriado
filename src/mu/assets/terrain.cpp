@@ -112,15 +112,18 @@ Status TerrainParseHeight(ByteView file, TerrainHeight* out) {
     return Status::Make(Status::kTruncated,
                         "terrain height file shorter than one grid");
   }
-  // Most TerrainHeight files in the reference tree (47 of 76) are 8-bit BMP
-  // images whose pixel data IS the height grid. The rest (29) are a prefix plus
-  // a raw grid.
+  // All 76 TerrainHeight files in the reference tree are the same format: an
+  // 8-bit BMP whose pixel data IS the height grid, behind a four-byte duplicated
+  // prefix. This replaced an earlier description that split them into "47 BMP"
+  // and "29 raw grid", which measurement refuted: the 29 are 4 + 1078 + 65536
+  // bytes with an entirely zero prefix, i.e. the same BMP with its header
+  // cleared. 1078 is exactly 14 (file header) + 40 (DIB) + 1024 (256x4 palette).
   //
-  // The BMP-headed ones carry a four-byte duplicated prefix: the file opens with
-  // "BM" plus two bytes, and the real BMP header starts at offset 4. Measured on
-  // all 47, the header at offset 4 has size matching the remaining bytes in 44 of
-  // them, with pixoff 1078, DIB size 40, 256x256, 8 bpp. This is the same
-  // duplicated-prefix pattern the OZJ format in this client uses.
+  // The duplicated prefix means the real header starts at offset 4, not 0.
+  // Measured on the 47 files whose header is legible, offset 4 gives a size
+  // matching the remaining bytes in 44 of them, with pixoff 1078, DIB 40,
+  // 256x256, 8 bpp. This is the same duplicated-prefix pattern the OZJ format in
+  // this client uses.
   //
   // An earlier version of this function read the header at offset 0, got bpp 0
   // and pixoff 0, and fell back to reading the trailing bytes. That fallback
@@ -156,18 +159,14 @@ Status TerrainParseHeight(ByteView file, TerrainHeight* out) {
     }
     out->header_ignored = true;
   }
-  // Fallback: take the body from the end of the file.
+  // No legible header, so take the body from the end of the file. In a BMP of
+  // this shape the pixel data is the trailing 65,536 bytes anyway, so both paths
+  // land on the same bytes -- which is why the two branches survived as long as
+  // they did without producing a wrong answer.
   //
-  // Measured over the reference tree this covers the 29 files whose header is
-  // zeroed. Their size is exactly 4 + 1078 + 65536, which is an 8-bit BMP with
-  // the duplicated prefix, and their prefix is all zeroes in 29 of 29 -- so they
-  // are almost certainly the same format as the BMP-headed files, just with the
-  // header cleared. That is a hypothesis, not a confirmed decode.
-  //
-  // Both paths land on the same bytes, because in a BMP of this shape the pixel
-  // data is also the trailing 65,536. So this is a simplification opportunity
-  // rather than a bug: the output was already correct, the split just does not
-  // match the format.
+  // This covers the 29 files whose header is zeroed. header_ignored stays false
+  // for them, correctly: the flag means "looked like a BMP but no header could be
+  // read", and these do not look like a BMP at offset 0 at all.
   out->prefix_size = file.size - body;
   out->cells.assign(file.data + out->prefix_size, file.data + file.size);
   out->complete = out->cells.size() == body;
