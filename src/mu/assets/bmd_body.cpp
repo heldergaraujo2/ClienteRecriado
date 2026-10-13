@@ -225,6 +225,9 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
     if (payload.size >= kBmdTriangleCountOffset + 2) {
       texcoord_count = ReadU16LE(payload.data + kBmdTexCoordCountOffset);
       triangle_count = ReadU16LE(payload.data + kBmdTriangleCountOffset);
+      // These cursors point at the float payload inside each vertex/normal
+      // record, four bytes after the record start. Subtract that leading
+      // node/padding word when locating the following UV/triangle arrays.
       triangles_offset = required + texcoord_count * 8 - 4;
       triangles_end = triangles_offset + triangle_count * kBmdTriangleRecordSize;
       if (triangle_count > 0 && triangles_end >= triangles_offset && triangles_end <= payload.size) {
@@ -297,7 +300,6 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
     std::size_t offset = kBmdMeshCountOffset + 6;
     std::size_t total_vertices = 0;
     std::size_t total_normals = 0;
-    std::size_t total_triangles = 0;
     out->vertices.reserve(1024);
     out->normals.reserve(1024);
     out->triangles.reserve(1024);
@@ -340,6 +342,8 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
         if (tc_start > payload.size || (ntc!=0 && add > payload.size - tc_start)) {
           out->topology_skip = BmdTopologySkip::kDoesNotFit; break;
         }
+        // n_start/tc_start are float-data cursors, not record starts. The
+        // following array begins four bytes before the cursor arithmetic ends.
         tri_start = tc_start + add - 4;
       }
       {
@@ -439,14 +443,12 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
         first.corners[1] = corners[1];
         first.corners[2] = corners[2];
         out->triangles.push_back(first);
-        ++total_triangles;
         if (polygon_size == 4) {
           BmdTriangle second;
           second.corners[0] = corners[0];
           second.corners[1] = corners[2];
           second.corners[2] = corners[3];
           out->triangles.push_back(second);
-          ++total_triangles;
         }
       }
       total_vertices+=vc; total_normals+=nc;
