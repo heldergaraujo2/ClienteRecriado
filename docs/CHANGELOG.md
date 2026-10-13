@@ -542,3 +542,13 @@ adotada: **`NOT EXECUTED`**, não "preservada".
 - Fixed the multi-mesh test setup to restore a valid polygon-size byte after the preceding truncated-array test.
 - Fixed the topology-report fixture to populate a triangle record instead of appending an all-zero record that the parser correctly skips.
 - The owner's run at `794645f` reported 560 checks and 8 failures; the updated fixtures in `84dbdcc` have not yet been executed on the target PC.
+
+## 2026-10-13 — BMD topology fixture layout correction
+
+- The owner reran the suite at `751d9b6`: 560 checks, 6 failures, all in the
+  topology report fixture. The single-mesh fixture placed its triangle four
+  bytes after the accepted cursor-adjusted start, and the multi-mesh case only
+  changed the global mesh count on a single-mesh payload.
+- Updated the single-mesh fixture's appended-array size and constructed the
+  multi-mesh report fixture with the existing `MakeMultiMeshBody` helper.
+- Commit `49b2be3` is pending owner-run regular and sanitizer validation.
