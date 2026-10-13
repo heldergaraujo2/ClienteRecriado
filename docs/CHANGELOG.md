@@ -439,3 +439,10 @@ adotada: **`NOT EXECUTED`**, não "preservada".
 ### Next
 - Audit the existing BMD and texture paths to select one legitimate, verifiable model/texture pair without crossing the documented cipher blockers.
 - Plan an integrated Windows GPU render of that asset; measure performance only after visual correctness is established.
+
+
+## 2026-10-13 — source audit for first original-asset GPU slice
+
+- Added `docs/ASSET_GPU_SLICE_AUDIT.md` documenting confirmed importer/texture limitations, the unverified Axe11/Axes06 diagnostic pairing, and the next evidence required before GPU integration.
+- Linked the audit from `docs/NEXT_TASK.md` and updated `docs/CURRENT_STATE.md`.
+- No C++ source, original game assets, or local files were changed. No build, unit test, full reference-tree scan, or target-PC run was performed as part of this GitHub-side audit. Existing D3D11/D3D12 smoke results remain isolated triangle tests only.
