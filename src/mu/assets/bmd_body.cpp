@@ -268,6 +268,7 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
             if (c.normal < 0 || static_cast<std::size_t>(c.normal) >= normal_count) ++out->out_of_range_normals;
           }
         }
+        if (out->triangles.empty()) out->topology_skip = BmdTopologySkip::kDoesNotFit;
       } else if (triangle_count == 0) {
         out->topology_skip = BmdTopologySkip::kZeroFaces;
       } else {
