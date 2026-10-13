@@ -62,7 +62,7 @@ The two smoke tests validate basic API/device/window/present paths only. They ar
 
 ## Target-PC D3D12 result (2026-10-13)
 
-The user ran the existing D3D12 executable on an AMD Radeon RX 6600 and visually confirmed the triangle. Console output reported 8147 MiB dedicated video memory via DXGI, debug layer unavailable/disabled, and `D3D12 smoke test: clean shutdown.` after closing the window normally. This confirms the isolated smoke path only. No FPS, frame-time distribution, original-asset rendering, or production API choice is established. D3D11 baseline build/run remains NOT EXECUTED.
+The user ran the existing D3D12 executable on an AMD Radeon RX 6600 and visually confirmed the triangle. Console output reported 8147 MiB dedicated video memory via DXGI, debug layer unavailable/disabled, and `D3D12 smoke test: clean shutdown.` after closing the window normally. This confirms the isolated smoke path only. No FPS, frame-time distribution, original-asset rendering, or production API choice is established. The D3D11 baseline has since also passed its isolated target-PC smoke test; see the D3D11 result below.
 
 
 ## Target-PC D3D11 result (2026-10-13)
