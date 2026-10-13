@@ -3,6 +3,25 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
+## 2026-10-13 — BMD v0x0A topology parser correction
+
+### Changed
+
+- Corrected the triangle-array cursor by four bytes, accounting for the parser's
+  float-data cursor being four bytes after the beginning of vertex/normal records.
+- Read polygon size and separate vertex, normal, and candidate UV-index tables
+  from the 64-byte record; split quads into two triangles.
+- Added synthetic tests for the corrected record layout and two-mesh index bases.
+
+### Validation status
+
+- Source changes and test fixtures are published to the fixed session branch.
+- `make`, `make test`, `make test-san`, documentation consistency, and the
+  Windows preview **have not yet been rerun** after the change.
+- The prior cycle-17 full-tree metrics are historical baseline data until
+  regenerated with the corrected parser. No full-tree compatibility or GPU model
+  render is claimed.
+
 ## 2026-10-12 — cycle-17 audit and recovery reconciliation
 
 ### Changed
