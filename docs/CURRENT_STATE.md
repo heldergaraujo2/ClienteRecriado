@@ -4,6 +4,18 @@ This snapshot separates **probe**, structural validation, decoding, semantics,
 and verified rendering. The repository contains a C++17 asset library and
 inspection tools; **it is not yet a playable Windows client**.
 
+## Immediate update — BMD v0x0A topology correction (2026-10-13)
+
+The parser has been updated on `arena/1d9c1f53-clienterecriado` to correct the
+four-byte triangle-array offset, decode vertex/normal index tables from the
+64-byte polygon record, and triangulate quads. Synthetic regression coverage
+was added, including two meshes. This is a source-level change only at present:
+`make`, `make test`, `make test-san`, the documentation consistency check,
+and the Windows D3D11 preview have **NOT BEEN EXECUTED after this change**.
+Cycle-17 whole-tree metrics below are pre-fix baseline values, not confirmed
+post-fix measurements. The next action is to pull the branch and run the checks
+listed in `NEXT_TASK.md`; do not claim the model-preview milestone yet.
+
 ## Executive summary
 
 - Reference `heldergaraujo2/Cliente` is read-only. Its observed HEAD at the start
