@@ -446,3 +446,20 @@ adotada: **`NOT EXECUTED`**, não "preservada".
 - Added `docs/ASSET_GPU_SLICE_AUDIT.md` documenting confirmed importer/texture limitations, the unverified Axe11/Axes06 diagnostic pairing, and the next evidence required before GPU integration.
 - Linked the audit from `docs/NEXT_TASK.md` and updated `docs/CURRENT_STATE.md`.
 - No C++ source, original game assets, or local files were changed. No build, unit test, full reference-tree scan, or target-PC run was performed as part of this GitHub-side audit. Existing D3D11/D3D12 smoke results remain isolated triangle tests only.
+
+
+## 2026-10-13 — experimental D3D11 BMD preview source
+
+### Added
+
+- Added an isolated D3D11 preview for plaintext BMD v0x0A, reusing the existing
+  parser/importer and uploading validated mesh indices to GPU buffers.
+- Added a Windows PowerShell build script and instructions for target-PC
+  validation.
+
+### Not yet verified
+
+- The new source has not been compiled or run on the target Windows PC in this
+  session. It is untextured and does not establish UV/material association,
+  animation, skinning, or playable-client status. See
+  [D3D11_BMD_PREVIEW.md](D3D11_BMD_PREVIEW.md).
