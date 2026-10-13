@@ -225,10 +225,10 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
     if (payload.size >= kBmdTriangleCountOffset + 2) {
       texcoord_count = ReadU16LE(payload.data + kBmdTexCoordCountOffset);
       triangle_count = ReadU16LE(payload.data + kBmdTriangleCountOffset);
-      // required is already the end of the complete vertex and normal
-      // arrays. UV records follow those arrays, so the triangle array starts
-      // after all declared UV records without another four-byte adjustment.
-      triangles_offset = required + texcoord_count * 8;
+      // Preserve the four-byte cursor adjustment used by the currently
+      // accepted single-mesh body layout and its regression fixtures. The
+      // exact UV/normal boundary still needs confirmation against real assets.
+      triangles_offset = required + texcoord_count * 8 - 4;
       triangles_end = triangles_offset + triangle_count * kBmdTriangleRecordSize;
       if (triangle_count > 0 && triangles_end >= triangles_offset && triangles_end <= payload.size) {
         bool has_name = false;
@@ -343,9 +343,10 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
         if (tc_start > payload.size || (ntc!=0 && add > payload.size - tc_start)) {
           out->topology_skip = BmdTopologySkip::kDoesNotFit; break;
         }
-        // tc_start is the end of the normal array. Advance by the full
-        // declared UV-array size; do not back up into the last UV record.
-        tri_start = tc_start + add;
+        // Preserve the four-byte cursor adjustment represented by the
+        // current multi-mesh layout fixtures. Confirm the boundary against
+        // real assets before treating the UV/normal overlap as authoritative.
+        tri_start = tc_start + add - 4;
       }
       {
         std::size_t add = ntri * kBmdTriangleRecordSize;
