@@ -127,6 +127,8 @@ class Renderer {
     WaitForSingleObject(event_,INFINITE);
   }
   void Shutdown() {
+    if (shutdown_) return;
+    shutdown_ = true;
     if (queue_ && fence_) WaitGpu();
     if (event_) { CloseHandle(event_); event_=nullptr; }
     std::wprintf(L"D3D12 smoke test: clean shutdown.\n");
@@ -202,7 +204,7 @@ class Renderer {
   ComPtr<ID3D12CommandAllocator> allocator_; ComPtr<ID3D12GraphicsCommandList> list_;
   ComPtr<ID3D12RootSignature> root_; ComPtr<ID3D12PipelineState> pso_; ComPtr<ID3D12Fence> fence_;
   D3D12_VERTEX_BUFFER_VIEW vbv_{}; UINT rtvStep_=0; UINT64 fenceValue_=0;
-  HANDLE event_=nullptr; bool debug_=false;
+  HANDLE event_=nullptr; bool debug_=false; bool shutdown_=false;
 };
 
 } // namespace
