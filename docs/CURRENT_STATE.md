@@ -243,3 +243,13 @@ The product owner confirmed the primary target is **high practical performance o
 - Confirmed the mesh importer intentionally leaves UVs unavailable; texture-name recognition does not by itself prove association. The prior Axe11/Axes06 CPU diagnostic remains an unverified pairing with planar mapping.
 - No C++ implementation change or semantic UV/material discovery is claimed. This audit did not run local builds/tests or execute anything on the target Windows PC. Those checks remain required in the corresponding environments.
 - Next work: find a discriminating, legitimate control for UV/material semantics; if none is available without crossing the documented cipher blockers, preserve the blocker rather than guessing.
+
+
+## Experimental BMD-to-D3D11 preview source (2026-10-13)
+
+Added an isolated preview program and PowerShell build script for plaintext
+BMD v0x0A. It reuses the current parser/importer and sends only validated
+triangle indices to D3D11 with a diagnostic solid colour. This is not yet a
+verified build or run: no target-PC compiler/runtime result has been observed
+for this new program. It does not decode UV/material mapping, textures, animation
+or skinning and is not a playable client. See [D3D11_BMD_PREVIEW.md](D3D11_BMD_PREVIEW.md).
