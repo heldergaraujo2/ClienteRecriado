@@ -46,7 +46,7 @@ If it builds and runs successfully, it proves basic Win32 window creation, D3D12
 
 ## Evidence checklist for the target PC
 
-Save output in docs/evidence/d3d12_smoke_<date>.log (do not commit proprietary assets or secrets):
+Save output in docs/evidence/d3d12_smoke_<date>.log and D3D11 output in docs/evidence/d3d11_smoke_<date>.log (do not commit proprietary assets or secrets):
 - Windows edition/build and architecture;
 - MSVC version and Windows SDK version;
 - adapter name, dedicated-memory report, driver version/date and D3D feature level;
@@ -55,4 +55,9 @@ Save output in docs/evidence/d3d12_smoke_<date>.log (do not commit proprietary a
 - successful window/triangle observation, present-loop duration and clean shutdown;
 - any device-removal/debug-layer errors.
 
-After success, implement an equivalent minimal D3D11 triangle and compare both on the same machine. Record implementation time/complexity, correctness, CPU submission time, median/p95/p99 frame times across repeatable runs, stability and driver behavior. Keep vsync/present settings identical. A triangle comparison is only an API smoke baseline, not representative game FPS; final renderer performance requires real, semantically verified game assets and controlled scenes.
+After the D3D12 smoke test passed on the target PC, an isolated D3D11 triangle baseline was added at `platform/windows/d3d11_triangle.cpp`, built by `scripts/build_d3d11_smoke.ps1`. Build and run that baseline on the same machine next. Compare both on the same machine. Record implementation time/complexity, correctness, CPU submission time, median/p95/p99 frame times across repeatable runs, stability and driver behavior. Keep vsync/present settings identical. A triangle comparison is only an API smoke baseline, not representative game FPS; final renderer performance requires real, semantically verified game assets and controlled scenes.
+
+
+## Target-PC D3D12 result (2026-10-13)
+
+The user ran the existing D3D12 executable on an AMD Radeon RX 6600 and visually confirmed the triangle. Console output reported 8147 MiB dedicated video memory via DXGI, debug layer unavailable/disabled, and `D3D12 smoke test: clean shutdown.` after closing the window normally. This confirms the isolated smoke path only. No FPS, frame-time distribution, original-asset rendering, or production API choice is established. D3D11 baseline build/run remains NOT EXECUTED.
