@@ -528,3 +528,10 @@ adotada: **`NOT EXECUTED`**, não "preservada".
   session. It is untextured and does not establish UV/material association,
   animation, skinning, or playable-client status. See
   [D3D11_BMD_PREVIEW.md](D3D11_BMD_PREVIEW.md).
+
+
+## 2026-10-13 — BMD triangle offset regression follow-up
+
+- Restored the four-byte UV/normal-boundary adjustment in both single- and multi-mesh triangle paths to match the current synthetic regression fixtures; real-asset confirmation remains required.
+- Guarded triangle fixture assertions against dereferencing an empty triangle vector, so a parser regression reports failures without crashing the test process.
+- The owner's run after the preceding offset change failed in the single-mesh triangle fixture under both normal and ASan/UBSan builds. Latest follow-up tests are pending on the owner's PC.
