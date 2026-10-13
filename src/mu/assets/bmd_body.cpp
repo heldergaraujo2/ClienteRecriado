@@ -225,10 +225,10 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
     if (payload.size >= kBmdTriangleCountOffset + 2) {
       texcoord_count = ReadU16LE(payload.data + kBmdTexCoordCountOffset);
       triangle_count = ReadU16LE(payload.data + kBmdTriangleCountOffset);
-      // These cursors point at the float payload inside each vertex/normal
-      // record, four bytes after the record start. Subtract that leading
-      // node/padding word when locating the following UV/triangle arrays.
-      triangles_offset = required + texcoord_count * 8 - 4;
+      // required is already the end of the complete vertex and normal
+      // arrays. UV records follow those arrays, so the triangle array starts
+      // after all declared UV records without another four-byte adjustment.
+      triangles_offset = required + texcoord_count * 8;
       triangles_end = triangles_offset + triangle_count * kBmdTriangleRecordSize;
       if (triangle_count > 0 && triangles_end >= triangles_offset && triangles_end <= payload.size) {
         bool has_name = false;
@@ -343,9 +343,9 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
         if (tc_start > payload.size || (ntc!=0 && add > payload.size - tc_start)) {
           out->topology_skip = BmdTopologySkip::kDoesNotFit; break;
         }
-        // n_start/tc_start are float-data cursors, not record starts. The
-        // following array begins four bytes before the cursor arithmetic ends.
-        tri_start = tc_start + add - 4;
+        // tc_start is the end of the normal array. Advance by the full
+        // declared UV-array size; do not back up into the last UV record.
+        tri_start = tc_start + add;
       }
       {
         std::size_t add = ntri * kBmdTriangleRecordSize;
