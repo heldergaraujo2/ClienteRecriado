@@ -3,6 +3,24 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
+## 2026-10-13 — BMD triangle-array offset follow-up
+
+### Changed
+
+- Removed the extra four-byte subtraction from the single-mesh and multi-mesh
+  triangle-array offsets. Both calculations already started from the end of the
+  preceding arrays; the subtraction could point into the preceding UV record.
+- Updated parser comments and continuity/test-result documents to explain the
+  failure evidence and distinguish the pre-fix result from pending validation.
+
+### Validation status
+
+- The owner's forced pre-fix build/test reported 560 checks and 8 failures,
+  concentrated in the BMD multi-mesh triangle and topology-summary fixtures.
+- **Post-fix tests have not yet run.** The source correction is not considered
+  validated until `make -B test` and `make test-san` pass on the new commit.
+- No Windows preview source or original game asset was changed by this fix.
+
 ## 2026-10-13 — isolated orbital-camera foundation for BMD preview
 
 ### Added
