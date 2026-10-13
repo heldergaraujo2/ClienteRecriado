@@ -19,7 +19,7 @@ If `make` is unavailable on Windows, run the portable build/test commands in
 the Linux development environment or the documented equivalent; do not skip the
 Windows preview check. Preserve local edits to
 `platform/windows/d3d11_bmd_preview.cpp` and its `.backup` file. Rebuild the
-preview with `.scripts\build_d3d11_bmd_preview.ps1`, then run it against the
+preview with `.\scripts\build_d3d11_bmd_preview.ps1`, then run it against the
 same local `agnecklace.bmd`. Record exact compiler output, parser counts,
 dropped-triangle count, visible result, exit status, and `git status`. Do not
 report success until the new tests pass and the model actually appears.
@@ -121,14 +121,33 @@ same-class control; do not label statistical scores as semantic discoveries.
 Do not modify or bypass the reference client.
 
 
-## New experimental step — untextured BMD geometry preview
+## Experimental BMD preview and parallel camera helper
 
-An experimental D3D11 preview source and build script now exist at
+The D3D11 preview source and build script are
 `platform/windows/d3d11_bmd_preview.cpp` and
-`scripts/build_d3d11_bmd_preview.ps1`. This is source-only until compiled and
-run on Windows. It accepts plaintext BMD v0x0A only and deliberately renders
-validated geometry in one solid colour; it does not establish UVs, materials,
-textures, animation, skinning, or a playable client. Follow
-[`D3D11_BMD_PREVIEW.md`](D3D11_BMD_PREVIEW.md) for the target-PC validation
-steps. Do not advance the milestone until the actual build and visible model
-result are recorded.
+`scripts/build_d3d11_bmd_preview.ps1`. The preview accepts plaintext BMD v0x0A
+only and draws validated geometry in a solid diagnostic colour. The separately
+recorded D3D11 triangle smoke is not a model-preview result. The task owner
+reports a local `agnecklace.bmd` run, but this checkout has no exact preview
+build/run log; record the command, counts, visible result and exit status before
+using it as acceptance evidence. Preserve the owner's working preview file and
+backup; do not change it during the current parallel validation.
+
+A standalone `mu::render::OrbitCamera` helper now exists in
+`src/mu/render/orbit_camera.hpp/.cpp`. Its Linux C++17 tests pass, but it is not
+wired into D3D11 and does not handle window messages. After the pending parser
+validation is complete and the preview edits are safe to integrate, the next
+viewer step is to retain object-space vertices, derive the target/initial range
+from validated bounds, feed left-drag and wheel deltas to the helper, and create
+D3D11 left-handed view/projection matrices in the preview adapter. Validate the
+full orbit, clamped pitch, zoom limits, resize/aspect handling, depth range and
+clean shutdown on Windows. Do not modify the BMD parser or existing parser tests
+for this camera integration.
+
+Texture work remains a separate gate: BMD candidate UV indices and texture-like
+names are not verified coordinate/material semantics, `Mesh::has_texcoords`
+remains false, OZT conversion is only useful after a verified association, and
+OZJ still lacks pixel decoding. Follow [`D3D11_BMD_PREVIEW.md`](D3D11_BMD_PREVIEW.md)
+for the test matrix; do not enable guessed UVs or claim a textured original
+model until a positive/negative reference control and a Windows visual run are
+recorded.

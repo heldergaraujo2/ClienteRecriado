@@ -9,12 +9,44 @@ inspection tools; **it is not yet a playable Windows client**.
 The parser has been updated on `arena/1d9c1f53-clienterecriado` to correct the
 four-byte triangle-array offset, decode vertex/normal index tables from the
 64-byte polygon record, and triangulate quads. Synthetic regression coverage
-was added, including two meshes. This is a source-level change only at present:
-`make`, `make test`, `make test-san`, the documentation consistency check,
-and the Windows D3D11 preview have **NOT BEEN EXECUTED after this change**.
-Cycle-17 whole-tree metrics below are pre-fix baseline values, not confirmed
-post-fix measurements. The next action is to pull the branch and run the checks
-listed in `NEXT_TASK.md`; do not claim the model-preview milestone yet.
+was added, including two meshes. The owner reports a local `agnecklace.bmd`
+preview run after this correction, but the exact build/runtime output is not
+recorded here and was not independently reproduced. `make`, `make test`,
+`make test-san`, and the documentation consistency check remain **NOT EXECUTED
+in this sandbox after the correction**. Cycle-17 whole-tree metrics below are
+pre-fix baseline values, not confirmed post-fix measurements. Run the checks
+listed in `NEXT_TASK.md`; do not claim a validated model-preview milestone yet.
+
+## Parallel viewer work — isolated orbit-camera helper (2026-10-13)
+
+- Added a platform-independent `mu::render::OrbitCamera` state helper and
+  standalone tests in new files. Direct C++17 compilation to `/tmp` passed 57
+  checks; the same checks passed with AddressSanitizer and UndefinedBehaviorSanitizer.
+- The helper provides yaw/pitch/distance and an eye/target/up pose. It is **not
+  integrated** into D3D11 and does not create a view-projection matrix or process
+  window input. The preview source was not edited.
+- Preservation caveat: this sandbox did not contain the owner's reported
+  uncommitted preview source or `.backup` before the fast-forward. The current
+  preview file is the published baseline version and is unchanged here; this
+  says nothing about an external Windows/WSL working copy, which must remain
+  untouched and be compared before integration.
+- The existing committed `d3d11_smoke_20261013.log` reports an isolated triangle
+  smoke run. The task owner reports a separate local `agnecklace.bmd` preview,
+  but that exact build/run output was not available in this environment; do not
+  treat the triangle log as BMD-model evidence.
+- `Mesh::has_texcoords` remains false for BMD. Raw candidate corner indices are
+  not verified UV semantics; the importer still has no proven material/texture
+  association. OZT decoding is available for supported uncompressed formats;
+  OZJ pixel decoding is not implemented.
+- This feature adds no changes to the parser, `tests/test_assets.cpp`,
+  `Makefile`, or `build/` outputs. The checkout was first fast-forwarded to the
+  already-published `0c21ddd` parser/test baseline; the full post-correction
+  parser validation remains pending under the first task in `NEXT_TASK.md`.
+- `tools/check_docs_consistency.py` was invoked but stopped before data checks
+  with exit 2 because the expected `/home/user/Cliente_ref` clone (and its
+  `Data/` tree) is absent. The reference HEAD start/end hash could not be checked;
+  no reference files were available to modify. No real-tree metrics were
+  rechecked by this parallel task.
 
 ## Executive summary
 
@@ -150,8 +182,8 @@ remains read-only.
 |---|---|
 | Runnable Windows client / startup / functioning window and input | **NOT IMPLEMENTED / NOT EXECUTED** |
 | Windows x86 and x64 | **NOT EXECUTED**; architecture choice still needs a validated target build |
-| Renderer API policy | **OPEN / BLOCKED** — DEC-008 adopts OpenGL VBO/VAO; the newer target plan proposes D3D12/Vulkan/D3D11 evaluation; see DEC-014 |
-| GPU backend and device creation | **PARTIAL** — isolated D3D12 and D3D11 smoke prototypes create devices and present triangles; neither is integrated into a production renderer |
+| Renderer API policy | **OPEN** — DEC-014 reopened the choice; D3D11/D3D12 triangle smoke results are not a comparative benchmark or final production-API selection |
+| GPU backend and device creation | **PARTIAL** — isolated D3D11/D3D12 smoke programs present triangles; no production backend. The BMD preview remains untextured, and this session did not validate its Windows run |
 | BMD model assets | **PARTIAL** — supported subset and counts above; 1,519 OPAQUE |
 | OZT textures | Pixel conversion implemented; one real OZT loaded, no visual association validated |
 | OZJ textures | JPEG probe only; pixel decoding **NOT IMPLEMENTED** |
@@ -259,9 +291,13 @@ The product owner confirmed the primary target is **high practical performance o
 
 ## Experimental BMD-to-D3D11 preview source (2026-10-13)
 
-Added an isolated preview program and PowerShell build script for plaintext
-BMD v0x0A. It reuses the current parser/importer and sends only validated
-triangle indices to D3D11 with a diagnostic solid colour. This is not yet a
-verified build or run: no target-PC compiler/runtime result has been observed
-for this new program. It does not decode UV/material mapping, textures, animation
-or skinning and is not a playable client. See [D3D11_BMD_PREVIEW.md](D3D11_BMD_PREVIEW.md).
+The isolated preview and PowerShell build script accept plaintext BMD v0x0A,
+reuse the parser/importer, and upload validated triangle indices for a solid-
+colour diagnostic draw. The task owner reports a local `agnecklace.bmd` run and
+GPU geometry submission; this session did not reproduce that run, and no exact
+preview build/run log is committed. The separate `d3d11_smoke_20261013.log`
+records a triangle-only smoke test, not a BMD preview result. The preview still
+does not decode verified UV/material mapping, sample textures, animate or skin.
+The new `OrbitCamera` math helper is not connected to it. See
+[D3D11_BMD_PREVIEW.md](D3D11_BMD_PREVIEW.md) for the run record required before
+claiming a validated model preview.

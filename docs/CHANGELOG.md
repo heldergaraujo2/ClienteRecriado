@@ -3,6 +3,34 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
+## 2026-10-13 — isolated orbital-camera foundation for BMD preview
+
+### Added
+
+- Added platform-independent `mu::render::OrbitCamera` state and pose
+  calculation in `src/mu/render/orbit_camera.hpp/.cpp`, with 360-degree yaw
+  wrapping, clamped pitch/distance, exponential wheel zoom and rejection of
+  non-finite controls.
+- Added `tests/test_orbit_camera_standalone.cpp`; it compiles directly to `/tmp`
+  and does not use or replace the parser test executable under `build/`.
+- Documented the camera-to-D3D11 integration contract and the separate geometry,
+  UV/material, OZT/OZJ and GPU-render acceptance tests in
+  `docs/D3D11_BMD_PREVIEW.md`.
+
+### Validation status
+
+- Standalone warning-as-error C++17 run: **PASS**, 57 checks, 0 failures.
+- Standalone ASan/UBSan run: **PASS**, 57 checks, 0 failures.
+- `make`, `make test`, `make test-san` and the D3D11 BMD preview were not run by
+  this task; the active Windows validation and repository `build/` artifacts
+  were left untouched. The docs consistency checker was invoked but blocked
+  before data checks (exit 2; missing `Cliente_ref/Data`). The new camera is not
+  yet wired into the Windows preview.
+- No additional BMD parser, existing parser test, original asset, or preview
+  source change was authored for this unit. The checkout was fast-forwarded to
+  the published `0c21ddd` baseline before implementation. No UV/material
+  semantics or model-render claim is added.
+
 ## 2026-10-13 — BMD v0x0A topology parser correction
 
 ### Changed

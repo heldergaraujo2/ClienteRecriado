@@ -164,9 +164,9 @@ playable. Some partial foundations exist; their acceptance limits are in
 | Module / area | Purpose | Current status |
 |---|---|---|
 | `mu/assets` | Format readers and asset reports | Partial; probes exceed decoders; see compatibility matrix |
-| `mu/render` CPU | Diagnostic rasterizer, culling, CPU buffer packing/skinning helpers | Implemented for tests/PPM only; not a product renderer |
-| `mu/gfx` | GPU backend abstraction | Not implemented; API-policy conflict remains open under DEC-014 |
-| `mu/gfx/<backend>` | OpenGL VBO/VAO (formal DEC-008); D3D12/Vulkan/D3D11 (target-plan candidates) | No backend implemented or prototyped on Windows/GPU; see DEC-014 |
+| `mu/render` CPU | Diagnostic rasterizer, culling, buffer packing/skinning helpers, platform-independent orbit-camera pose helper | CPU helpers only; the camera is not wired into D3D11 and this is not a product renderer |
+| `mu/gfx` | GPU backend abstraction | No production abstraction; DEC-014 keeps the final API choice open after isolated smoke tests |
+| `platform/windows` | Isolated D3D11/D3D12 triangle smoke programs; experimental D3D11 BMD preview | Smoke tests do not establish a production backend; BMD preview remains untextured and camera helper is not integrated |
 | `mu/res` | Resource cache/lifetime/budgeting | Not implemented |
 | `mu/world` | Terrain/maps/objects | Partial parsers; no complete world renderer |
 | `mu/anim` | Skeletal animation | Not implemented as an animation system; bone records are partial and semantics remain unverified; cipher restrictions remain in force |

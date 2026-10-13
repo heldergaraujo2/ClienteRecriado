@@ -4,6 +4,28 @@ Results are classified as `PASS`, `FAIL`, `BLOCKED`, `NOT EXECUTED`, or
 `INCOMPLETE`. A probe, a parser acceptance, a sanitizer run, and a product
 compatibility test answer different questions and are reported separately.
 
+## Parallel orbital-camera component (2026-10-13)
+
+This task added an asset-free camera state helper and deliberately did not run
+or rebuild the parser suite or the D3D11 preview, to avoid touching the active
+Windows validation artifacts. The standalone test was compiled into `/tmp`, not
+`build/`.
+
+| Command | Result | Evidence / limitation |
+|---|---|---|
+| Strict-warning standalone C++17 build and run of `orbit_camera.cpp` plus `test_orbit_camera_standalone.cpp` | **PASS** — 57 checks, 0 failures | `evidence/orbit_camera_standalone_20261013.log` |
+| ASan/UBSan standalone camera build and run | **PASS** — 57 checks, 0 failures; no sanitizer report | `evidence/orbit_camera_standalone_san_20261013.log` |
+| `make`, `make test`, `make test-san`, `make bench` | **NOT EXECUTED in this task** | Explicitly left project build and parser test binaries untouched while Windows validation is in progress |
+| `python3 tools/check_docs_consistency.py` | **BLOCKED (exit 2)** | No `/home/user/Cliente_ref` clone or `Data/` tree is present; reference HEAD start/end could not be checked. Exact output: `evidence/orbit_camera_docs_consistency_blocked_20261013.log` |
+| D3D11 BMD-preview build/run and camera input | **NOT EXECUTED in this task** | Windows-only; the committed D3D11 smoke log is for a triangle, not the BMD preview |
+| BMD UV/material semantics and verified texture pair | **BLOCKED** | Raw candidate fields and a user-reported preview are not semantic proof; no verified association in repository evidence |
+
+The source-level camera tests verify angle wrapping, pitch/distance clamps,
+zoom direction, target translation and rejection of non-finite inputs. They do
+not test DirectX matrix packing, Win32 mouse capture, the D3D11 preview, BMD
+parsing, textures, or visual compatibility. Do not treat this isolated unit as
+completion of the model-preview milestone.
+
 ## Post-cycle-17 parser correction — validation pending (2026-10-13)
 
 The BMD v0x0A triangle cursor/index-layout correction has been committed after
@@ -16,7 +38,7 @@ the cycle-17 test run. The results in the historical cycle-17 tables below do
 | `make test` after parser correction | **NOT EXECUTED** | Full test count and zero failures |
 | `make test-san` after parser correction | **NOT EXECUTED** | ASan/UBSan output, zero failures |
 | `python3 tools/check_docs_consistency.py` after metric refresh | **NOT EXECUTED** | Exit 0 and fresh whole-tree report |
-| Windows D3D11 preview after parser correction | **NOT EXECUTED** | Build log, parser counts, visible model and clean exit |
+| Windows D3D11 preview after parser correction | **USER-REPORTED / INCOMPLETE** | The owner reports a local model preview; exact build/run output, parser counts, visible-result record and clean-exit log are not available in this checkout |
 
 The user-provided diagnostic for local `agnecklace.bmd` established a record
 start at file offset 1044 (payload offset 1040), polygon size 3, and vertex,
