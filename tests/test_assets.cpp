@@ -1265,6 +1265,9 @@ void TestBmdTriangles() {
   // fixture with meshCount=2 but only one mesh's data still yields the first
   // mesh's triangle (second mesh fails to fit, but first is kept).
   PutU16LeAt(body, 44, 1);
+  // The overflow fixture above changed the polygon-size byte to zero. Restore
+  // a valid triangle before reusing this buffer for the multi-mesh case.
+  body[tri_off] = 3;
   PutU16LeAt(body, 32, 2);
   mu::BmdBody multi;
   CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &multi).ok());
@@ -1295,6 +1298,15 @@ void TestTopologyIsSubsetOfGeometry() {
   PutU16LeAt(body, 42, 2);   // texcoord count
   PutU16LeAt(body, 44, 1);   // triangle count
   body.resize(body.size() + 2 * 8 + mu::kBmdTriangleRecordSize, 0);
+  // Populate the appended record: a zero-filled record has polygon_size=0,
+  // which the parser correctly skips and therefore cannot test topology.
+  const std::size_t tri_off = body.size() - mu::kBmdTriangleRecordSize;
+  body[tri_off] = 3;
+  for (std::size_t k = 0; k < 3; ++k) {
+    PutU16LeAt(body, tri_off + 2 + k * 2, static_cast<std::uint16_t>(k));
+    PutU16LeAt(body, tri_off + 10 + k * 2, static_cast<std::uint16_t>(k));
+    PutU16LeAt(body, tri_off + 18 + k * 2, static_cast<std::uint16_t>(k));
+  }
 
   mu::BmdSummary sum;
 
