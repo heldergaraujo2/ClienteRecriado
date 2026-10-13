@@ -226,5 +226,7 @@ The product owner confirmed the primary target is **high practical performance o
 - First isolated spike: **Direct3D 12** window/device/triangle.
 - Comparison after a successful target-PC run: **Direct3D 11** as a simpler baseline on the same hardware; Vulkan remains conditional on portability needs or evidence.
 - The spike is intentionally not linked into the asset library or production renderer.
-- Compilation and runtime are **NOT EXECUTED** in this Linux authoring environment. No GPU rendering, adapter selection, FPS, or speedup is claimed.
-- Next action: run scripts/build_d3d12_smoke.ps1 in Visual Studio Developer PowerShell on Windows, execute build/d3d12_triangle.exe, and preserve its literal output before further implementation.
+- Target-PC D3D12 smoke test **PASS** (2026-10-13 user-run): AMD Radeon RX 6600; triangle visually confirmed; normal close printed `D3D12 smoke test: clean shutdown.` The reported 8147 MiB is DXGI dedicated-memory metadata, not observed VRAM usage.
+- Added isolated D3D11 triangle source and build script as the comparison baseline. D3D11 build/runtime are **NOT EXECUTED** until run on the user's Windows PC.
+- No FPS, frame-time distribution, original-asset rendering, or speedup is claimed. The production API decision remains open.
+- Next action: run `scripts/build_d3d11_smoke.ps1`, execute `build/d3d11_triangle.exe`, close with the window X, and save literal output under `docs/evidence/`.
