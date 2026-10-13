@@ -1756,7 +1756,7 @@ std::vector<std::uint8_t> MakeMultiMeshBody(
   // exactly where we are now (32 bytes name + 6 bytes global header = 38).
   for (std::size_t mi = 0; mi < meshes.size(); ++mi) {
     auto [vc,nc,ntc,ntri] = meshes[mi];
-    // 14-byte mesh header
+    // Ten-byte mesh header plus the first vertex record's four-byte prefix
     PutU16Le(out, vc);
     PutU16Le(out, nc);
     PutU16Le(out, ntc);
