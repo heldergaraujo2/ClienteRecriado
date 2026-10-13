@@ -1,38 +1,41 @@
 # Next task — first verifiable Windows/GPU vertical slice
 
-## Immediate task — validate the BMD triangle-offset follow-up
+## Immediate task — validate BMD topology fixture correction
 
-The latest parser fix is on `arena/1d9c1f53-clienterecriado` in commit
-`34e7207`. It removes an erroneous four-byte subtraction from the computed
-triangle-array start for both single- and multi-mesh BMD bodies. The owner's
-last forced build/test run was **before this fix** and reported 560 checks, 8
-failures; that result must not be presented as validation of the new commit.
+The owner pulled through `751d9b6` and ran `make -B test`: compilation
+succeeded, but the suite reported 560 checks and 6 failures, all in
+`topology is a strict subset of geometry`. Inspection found two invalid
+fixtures: the single-mesh triangle record was four bytes beyond the parser's
+accepted cursor-adjusted start, and the multi-mesh case only changed the global
+`meshCount` field on a single-mesh body.
 
-On the Windows PC, first inspect and preserve the active preview edits and
-backup, then fast-forward the branch. These commands do not discard local
-changes; do not use reset/clean or overwrite the preview file:
+Commit `49b2be3` fixes both fixture layouts on
+`arena/1d9c1f53-clienterecriado`. It has not yet been validated on the owner's
+PC. Preserve the active D3D11 preview edits and backup; do not use reset/clean
+or overwrite the preview file.
+
+Run:
 
 ```powershell
 git status --short --branch
 git pull --ff-only origin arena/1d9c1f53-clienterecriado
 wsl -d Ubuntu -- bash -lc "cd /mnt/d/MU-REENGINEER && make -B test"
+```
+
+If the regular suite passes, continue with:
+
+```powershell
 wsl -d Ubuntu -- bash -lc "cd /mnt/d/MU-REENGINEER && make test-san"
 ```
 
-If the tests still fail, capture the complete failing assertions and fix the
-parser/tests on the same session branch before proceeding. If they pass, run
-the documentation consistency checker when its read-only reference `Data/`
-tree is available. Do not use `make clean`; preserve the local D3D11 preview
-source and `.backup`.
-
-Then build the Windows preview with
-`.\scripts\build_d3d11_bmd_preview.ps1` and run it against the same local
-`agnecklace.bmd`. Record exact compiler output, parser counts, dropped-triangle
-count, visible result, exit status, and final Git status. The green debug clear
-colour and other local preview diagnostics are not part of the parser fix and
-must remain local until reviewed separately. Do not report success until the
-new tests pass and the model actually appears.
-
+If either test fails, capture the complete failing assertions and fix the
+specific defect before proceeding. Then run the documentation consistency
+checker against the available read-only reference data. Only after these
+checks pass should the Windows preview be rebuilt and rerun against
+`agnecklace.bmd`. Record exact compiler output, parser counts,
+dropped-triangle count, visible result, exit status, and final Git status. The
+green debug clear colour and other local preview diagnostics are not part of
+the parser/test fix and must remain local until reviewed separately.
 ## Product target
 
 An independent, playable MU Online Season 6.20 client for Windows, preserving
