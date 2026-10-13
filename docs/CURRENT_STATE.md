@@ -4,18 +4,23 @@ This snapshot separates **probe**, structural validation, decoding, semantics,
 and verified rendering. The repository contains a C++17 asset library and
 inspection tools; **it is not yet a playable Windows client**.
 
-## Immediate update — BMD v0x0A topology correction (2026-10-13)
+## Immediate update — BMD triangle-offset follow-up (2026-10-13)
 
-The parser has been updated on `arena/1d9c1f53-clienterecriado` to correct the
-four-byte triangle-array offset, decode vertex/normal index tables from the
-64-byte polygon record, and triangulate quads. Synthetic regression coverage
-was added, including two meshes. The owner reports a local `agnecklace.bmd`
-preview run after this correction, but the exact build/runtime output is not
-recorded here and was not independently reproduced. `make`, `make test`,
-`make test-san`, and the documentation consistency check remain **NOT EXECUTED
-in this sandbox after the correction**. Cycle-17 whole-tree metrics below are
-pre-fix baseline values, not confirmed post-fix measurements. Run the checks
-listed in `NEXT_TASK.md`; do not claim a validated model-preview milestone yet.
+The owner rebuilt the project in WSL with `make -B test` on the preceding
+source and reported **560 checks, 8 failures**. Two failures were in the
+multi-mesh triangle fixture and six were in topology classification/summary
+expectations. Inspection showed both the single-mesh and multi-mesh parser
+paths subtracting four bytes from a cursor that already represented the end of
+the preceding arrays. Commit `34e7207` removes that subtraction in both paths
+and updates the comments to describe the array boundaries accurately.
+
+**Validation of this follow-up is pending.** The reported 560/8 result is the
+pre-fix baseline, not a result for commit `34e7207`. Run the fresh test and
+sanitizer commands in `NEXT_TASK.md` after pulling. The user's uncommitted
+`platform/windows/d3d11_bmd_preview.cpp` and its untracked `.backup` are
+outside this commit and must be preserved. Do not claim parser or preview
+acceptance until the tests pass and the Windows model preview is rebuilt and
+visually checked.
 
 ## Parallel viewer work — isolated orbit-camera helper (2026-10-13)
 
