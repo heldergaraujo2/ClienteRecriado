@@ -6,21 +6,23 @@ inspection tools; **it is not yet a playable Windows client**.
 
 ## Immediate update — BMD triangle-offset follow-up (2026-10-13)
 
-The owner rebuilt the project in WSL with `make -B test` on the preceding
-source and reported **560 checks, 8 failures**. Two failures were in the
-multi-mesh triangle fixture and six were in topology classification/summary
-expectations. Inspection showed both the single-mesh and multi-mesh parser
-paths subtracting four bytes from a cursor that already represented the end of
-the preceding arrays. Commit `34e7207` removes that subtraction in both paths
-and updates the comments to describe the array boundaries accurately.
+The owner pulled commit `bbea18e` and ran `make -B test` plus
+`make test-san`. Both stopped in `TestBmdTriangles`: the single-mesh fixture
+expected one triangle but received none, and the sanitizer exposed an unsafe
+test dereference after that failed assertion. The regression fixtures explicitly
+place the UV block four bytes before the normal-array end cursor; the preceding
+fix removed that adjustment from both parser paths, contradicting those fixtures.
 
-**Validation of this follow-up is pending.** The reported 560/8 result is the
-pre-fix baseline, not a result for commit `34e7207`. Run the fresh test and
-sanitizer commands in `NEXT_TASK.md` after pulling. The user's uncommitted
-`platform/windows/d3d11_bmd_preview.cpp` and its untracked `.backup` are
-outside this commit and must be preserved. Do not claim parser or preview
-acceptance until the tests pass and the Windows model preview is rebuilt and
-visually checked.
+This follow-up restores the four-byte adjustment in both paths and guards the
+test's triangle indexing so a parser regression reports assertions instead of
+crashing. This is still a fixture-alignment correction, not proof that the
+boundary is authoritative for all real BMD files.
+
+**Validation is pending again.** Re-run `make -B test` and `make test-san`
+from `NEXT_TASK.md` after pulling the new commit. The user's uncommitted
+`platform/windows/d3d11_bmd_preview.cpp` and its untracked `.backup` must be
+preserved. Do not claim parser or preview acceptance until tests pass and the
+Windows model preview is rebuilt and visually checked.
 
 ## Parallel viewer work — isolated orbit-camera helper (2026-10-13)
 
