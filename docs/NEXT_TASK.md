@@ -1,5 +1,29 @@
 # Next task — first verifiable Windows/GPU vertical slice
 
+## Immediate task — validate the BMD topology correction
+
+Pull the latest `arena/1d9c1f53-clienterecriado` branch on the Windows PC,
+then run the C++ build/test sequence from the repository root:
+
+```powershell
+git status --short --branch
+git pull --ff-only origin arena/1d9c1f53-clienterecriado
+make clean
+make
+make test
+make test-san
+python3 tools/check_docs_consistency.py
+```
+
+If `make` is unavailable on Windows, run the portable build/test commands in
+the Linux development environment or the documented equivalent; do not skip the
+Windows preview check. Preserve local edits to
+`platform/windows/d3d11_bmd_preview.cpp` and its `.backup` file. Rebuild the
+preview with `.scripts\build_d3d11_bmd_preview.ps1`, then run it against the
+same local `agnecklace.bmd`. Record exact compiler output, parser counts,
+dropped-triangle count, visible result, exit status, and `git status`. Do not
+report success until the new tests pass and the model actually appears.
+
 ## Product target
 
 An independent, playable MU Online Season 6.20 client for Windows, preserving
