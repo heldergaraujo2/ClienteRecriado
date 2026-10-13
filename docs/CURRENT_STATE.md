@@ -235,3 +235,11 @@ The product owner confirmed the primary target is **high practical performance o
 - D3D12 and D3D11 smoke logs were committed in `fe70970` under `docs/evidence/`.
 - No FPS, frame-time distribution, original-asset rendering, or speedup is claimed. The production API decision remains open.
 - Next action: audit the existing BMD/texture importer and identify one model/texture association that can be verified without crossing the documented cipher blockers; then plan the first integrated GPU model render.
+
+
+## Source audit — asset-to-GPU slice (2026-10-13)
+
+- Added [`ASSET_GPU_SLICE_AUDIT.md`](ASSET_GPU_SLICE_AUDIT.md) after source-level inspection of the BMD body parser, mesh importer, OZT/OZJ handling, and cycle-17 evidence.
+- Confirmed the mesh importer intentionally leaves UVs unavailable; texture-name recognition does not by itself prove association. The prior Axe11/Axes06 CPU diagnostic remains an unverified pairing with planar mapping.
+- No C++ implementation change or semantic UV/material discovery is claimed. This audit did not run local builds/tests or execute anything on the target Windows PC. Those checks remain required in the corresponding environments.
+- Next work: find a discriminating, legitimate control for UV/material semantics; if none is available without crossing the documented cipher blockers, preserve the blocker rather than guessing.
