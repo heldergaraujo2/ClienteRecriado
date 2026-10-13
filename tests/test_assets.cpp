@@ -671,6 +671,10 @@ void TestSoftwareRasterizerUsesMeshTexcoords();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
+std::vector<std::uint8_t> MakeMultiMeshBody(
+    std::uint16_t mesh_count,
+    const std::vector<std::tuple<std::uint16_t, std::uint16_t,
+                                 std::uint16_t, std::uint16_t>>& meshes);
 void TestBmdReportGeometryNeedsRealBody();
 void TestBmdReportPercent();
 void TestBmdReportAccumulatesKinds();
@@ -1297,7 +1301,9 @@ void TestTopologyIsSubsetOfGeometry() {
   PutU16LeAt(body, 32, 1);   // meshCount
   PutU16LeAt(body, 42, 2);   // texcoord count
   PutU16LeAt(body, 44, 1);   // triangle count
-  body.resize(body.size() + 2 * 8 + mu::kBmdTriangleRecordSize, 0);
+  // The accepted single-mesh layout's cursor adjustment places the
+  // triangle record four bytes before the end of the declared UV array.
+  body.resize(body.size() + 2 * 8 - 4 + mu::kBmdTriangleRecordSize, 0);
   // Populate the appended record: a zero-filled record has polygon_size=0,
   // which the parser correctly skips and therefore cannot test topology.
   const std::size_t tri_off = body.size() - mu::kBmdTriangleRecordSize;
@@ -1334,8 +1340,10 @@ void TestTopologyIsSubsetOfGeometry() {
   // deliberately not read. Now multi-mesh is implemented, so it reaches both
   // levels.
   {
-    std::vector<std::uint8_t> m = body;
-    PutU16LeAt(m, 32, 3);
+    std::vector<std::tuple<std::uint16_t, std::uint16_t,
+                           std::uint16_t, std::uint16_t>> meshes;
+    meshes.emplace_back(4, 4, 0, 1);
+    const std::vector<std::uint8_t> m = MakeMultiMeshBody(3, meshes);
     const mu::BmdFileReport r = classify(m, "multimesh");
     CHECK(r.geometry_parsed);
     CHECK_EQ(1u, r.triangle_count);
