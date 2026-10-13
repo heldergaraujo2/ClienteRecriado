@@ -308,3 +308,21 @@ does not decode verified UV/material mapping, sample textures, animate or skin.
 The new `OrbitCamera` math helper is not connected to it. See
 [D3D11_BMD_PREVIEW.md](D3D11_BMD_PREVIEW.md) for the run record required before
 claiming a validated model preview.
+
+
+## BMD topology fixture follow-up — 2026-10-13
+
+The owner pulled through `794645f` and reran `make -B test`. The build succeeded;
+the suite returned **560 checks, 8 failures**, all in the previously identified
+triangle/topology assertions. Further inspection found the failures were caused
+by invalid synthetic test data, not evidence that the restored offset itself
+was wrong: the overflow test zeroed the polygon-size byte and did not restore it
+before reusing the buffer, while the topology fixture appended a zero-filled
+64-byte record whose polygon size remained zero. The parser correctly skips
+records unless polygon size is 3 or 4.
+
+Commit `84dbdcc` restores the polygon-size byte before the multi-mesh test and
+writes a valid triangle into the topology fixture. This diagnosis is based on
+source and fixture inspection; **the latest test changes have not yet been run
+on the owner's PC**. Preserve local preview edits and backup; run both regular
+and sanitizer suites before continuing to Windows preview validation.
