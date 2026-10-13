@@ -426,3 +426,16 @@ adotada: **`NOT EXECUTED`**, não "preservada".
 - User reported AMD Radeon RX 6600, triangle visibly rendered, and `D3D12 smoke test: clean shutdown.` after closing the window normally.
 - DXGI reported 8147 MiB dedicated video memory; this is adapter metadata, not measured runtime VRAM use.
 - D3D11 build/runtime remain NOT EXECUTED. No benchmark or production API choice is claimed.
+
+
+## 2026-10-13 — D3D11 target-PC smoke pass; both isolated APIs validated
+
+### Verified on target PC
+- D3D11 smoke executable ran on AMD Radeon RX 6600, reported feature level `0xB100`, visibly displayed the triangle, and printed `D3D11 smoke test: clean shutdown.` after normal window close.
+- D3D12 smoke test also passed its triangle/clean-shutdown check on the same target PC.
+- Evidence committed as `docs/evidence/d3d11_smoke_20261013.log` and `docs/evidence/d3d12_smoke_20261012.log` in commit `fe70970`.
+- These are isolated smoke tests, not a playable client, original-asset render, benchmark, FPS result, or production API decision.
+
+### Next
+- Audit the existing BMD and texture paths to select one legitimate, verifiable model/texture pair without crossing the documented cipher blockers.
+- Plan an integrated Windows GPU render of that asset; measure performance only after visual correctness is established.
