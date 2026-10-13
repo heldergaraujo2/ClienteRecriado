@@ -535,3 +535,10 @@ adotada: **`NOT EXECUTED`**, não "preservada".
 - Restored the four-byte UV/normal-boundary adjustment in both single- and multi-mesh triangle paths to match the current synthetic regression fixtures; real-asset confirmation remains required.
 - Guarded triangle fixture assertions against dereferencing an empty triangle vector, so a parser regression reports failures without crashing the test process.
 - The owner's run after the preceding offset change failed in the single-mesh triangle fixture under both normal and ASan/UBSan builds. Latest follow-up tests are pending on the owner's PC.
+
+
+## 2026-10-13 — BMD topology test-fixture correction
+
+- Fixed the multi-mesh test setup to restore a valid polygon-size byte after the preceding truncated-array test.
+- Fixed the topology-report fixture to populate a triangle record instead of appending an all-zero record that the parser correctly skips.
+- The owner's run at `794645f` reported 560 checks and 8 failures; the updated fixtures in `84dbdcc` have not yet been executed on the target PC.
