@@ -53,7 +53,7 @@ animation, or appearance.
    document any ABI/data evidence that requires 32-bit compatibility. Do not
    assume the original 32-bit client forces the reconstruction to be 32-bit.
    Keep shared C++17 asset code isolated from platform/graphics headers.
-4. **Run the first Windows/GPU spike.** Build platform/windows/d3d12_triangle.cpp with scripts/build_d3d12_smoke.ps1 from a Visual Studio Developer PowerShell. Run it on the target PC, save console output and screenshots/logs under docs/evidence/, and record the actual adapter/driver/runtime and clean shutdown. This spike is isolated from the asset library and uses a deliberately serialized frame loop for correctness, not performance. If the build or runtime fails, preserve the exact error and fix it before adding asset integration. Then compare D3D11 on the same machine before locking the production API; Vulkan remains a conditional candidate.
+4. **Windows/GPU smoke spike — completed, isolated only.** D3D12 and D3D11 triangle programs were run on the target Windows PC with an AMD Radeon RX 6600. Both visibly displayed a triangle and reported clean shutdown. Logs: `docs/evidence/d3d12_smoke_20261012.log` and `docs/evidence/d3d11_smoke_20261013.log`. This validates basic device/window/present paths only; it is not a playable client or benchmark. Keep the production API decision open until a real asset scene and equivalent measurements exist. Vulkan remains conditional.
 5. **Load and render an original model.** Integrate supported BMD geometry,
    indexed buffers, and the correct material/texture with semantically verified
    UVs. Compare against a legitimate visual reference with controlled scene,
