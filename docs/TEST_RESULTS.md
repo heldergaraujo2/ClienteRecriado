@@ -197,29 +197,31 @@ Do not mark this milestone passed until the Windows build and runtime logs are s
 
 ## 6. Latest owner-run BMD regression result — 2026-10-13
 
-After pulling through `794645f`, the owner ran:
+After pulling through `751d9b6`, the owner ran:
 
 ```text
 make -B test
-560 checks, 8 failures
+560 checks, 6 failures
 ```
 
-Compilation succeeded. Failures remained in `bmd triangles` (2) and
-`topology is a strict subset of geometry` (6). Source inspection identified
-invalid synthetic fixtures: the overflow subtest set the polygon-size byte to
-zero and reused the record without restoring it, and the topology fixture
-appended a zero-filled record without setting polygon size to 3. Since the
-parser intentionally skips records with polygon sizes other than 3 or 4, those
-fixtures could not yield the asserted triangles. Commit `84dbdcc` corrects
-both fixture constructions.
+Compilation succeeded. `bmd triangles` now passes; all six remaining
+assertions are in `topology is a strict subset of geometry`. Further source
+inspection found that the single-mesh topology fixture placed the triangle
+record four bytes after the parser's currently accepted cursor-adjusted start,
+and the multi-mesh report case merely changed the global `meshCount` field on
+a single-mesh body. Those are invalid fixtures for the layouts being tested.
 
-| Check after `84dbdcc` | Status |
+Commit `49b2be3` corrects the single-mesh offset in the synthetic fixture and
+uses `MakeMultiMeshBody` to construct the multi-mesh case. This commit has not
+yet been run on the owner's PC.
+
+| Check after `49b2be3` | Status |
 |---|---|
 | `make -B test` | **NOT YET RUN** |
 | `make test-san` | **NOT YET RUN** |
 | Documentation consistency checker | **NOT EXECUTED** |
 | Windows BMD D3D11 preview build/run | **NOT EXECUTED after latest parser/test changes** |
 
-Do not mark the parser correction accepted until the regular suite and ASan/UBSan
-suite both pass. A passing synthetic fixture does not replace validation against
-authorized real BMD assets.
+Do not mark the parser correction accepted until the regular suite and
+ASan/UBSan suite both pass. Passing synthetic fixtures does not replace
+validation against authorized real BMD assets.
