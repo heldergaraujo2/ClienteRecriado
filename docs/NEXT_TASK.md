@@ -26,7 +26,7 @@ tree is available. Do not use `make clean`; preserve the local D3D11 preview
 source and `.backup`.
 
 Then build the Windows preview with
-`.scripts\build_d3d11_bmd_preview.ps1` and run it against the same local
+`.\scripts\build_d3d11_bmd_preview.ps1` and run it against the same local
 `agnecklace.bmd`. Record exact compiler output, parser counts, dropped-triangle
 count, visible result, exit status, and final Git status. The green debug clear
 colour and other local preview diagnostics are not part of the parser fix and
