@@ -647,6 +647,7 @@ void TestComputeBounds();
 void TestFrustumCull();
 void TestFrustumFromViewProjection();
 void TestTerrainHeight();
+void TestBmdMultiMeshTriangleRecordLayout();
 void TestBmdMultiMeshLargeCounts();
 void TestBmdMultiMeshExtremeMeshCount();
 void TestBmdMultiMeshTruncated();
@@ -704,6 +705,7 @@ const Test kTests[] = {
     {"bmd geometry needs a real body", TestBmdReportGeometryNeedsRealBody},
     {"bmd percent helper", TestBmdReportPercent},
     {"bmd report accumulates kinds", TestBmdReportAccumulatesKinds},
+    {"bmd multi-mesh triangle record layout", TestBmdMultiMeshTriangleRecordLayout},
     {"bmd multi-mesh large counts (regression 8406)", TestBmdMultiMeshLargeCounts},
     {"bmd multi-mesh extreme meshCount 0xFFFF", TestBmdMultiMeshExtremeMeshCount},
     {"bmd multi-mesh truncated payload", TestBmdMultiMeshTruncated},
@@ -1808,6 +1810,33 @@ std::vector<std::uint8_t> MakeMultiMeshBody(
   // emitted - payload will be truncated, which is exactly what the truncated
   // test wants.
   return out;
+}
+
+void TestBmdMultiMeshTriangleRecordLayout() {
+  std::vector<std::tuple<std::uint16_t,std::uint16_t,std::uint16_t,std::uint16_t>> meshes;
+  meshes.emplace_back(3, 3, 0, 1);
+  meshes.emplace_back(3, 3, 0, 1);
+  const std::vector<std::uint8_t> body = MakeMultiMeshBody(2, meshes);
+
+  mu::BmdBody parsed;
+  const mu::Status st =
+      mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &parsed);
+  CHECK(st.ok());
+  CHECK(parsed.complete);
+  CHECK_EQ(6u, parsed.vertices.size());
+  CHECK_EQ(6u, parsed.normals.size());
+  CHECK_EQ(2u, parsed.triangles.size());
+  CHECK_EQ(0, parsed.triangles[0].corners[0].vertex);
+  CHECK_EQ(1, parsed.triangles[0].corners[1].vertex);
+  CHECK_EQ(2, parsed.triangles[0].corners[2].vertex);
+  CHECK_EQ(3, parsed.triangles[1].corners[0].vertex);
+  CHECK_EQ(4, parsed.triangles[1].corners[1].vertex);
+  CHECK_EQ(5, parsed.triangles[1].corners[2].vertex);
+  CHECK_EQ(3, parsed.triangles[1].corners[0].normal);
+  CHECK_EQ(4, parsed.triangles[1].corners[1].normal);
+  CHECK_EQ(5, parsed.triangles[1].corners[2].normal);
+  CHECK_EQ(0u, parsed.out_of_range_vertices);
+  CHECK_EQ(0u, parsed.out_of_range_normals);
 }
 
 void TestBmdMultiMeshLargeCounts() {
