@@ -8,6 +8,7 @@
 #include <wrl/client.h>
 #include <algorithm>
 #include <cstdio>
+#include <cmath>
 #include <cstring>
 #include <stdexcept>
 #include <string>
