@@ -28,30 +28,24 @@ completion of the model-preview milestone.
 
 ## BMD triangle-offset follow-up — validation pending (2026-10-13)
 
-The owner ran the following command in the WSL checkout before commit
-`34e7207`:
+The owner first reported a pre-fix baseline of `560 checks, 8 failures`.
+After pulling commit `bbea18e`, the owner ran `make -B test` and
+`make test-san`. Both rebuilt successfully but stopped at
+`TestBmdTriangles` (`tests/test_assets.cpp:1197`): the single-mesh fixture
+expected one triangle but the parser returned zero. ASan/UBSan then reported
+a null-vector-element dereference at line 1198 caused by the test continuing
+after its failed size assertion.
 
-```text
-wsl -d Ubuntu -- bash -lc "cd /mnt/d/MU-REENGINEER && make -B test"
-560 checks, 8 failures
-```
+Inspection of the generated fixtures shows that both single- and multi-mesh
+fixtures currently model a four-byte adjustment at the UV/normal boundary.
+The just-published follow-up restores that adjustment and guards triangle
+indexing so failures remain diagnostic rather than becoming a segmentation
+fault. The fixture's convention still requires validation against real assets.
 
-The eight failures were:
-- `bmd triangles`: expected the first triangle to be retained from the
-  multi-mesh fixture (2 assertions).
-- `topology is a strict subset of geometry`: triangle counts and skip reasons
-  for the single-/multi-mesh fixtures and the accumulated topology summary
-  (6 assertions).
-
-Source inspection found that both parser paths subtracted four bytes after
-computing the end of the vertex/normal/UV arrays, placing the triangle cursor
-before the intended record. Commit `34e7207` removes that subtraction in both
-paths. This is a source-level diagnosis, **not yet a passing test result**.
-
-| Check after commit `34e7207` | Status | Required evidence |
+| Check after the latest offset/test follow-up | Status | Required evidence |
 |---|---|---|
-| `make -B test` | **NOT EXECUTED** | Fresh build and full test output; target is zero failures |
-| `make test-san` | **NOT EXECUTED** | ASan/UBSan output; target is zero failures |
+| `make -B test` | **NOT YET RUN on latest commit** | Fresh build and full test output; target is zero failures |
+| `make test-san` | **NOT YET RUN on latest commit** | ASan/UBSan output; target is zero failures |
 | Documentation consistency checker | **NOT EXECUTED** | Exit 0 against an available read-only reference `Data/` tree |
 | Windows D3D11 preview build/run | **NOT EXECUTED after this fix** | Build output, parser counts, visible model, clean exit and Git status |
 
