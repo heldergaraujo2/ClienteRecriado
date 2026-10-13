@@ -191,5 +191,16 @@ statistical plausibility.
   differing shared files, 33 local-only evidence/log files, and no remote-only
   project paths. Six differing PPM variants were kept outside Git and are
   recorded in `evidence/ciclo17_ppm_recovery_comparison.log`.
-- Final commit/push hashes and post-publication `git status` will be recorded
-  after the validated changes are committed and published on the fixed branch.
+- Recovery content commit: `be4f79ae5a3c003502e68a5cc245f8f0e6cdba5f`
+  (`recovery: reconcile cycle-17 asset audit`). `git push -u origin
+  arena/1d9c1f53-clienterecriado` succeeded (new remote branch). At the
+  verification point, `git rev-parse HEAD` and `git ls-remote` for the fixed
+  branch both returned this hash; `arena/519f8fc9-clienterecriado` remained at
+  `4c36befab01263bf95a509d1c8306c56a1e876c5` and `main` at
+  `972fabcea1b0d4e80345f0f5abd287b46d819455`.
+- The post-push worktree was clean:
+  `## arena/1d9c1f53-clienterecriado...origin/arena/1d9c1f53-clienterecriado`.
+  This Git-state update is committed as a follow-up; its final tip is reported
+  by the branch/commit link in the recovery summary. Full local/committed/
+  published reconciliation and push evidence:
+  [`evidence/ciclo17_git_recovery.log`](evidence/ciclo17_git_recovery.log).

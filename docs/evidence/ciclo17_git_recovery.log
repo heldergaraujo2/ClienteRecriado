@@ -1,0 +1,55 @@
+Cycle-17 interrupted-work recovery — Git evidence
+
+Local worktree at recovery start
+--------------------------------
+Current session branch was arena/1d9c1f53-clienterecriado at
+972fabcea1b0d4e80345f0f5abd287b46d819455. Its worktree had one modified
+tracked file (README.md), no staged diff, and untracked .gitignore, AGENTS.md,
+Makefile, Progresso, bench/, docs/, scripts/, src/, tests/, and tools/.
+
+Published refs at recovery start
+--------------------------------
+origin/main: 972fabcea1b0d4e80345f0f5abd287b46d819455
+origin/arena/519f8fc9-clienterecriado: 4c36befab01263bf95a509d1c8306c56a1e876c5
+origin/arena/1d9c1f53-clienterecriado: absent
+The published 519 commit was 193 commits ahead of the local base. It was fetched
+read-only for comparison; no checkout of branch 519 occurred.
+
+Workspace-vs-published tree comparison
+---------------------------------------
+Workspace snapshot: 260 files; published 519 tree: 227 files.
+46 shared paths differed, 33 workspace-only evidence/log paths existed, and no
+published-only project paths existed. Six shared PPM files differed in bytes;
+the published copies were left untouched and the interrupted-workspace copies
+were preserved outside Git. Sizes and SHA-256 hashes are in
+ciclo17_ppm_recovery_comparison.log. Neither set is GPU-render evidence.
+
+Recovery operation
+------------------
+Before integration, `git stash push --include-untracked` saved a recovery
+snapshot as stash@{0}. An external workspace archive was retained at
+`/home/user/ClienteRecriado_cycle17_workspace_before_fastforward.tar.gz`
+(SHA-256 `cbbe233b47f79c97f1d5a94241e6623f1f1da214304c6f20e88b4bb9e135bc1e`).
+The fixed session branch was then fast-forwarded from
+972fabcea1b0d4e80345f0f5abd287b46d819455 to the published 519 commit
+4c36befab01263bf95a509d1c8306c56a1e876c5. No destructive Git reset/clean,
+branch switch, force-push, or write to the reference repository was used.
+The changes were overlaid after reviewing the local-vs-published differences;
+the six PPM variants were not added to Git.
+
+Validated content commit and publication
+----------------------------------------
+Commit: be4f79ae5a3c003502e68a5cc245f8f0e6cdba5f
+Message: recovery: reconcile cycle-17 asset audit
+Push command: git push -u origin arena/1d9c1f53-clienterecriado
+Push result: success; new fixed session branch created and tracking origin.
+At verification, local `git rev-parse HEAD` and remote `git ls-remote` for
+arena/1d9c1f53-clienterecriado both returned
+be4f79ae5a3c003502e68a5cc245f8f0e6cdba5f.
+The same verification showed origin/arena/519f8fc9-clienterecriado remained at
+4c36befab01263bf95a509d1c8306c56a1e876c5 and origin/main remained at
+972fabcea1b0d4e80345f0f5abd287b46d819455.
+Post-push status: ## arena/1d9c1f53-clienterecriado...origin/arena/1d9c1f53-clienterecriado
+
+A small follow-up commit records the final publication state in CURRENT_STATE.md;
+its current branch tip is reported by the recovery summary and Git log.
