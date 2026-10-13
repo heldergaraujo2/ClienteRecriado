@@ -312,17 +312,18 @@ claiming a validated model preview.
 
 ## BMD topology fixture follow-up — 2026-10-13
 
-The owner pulled through `794645f` and reran `make -B test`. The build succeeded;
-the suite returned **560 checks, 8 failures**, all in the previously identified
-triangle/topology assertions. Further inspection found the failures were caused
-by invalid synthetic test data, not evidence that the restored offset itself
-was wrong: the overflow test zeroed the polygon-size byte and did not restore it
-before reusing the buffer, while the topology fixture appended a zero-filled
-64-byte record whose polygon size remained zero. The parser correctly skips
-records unless polygon size is 3 or 4.
+The owner pulled through `794645f` and reran `make -B test`. The build
+succeeded, but the suite reported **560 checks, 8 failures**. Inspection found
+two distinct fixture defects: the single-mesh topology fixture placed the
+triangle four bytes after the parser's accepted cursor-adjusted start, and the
+multi-mesh case changed only the global `meshCount` field on a single-mesh
+body instead of constructing a multi-mesh layout.
 
-Commit `84dbdcc` restores the polygon-size byte before the multi-mesh test and
-writes a valid triangle into the topology fixture. This diagnosis is based on
-source and fixture inspection; **the latest test changes have not yet been run
-on the owner's PC**. Preserve local preview edits and backup; run both regular
-and sanitizer suites before continuing to Windows preview validation.
+Commit `84dbdcc` fixed the polygon-size byte but did not fully correct those
+layout errors. Commit `49b2be3` now places the single-mesh triangle at the
+accepted cursor offset and uses the existing `MakeMultiMeshBody` builder for
+the multi-mesh report case. The owner then reran `make -B test` at
+`751d9b6` and got **560 checks, 6 failures**, all in the topology test.
+The newest fixture correction is committed as `49b2be3` but has **not yet
+been run by the owner**. Preserve local preview edits and backup; rerun regular
+tests before sanitizer or Windows preview validation.
