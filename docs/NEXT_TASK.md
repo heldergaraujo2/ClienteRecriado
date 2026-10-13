@@ -41,13 +41,7 @@ animation, or appearance.
    tests, sanitizers, documentation checker, available full manifest, and the
    reference hash/status before and after. Save exact outputs under
    `docs/evidence/` and update `CURRENT_STATE.md`.
-2. **Resolve semantics needed for one original asset.** Select a BMD using a
-   body layout that can be investigated without crossing the cipher blocker.
-   Trace counts, vertices, normals, triangle corners, material/texture
-   association, and UVs. Keep probe, structural checks, decoded pixels, meaning,
-   and rendering separate. Do not claim a supplied texture belongs to a model
-   without evidence. OZJ still needs a pixel decoder; OZT conversion exists, but
-   visual association/appearance is unverified.
+2. **Resolve semantics needed for one original asset.** Start with the source-level findings and exact missing evidence in [`ASSET_GPU_SLICE_AUDIT.md`](ASSET_GPU_SLICE_AUDIT.md). Select a supported BMD body layout without crossing the cipher blocker. Trace counts, vertices, normals, triangle corners, any actually parsed texture-name fields, material/texture association, and UVs. Keep probe, structural checks, decoded pixels, meaning, and rendering separate. Do not claim a supplied texture belongs to a model without evidence. OZJ still needs a pixel decoder; OZT conversion exists, but visual association/appearance is unverified. The audit is repository inspection only; local builds, full-tree commands, and target-PC GPU integration must still be executed in their respective environments.
 3. **Produce a real Windows build and platform boundary.** On a Windows machine
    or runner, produce a runnable 64-bit executable as the initial candidate and
    document any ABI/data evidence that requires 32-bit compatibility. Do not
