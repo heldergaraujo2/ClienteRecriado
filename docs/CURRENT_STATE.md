@@ -20,9 +20,12 @@ inspection tools; **it is not yet a playable Windows client**.
   CLI. The BMD used in that run is a different file; no association between the
   two or visual correctness was demonstrated. BMD UVs still lack a verified
   semantic mapping.
-- There is no Windows executable, GPU device, or measured FPS, frametime, or
-  VRAM. Windows x86/x64, D3D12/Vulkan/D3D11, game startup, audio, UI, and network
-  remain without runtime validation.
+- Two isolated Windows GPU smoke tests have now run on the target PC: D3D12 and
+  D3D11 each displayed a triangle on the AMD Radeon RX 6600 and reported clean
+  shutdown. Their logs are in `evidence/d3d12_smoke_20261012.log` and
+  `evidence/d3d11_smoke_20261013.log`. These tests do not constitute a playable
+  client, original-asset rendering, or performance benchmark. FPS, frametime,
+  runtime VRAM, game startup, audio, UI, and network remain unvalidated.
 
 ## Implemented capability and measured results
 
@@ -118,7 +121,7 @@ unknown).
 | `make test-san` | **PASS** — **539 checks, 0 failures**, no ASan/UBSan report |
 | `python3 tools/check_docs_consistency.py /tmp/cliente_ref/Data` | **PASS (exit 0)** — 54 checks, 0 failures against reference HEAD `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` |
 | Full available patch-manifest check | **INCOMPLETE / exit 2**: 188 entries, 116 match, 8 size mismatches, 11 CRC mismatches, 53 missing in the available tree; not 188/188 coverage |
-| Windows build/run and GPU device | **NOT EXECUTED** — no Windows, cross-toolchain, or GPU here |
+| Isolated Windows GPU smoke tests | **PASS** — D3D12 and D3D11 triangle/window/device/present/clean shutdown on target PC; see evidence logs |
 | Equivalent visual comparison with reference client | **NOT EXECUTED** |
 | FPS, frametime, VRAM, runtime RAM, and latency | **NOT EXECUTED** |
 | Authorized server/network compatibility | **NOT EXECUTED** — no authorized test server |
@@ -136,7 +139,7 @@ remains read-only.
 | Runnable Windows client / startup / functioning window and input | **NOT IMPLEMENTED / NOT EXECUTED** |
 | Windows x86 and x64 | **NOT EXECUTED**; architecture choice still needs a validated target build |
 | Renderer API policy | **OPEN / BLOCKED** — DEC-008 adopts OpenGL VBO/VAO; the newer target plan proposes D3D12/Vulkan/D3D11 evaluation; see DEC-014 |
-| GPU backend and device creation | **NOT IMPLEMENTED / NOT EXECUTED** — no Windows/GPU prototype |
+| GPU backend and device creation | **PARTIAL** — isolated D3D12 and D3D11 smoke prototypes create devices and present triangles; neither is integrated into a production renderer |
 | BMD model assets | **PARTIAL** — supported subset and counts above; 1,519 OPAQUE |
 | OZT textures | Pixel conversion implemented; one real OZT loaded, no visual association validated |
 | OZJ textures | JPEG probe only; pixel decoding **NOT IMPLEMENTED** |
@@ -227,6 +230,8 @@ The product owner confirmed the primary target is **high practical performance o
 - Comparison after a successful target-PC run: **Direct3D 11** as a simpler baseline on the same hardware; Vulkan remains conditional on portability needs or evidence.
 - The spike is intentionally not linked into the asset library or production renderer.
 - Target-PC D3D12 smoke test **PASS** (2026-10-13 user-run): AMD Radeon RX 6600; triangle visually confirmed; normal close printed `D3D12 smoke test: clean shutdown.` The reported 8147 MiB is DXGI dedicated-memory metadata, not observed VRAM usage.
-- Added isolated D3D11 triangle source and build script as the comparison baseline. D3D11 build/runtime are **NOT EXECUTED** until run on the user's Windows PC.
+- Added isolated D3D11 triangle source and build script as the comparison baseline.
+- Target-PC D3D11 smoke test **PASS** (2026-10-13 user-run): AMD Radeon RX 6600; feature level 0xB100; triangle visibly rendered; normal close printed `D3D11 smoke test: clean shutdown.` DXGI reported 8147 MiB dedicated-memory metadata, not measured runtime VRAM.
+- D3D12 and D3D11 smoke logs were committed in `fe70970` under `docs/evidence/`.
 - No FPS, frame-time distribution, original-asset rendering, or speedup is claimed. The production API decision remains open.
-- Next action: run `scripts/build_d3d11_smoke.ps1`, execute `build/d3d11_triangle.exe`, close with the window X, and save literal output under `docs/evidence/`.
+- Next action: audit the existing BMD/texture importer and identify one model/texture association that can be verified without crossing the documented cipher blockers; then plan the first integrated GPU model render.
