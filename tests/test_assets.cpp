@@ -8,13 +8,18 @@
 // run time from scratch: this repository contains no original game assets.
 #include <cstdio>
 #include <cstdlib>
+#include <chrono>
+#include <filesystem>
 #include <cstring>
 #include <limits>
 #include <string>
 #include <tuple>
 #include <vector>
 
-#if !defined(_WIN32)
+#if defined(_WIN32)
+#include <direct.h>  // _rmdir
+#define rmdir _rmdir
+#else
 #include <unistd.h>  // mkdtemp, rmdir
 #endif
 
@@ -554,14 +559,24 @@ void TestManifestParse() {
 }
 
 std::string TmpDir() {
+#if defined(_WIN32)
+  std::error_code ec;
+  const std::filesystem::path base = std::filesystem::temp_directory_path(ec);
+  if (ec) return {};
+
+  const auto stamp =
+      std::chrono::steady_clock::now().time_since_epoch().count();
+  const std::filesystem::path dir =
+      base / ("mu_test_" + std::to_string(stamp));
+
+  if (!std::filesystem::create_directory(dir, ec) || ec) return {};
+  return dir.string();
+#else
   const char* base = std::getenv("TMPDIR");
   if (!base || !*base) base = "/tmp";
   std::string d = std::string(base) + "/mu_test_XXXXXX";
   std::vector<char> buf(d.begin(), d.end());
   buf.push_back('\0');
-#if defined(_WIN32)
-  return std::string(base) + "/mu_test";
-#else
   char* made = ::mkdtemp(buf.data());
   return made ? std::string(made) : std::string();
 #endif
@@ -607,7 +622,7 @@ void TestManifestVerify() {
 
   std::remove(good_path.c_str());
   std::remove(bad_path.c_str());
-  ::rmdir(dir.c_str());
+  rmdir(dir.c_str());
 }
 
 // ---------------------------------------------------------------- fs

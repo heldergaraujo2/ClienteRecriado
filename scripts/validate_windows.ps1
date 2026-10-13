@@ -103,7 +103,12 @@ try {
     $libSources = @(
         'src\mu\assets\format.cpp', 'src\mu\assets\ozt.cpp', 'src\mu\assets\ozj.cpp',
         'src\mu\assets\tga.cpp', 'src\mu\assets\bmd.cpp', 'src\mu\assets\terrain.cpp',
-        'src\mu\assets\manifest.cpp', 'src\mu\fs.cpp'
+        'src\mu\assets\manifest.cpp', 'src\mu\assets\bmd_body.cpp',
+        'src\mu\assets\bmd_report.cpp', 'src\mu\assets\mesh.cpp',
+        'src\mu\render\cull.cpp', 'src\mu\render\software_rasterizer.cpp',
+        'src\mu\render\skinning.cpp', 'src\mu\render\buffers.cpp',
+        'src\mu\platform\win32_window.cpp', 'src\mu\platform\main_loop.cpp',
+        'src\mu\fs.cpp'
     )
 
     # ---------------------------------------------------------------- MSVC build
