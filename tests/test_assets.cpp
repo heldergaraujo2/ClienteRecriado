@@ -1139,10 +1139,9 @@ void TestBmdV0CCipher() {
 }  // namespace
 
 // ---------------------------------------------------------------------------
-// Triangle records: three 8-byte corners at record offsets 0, 8 and 16, each
-// [u16 vertex][u16 normal][u16 optional][u8 flag][u8 pad], inside a 64-byte
-// record. The array sits after the texcoord array. Layout measured against the
-// reference assets; see docs/ASSET_FORMATS.md.
+// Triangle records are 64 bytes. Polygon size is followed by four vertex
+// indices, four normal indices, and four candidate UV indices in separate
+// arrays. UV semantics remain unverified; see docs/ASSET_FORMATS.md.
 // ---------------------------------------------------------------------------
 namespace {
 
@@ -1173,18 +1172,19 @@ void TestBmdTriangles() {
   PutU16LeAt(body, 42, 2);
   PutU16LeAt(body, 44, 1);
 
-  // Texcoord array: 2 entries x 8 bytes.
+  // UVs start four bytes before the coordinate-first normal cursor reaches
+  // the end of its last record.
+  body.resize(counts_base - 4);
   for (int i = 0; i < 2 * 8; ++i) body.push_back(0);
 
-  // One triangle record of 64 bytes: corners (0,0), (1,1), (2,2).
+  // One triangle record: polygon size 3 and vertex/normal/UV indices [0,1,2].
   const std::size_t tri_off = body.size();
   body.resize(tri_off + mu::kBmdTriangleRecordSize, 0);
+  body[tri_off] = 3;
   for (std::size_t k = 0; k < 3; ++k) {
-    const std::size_t p = tri_off + k * mu::kBmdCornerRecordSize;
-    PutU16LeAt(body, p, static_cast<std::uint16_t>(k));
-    PutU16LeAt(body, p + 2, static_cast<std::uint16_t>(k));
-    PutU16LeAt(body, p + 4, 0xFFFF);  // optional field, sentinel
-    body[p + 6] = 3;                  // flag
+    PutU16LeAt(body, tri_off + 2 + k * 2, static_cast<std::uint16_t>(k));
+    PutU16LeAt(body, tri_off + 10 + k * 2, static_cast<std::uint16_t>(k));
+    PutU16LeAt(body, tri_off + 18 + k * 2, static_cast<std::uint16_t>(k));
   }
 
   mu::BmdBody parsed;
@@ -1197,8 +1197,8 @@ void TestBmdTriangles() {
   CHECK_EQ(1, parsed.triangles[0].corners[1].vertex);
   CHECK_EQ(2, parsed.triangles[0].corners[2].vertex);
   CHECK_EQ(2, parsed.triangles[0].corners[2].normal);
-  CHECK_EQ(0xFFFFu, parsed.triangles[0].corners[0].optional);
-  CHECK_EQ(3u, parsed.triangles[0].corners[1].flag);
+  CHECK_EQ(0u, parsed.triangles[0].corners[0].optional);
+  CHECK_EQ(0u, parsed.triangles[0].corners[1].flag);
   CHECK_EQ(0u, parsed.out_of_range_vertices);
   CHECK_EQ(0u, parsed.out_of_range_normals);
   // Texcoords are still not located, so this must stay false.
@@ -1207,7 +1207,7 @@ void TestBmdTriangles() {
 
   // An out-of-range corner must be counted, not rejected and not silently
   // accepted: a caller that indexed with it would read out of bounds.
-  PutU16LeAt(body, tri_off, 999);
+  PutU16LeAt(body, tri_off + 2, 999);
   mu::BmdBody bad;
   CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &bad).ok());
   CHECK(bad.complete);
@@ -1217,7 +1217,7 @@ void TestBmdTriangles() {
   // The report preserves vertex and normal reference counts separately. The
   // output percentage denominator is six index fields per triangle, not three
   // geometric corners.
-  PutU16LeAt(body, tri_off + mu::kBmdCornerRecordSize + 2, 999);
+  PutU16LeAt(body, tri_off + 12, 999);
   const std::vector<std::uint8_t> file = FakeBmd(
       0x0A, static_cast<std::uint32_t>(body.size()), body);
   const mu::BmdFileReport file_report = mu::BmdClassifyBytes(
@@ -1778,22 +1778,24 @@ std::vector<std::uint8_t> MakeMultiMeshBody(
       PutF32Le(out, 0.0f);
       PutF32Le(out, 0.0f);
     }
+    // The normal vector cursor is four bytes beyond the end of the actual
+    // normal records. Place the UV array at its true record boundary.
+    if (out.size() >= 4) out.resize(out.size() - 4);
     // Texcoord array (8 bytes each, 2 floats)
     for (std::size_t i = 0; i < ntc; ++i) {
       PutF32Le(out, 0.0f);
       PutF32Le(out, 0.0f);
     }
-    // Triangle array (64 bytes each, 3 corners of 8 bytes)
+    // Triangle records: polygon size, four vertex indices, four normal indices,
+    // four candidate UV indices, then uninterpreted bytes through byte 63.
     for (std::size_t i = 0; i < ntri; ++i) {
-      for (int k = 0; k < 3; ++k) {
-        PutU16Le(out, 0); // vertex
-        PutU16Le(out, 0); // normal
-        PutU16Le(out, 0); // optional
-        out.push_back(0); // flag
-        out.push_back(0); // pad
-      }
-      // Remaining 40 bytes of the 64-byte record (24..63) zeroed
-      for (int b = 0; b < 40; ++b) out.push_back(0);
+      const std::size_t tri_start = out.size();
+      out.push_back(3);
+      out.push_back(0);
+      for (std::uint16_t k = 0; k < 4; ++k) PutU16Le(out, k < 3 ? k : 0);
+      for (std::uint16_t k = 0; k < 4; ++k) PutU16Le(out, k < 3 ? k : 0);
+      for (std::uint16_t k = 0; k < 4; ++k) PutU16Le(out, k < 3 ? k : 0);
+      while (out.size() - tri_start < mu::kBmdTriangleRecordSize) out.push_back(0);
     }
     // Texture name (32 bytes, NUL-padded, at least 3 printable)
     const char* tex = "tex.jpg";
