@@ -1195,12 +1195,15 @@ void TestBmdTriangles() {
   CHECK(st.ok());
   CHECK(parsed.complete);
   CHECK_EQ(1u, parsed.triangles.size());
-  CHECK_EQ(0, parsed.triangles[0].corners[0].vertex);
-  CHECK_EQ(1, parsed.triangles[0].corners[1].vertex);
-  CHECK_EQ(2, parsed.triangles[0].corners[2].vertex);
-  CHECK_EQ(2, parsed.triangles[0].corners[2].normal);
-  CHECK_EQ(0u, parsed.triangles[0].corners[0].optional);
-  CHECK_EQ(0u, parsed.triangles[0].corners[1].flag);
+  // Keep reporting the size failure without dereferencing an absent triangle.
+  if (!parsed.triangles.empty()) {
+    CHECK_EQ(0, parsed.triangles[0].corners[0].vertex);
+    CHECK_EQ(1, parsed.triangles[0].corners[1].vertex);
+    CHECK_EQ(2, parsed.triangles[0].corners[2].vertex);
+    CHECK_EQ(2, parsed.triangles[0].corners[2].normal);
+    CHECK_EQ(0u, parsed.triangles[0].corners[0].optional);
+    CHECK_EQ(0u, parsed.triangles[0].corners[1].flag);
+  }
   CHECK_EQ(0u, parsed.out_of_range_vertices);
   CHECK_EQ(0u, parsed.out_of_range_normals);
   // Texcoords are still not located, so this must stay false.
@@ -1216,9 +1219,11 @@ void TestBmdTriangles() {
   mu::BmdBody quad;
   CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &quad).ok());
   CHECK_EQ(2u, quad.triangles.size());
-  CHECK_EQ(0, quad.triangles[1].corners[0].vertex);
-  CHECK_EQ(2, quad.triangles[1].corners[1].vertex);
-  CHECK_EQ(3, quad.triangles[1].corners[2].vertex);
+  if (quad.triangles.size() >= 2) {
+    CHECK_EQ(0, quad.triangles[1].corners[0].vertex);
+    CHECK_EQ(2, quad.triangles[1].corners[1].vertex);
+    CHECK_EQ(3, quad.triangles[1].corners[2].vertex);
+  }
   body[tri_off] = 3;
 
   // An out-of-range corner must be counted, not rejected and not silently
