@@ -225,7 +225,7 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
     if (payload.size >= kBmdTriangleCountOffset + 2) {
       texcoord_count = ReadU16LE(payload.data + kBmdTexCoordCountOffset);
       triangle_count = ReadU16LE(payload.data + kBmdTriangleCountOffset);
-      triangles_offset = required + texcoord_count * 8;
+      triangles_offset = required + texcoord_count * 8 - 4;
       triangles_end = triangles_offset + triangle_count * kBmdTriangleRecordSize;
       if (triangle_count > 0 && triangles_end >= triangles_offset && triangles_end <= payload.size) {
         bool has_name = false;
@@ -238,15 +238,26 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
         out->triangles.reserve(triangle_count);
         for (std::size_t i = 0; i < triangle_count; ++i) {
           const uint8_t* base = payload.data + triangles_offset + i * kBmdTriangleRecordSize;
-          BmdTriangle t;
-          for (std::size_t k = 0; k < 3; ++k) {
-            const uint8_t* p = base + k * kBmdCornerRecordSize;
-            t.corners[k].vertex = ReadU16LE(p);
-            t.corners[k].normal = ReadU16LE(p+2);
-            t.corners[k].optional = ReadU16LE(p+4);
-            t.corners[k].flag = p[6];
+          const std::size_t polygon_size = base[0];
+          if (polygon_size != 3 && polygon_size != 4) continue;
+          BmdTriangleCorner corners[4];
+          for (std::size_t k = 0; k < polygon_size; ++k) {
+            corners[k].vertex = ReadU16LE(base + 2 + k * 2);
+            corners[k].normal = ReadU16LE(base + 10 + k * 2);
+            corners[k].optional = ReadU16LE(base + 18 + k * 2);
           }
-          out->triangles.push_back(t);
+          BmdTriangle first;
+          first.corners[0] = corners[0];
+          first.corners[1] = corners[1];
+          first.corners[2] = corners[2];
+          out->triangles.push_back(first);
+          if (polygon_size == 4) {
+            BmdTriangle second;
+            second.corners[0] = corners[0];
+            second.corners[1] = corners[2];
+            second.corners[2] = corners[3];
+            out->triangles.push_back(second);
+          }
         }
         for (const BmdTriangle& t : out->triangles) {
           for (const BmdTriangleCorner& c : t.corners) {
@@ -329,21 +340,20 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
         if (tc_start > payload.size || (ntc!=0 && add > payload.size - tc_start)) {
           out->topology_skip = BmdTopologySkip::kDoesNotFit; break;
         }
-        tri_start = tc_start + add;
-        if (ntc==0) tri_start = tc_start;
+        tri_start = tc_start + add - 4;
       }
       {
         std::size_t add = ntri * kBmdTriangleRecordSize;
-        if (tri_start > payload.size + 8) { out->topology_skip = BmdTopologySkip::kDoesNotFit; break; }
-        if (ntri!=0 && tri_start + add > payload.size + 8) {
-          if (tri_start + add > payload.size + 8) { out->topology_skip = BmdTopologySkip::kDoesNotFit; break; }
+        if (tri_start > payload.size || add > payload.size - tri_start) {
+          out->topology_skip = BmdTopologySkip::kDoesNotFit;
+          break;
         }
         tri_end = tri_start + add;
       }
       if (v_start > payload.size || n_start > payload.size || tc_start > payload.size || tri_start > payload.size) {
         out->topology_skip = BmdTopologySkip::kDoesNotFit; break;
       }
-      if (tri_end > payload.size + 8) { out->topology_skip = BmdTopologySkip::kDoesNotFit; break; }
+      if (tri_end > payload.size) { out->topology_skip = BmdTopologySkip::kDoesNotFit; break; }
       std::size_t name_at=0; bool found_name=false;
       for (int delta : {0, -4, 4, -8, 8}) {
         std::size_t at = tri_end;
@@ -410,26 +420,34 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
       }
       for (std::size_t i=0;i<ntri;++i) {
         const std::size_t tri_off = tri_start + i * kBmdTriangleRecordSize;
-        if (tri_off + kBmdTriangleRecordSize > payload.size + 8) break;
-        if (tri_off + 24 > payload.size) break;
-        BmdTriangle t; bool tri_ok=true;
-        for (std::size_t k=0;k<3;++k) {
-          const uint8_t* p = payload.data + tri_off + k * kBmdCornerRecordSize;
-          if (tri_off + k*kBmdCornerRecordSize + 8 > payload.size + 8) { tri_ok=false; break; }
-          const int v_idx = static_cast<int>(ReadU16LE(p));
-          const int n_idx = static_cast<int>(ReadU16LE(p + 2));
-          if (static_cast<std::size_t>(v_idx) >= vc)
-            ++out->out_of_range_vertices;
-          if (static_cast<std::size_t>(n_idx) >= nc)
-            ++out->out_of_range_normals;
-          t.corners[k].vertex =
-              static_cast<int>(base_vertex + static_cast<std::size_t>(v_idx));
-          t.corners[k].normal =
-              static_cast<int>(base_normal + static_cast<std::size_t>(n_idx));
-          t.corners[k].optional = ReadU16LE(p+4);
-          t.corners[k].flag = p[6];
+        if (tri_off > payload.size || kBmdTriangleRecordSize > payload.size - tri_off) break;
+        const uint8_t* base = payload.data + tri_off;
+        const std::size_t polygon_size = base[0];
+        if (polygon_size != 3 && polygon_size != 4) continue;
+        BmdTriangleCorner corners[4];
+        for (std::size_t k=0;k<polygon_size;++k) {
+          const std::size_t v_idx = ReadU16LE(base + 2 + k * 2);
+          const std::size_t n_idx = ReadU16LE(base + 10 + k * 2);
+          if (v_idx >= vc) ++out->out_of_range_vertices;
+          if (n_idx >= nc) ++out->out_of_range_normals;
+          corners[k].vertex = static_cast<int>(base_vertex + v_idx);
+          corners[k].normal = static_cast<int>(base_normal + n_idx);
+          corners[k].optional = ReadU16LE(base + 18 + k * 2);
         }
-        if (tri_ok) { out->triangles.push_back(t); ++total_triangles; }
+        BmdTriangle first;
+        first.corners[0] = corners[0];
+        first.corners[1] = corners[1];
+        first.corners[2] = corners[2];
+        out->triangles.push_back(first);
+        ++total_triangles;
+        if (polygon_size == 4) {
+          BmdTriangle second;
+          second.corners[0] = corners[0];
+          second.corners[1] = corners[2];
+          second.corners[2] = corners[3];
+          out->triangles.push_back(second);
+          ++total_triangles;
+        }
       }
       total_vertices+=vc; total_normals+=nc;
       offset = name_at + 32;
