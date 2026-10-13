@@ -401,3 +401,16 @@ adotada: **`NOT EXECUTED`**, não "preservada".
 
 ### Testes
 - 236 checks, 0 failures (eram 231). ASan+UBSan: 236/0.
+
+
+## 2026-10-12 — DEC-014 reopened; D3D12 first GPU spike prepared
+
+### Added
+- platform/windows/d3d12_triangle.cpp: isolated Win32/D3D12 smoke-test application that requests a high-performance hardware adapter, creates a device/swap chain and draws a known triangle.
+- scripts/build_d3d12_smoke.ps1: Windows SDK/MSVC build helper for the isolated smoke test.
+- docs/RENDERER_API_SPIKE.md: criteria-based API comparison, run instructions, evidence checklist and official references.
+
+### Changed
+- DEC-014 records the modern-Windows/dedicated-GPU priority, formally reopens the renderer API decision and supersedes the old-hardware compatibility premise of DEC-008 for the current target.
+- D3D12 is the first prototype only. D3D11 is the comparison baseline after the spike runs; Vulkan remains conditional.
+- No Windows build/runtime test was possible in this environment. The new spike is NOT EXECUTED; no performance claim is made.

@@ -217,3 +217,14 @@ reconciliation recorded in this snapshot. At audit start:
 The documentation-only reconciliation for this audit is committed on the fixed
 session branch; the final branch tip and clean post-push status are reported in
 the cycle summary.
+
+
+## Renderer API decision update — 2026-10-12
+
+The product owner confirmed the primary target is **high practical performance on modern Windows PCs with dedicated GPUs**; older-hardware compatibility is not a hard requirement. DEC-014 is reopened and formally supersedes the scope assumption behind DEC-008/DEC-008-A, while preserving their historical record.
+
+- First isolated spike: **Direct3D 12** window/device/triangle.
+- Comparison after a successful target-PC run: **Direct3D 11** as a simpler baseline on the same hardware; Vulkan remains conditional on portability needs or evidence.
+- The spike is intentionally not linked into the asset library or production renderer.
+- Compilation and runtime are **NOT EXECUTED** in this Linux authoring environment. No GPU rendering, adapter selection, FPS, or speedup is claimed.
+- Next action: run scripts/build_d3d12_smoke.ps1 in Visual Studio Developer PowerShell on Windows, execute build/d3d12_triangle.exe, and preserve its literal output before further implementation.

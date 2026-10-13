@@ -889,36 +889,33 @@ Justificativa formal:
 
 ---
 
-## DEC-014 — Renderer API choice must be reconciled before implementation
+## DEC-014 — Renderer API choice reopened for the modern-GPU target
 
-**Date:** 2026-10-12 · **Status:** OPEN — no target-device prototype or production GPU backend.
+**Date:** 2026-10-12 · **Status:** REOPENED; D3D12 is the first Windows/GPU spike, not yet the production API.
 
-This entry records a current documentation conflict. It does **not** silently
-supersede DEC-008 or select a new graphics API.
+**Product-owner decision:** prioritize high practical performance on modern Windows PCs with dedicated GPUs. Older-hardware compatibility is no longer a hard requirement for the primary target. Preserve original assets and faithful rendering as the default; optional visual enhancements must remain controllable.
 
-- DEC-008/DEC-008-A formally adopt OpenGL VBO/VAO and reject switching to
-  Vulkan/D3D12, citing compatibility with older hardware that runs the original
-  client.
-- The newer `PERFORMANCE_TARGET.md` and `NEXT_TASK.md` call for a target-device
-  evaluation of D3D12/Vulkan and possibly D3D11; `ARCHITECTURE.md` and
-  `COMPATIBILITY.md` now list these as proposals and record that no Windows/GPU
-  prototype has resolved the conflict.
-- The performance target now emphasizes modern Windows PCs with dedicated GPUs.
-  The docs do not explicitly say whether compatibility with older hardware
-  remains a hard requirement.
-- No Windows/GPU prototype has run. This sandbox is Linux x86_64, with no
-  Windows cross-compiler, Wine, `/dev/dri`, `/dev/nvidia0`, or `nvidia-smi`;
-  there is no empirical evidence here to resolve the choice.
+**Effect on prior decisions:** DEC-008/DEC-008-A remain valid historical records of why OpenGL VBO/VAO was chosen under the former compatibility requirement. For the current product target, their rejection of a new API is superseded by this decision. Do not rewrite historical evidence or claim the D3D12 backend is already implemented.
 
-**Interim status:** no production GPU backend or device path exists. The old
-OpenGL decision remains the latest formal decision, while its applicability to
-the newer product target is unresolved. Do not describe the D3D12/Vulkan list as
-an adopted API change or start API-specific implementation until the product
-owner confirms whether DEC-008 remains binding or is superseded.
+### Candidate comparison
 
-**Resolution required:** if older-hardware compatibility remains mandatory,
-retain DEC-008 and align `PERFORMANCE_TARGET.md`, `ARCHITECTURE.md`,
-`COMPATIBILITY.md`, `RENDERING.md`, `CURRENT_STATE.md`, and `NEXT_TASK.md`. If
-the target is modern-only, formally supersede DEC-008, define minimum
-hardware/API support, then compare candidate APIs on a Windows/GPU target and
-record the evidence.
+| API | Strengths for this target | Costs / risks | Role in this project |
+|---|---|---|---|
+| **Direct3D 12** | Native Windows API; explicit queues, command lists, descriptors and resource lifetime; suited to reducing CPU submission overhead in heavy scenes | Highest implementation burden; explicit synchronization and residency/lifetime bugs are our responsibility; Windows-only backend | **First prototype** because Windows is primary and modern dedicated GPUs are the target |
+| **Vulkan** | Explicit control and multi-vendor support; portable to other operating systems if that becomes a requirement | Loader/SDK and shader toolchain setup; more platform/surface integration; no current cross-platform requirement | Keep as comparison candidate; do not build in parallel before the first spike |
+| **Direct3D 11** | Simpler resource and synchronization model; useful baseline and potentially faster to implement correctly | Less explicit control of submission and memory lifetime than D3D12; still capable of modern rendering | Candidate baseline if D3D12 complexity or measured results do not justify its cost |
+| **OpenGL 3.x+ (VBO/VAO)** | Small integration surface and reuses the former decision; broad driver support | Driver-managed behavior and less explicit resource/synchronization control; no longer needed solely to support old hardware | Retain only as fallback/comparison if evidence makes it worthwhile; not the first path |
+
+This is a design comparison, not a benchmark. D3D12 and Vulkan do not automatically produce higher FPS; both transfer more synchronization/resource-lifetime responsibility to the application than D3D11. Official references are linked in docs/RENDERER_API_SPIKE.md.
+
+### Decision and validation gate
+
+1. Implement a small, isolated D3D12 window + hardware-device + GPU triangle smoke test, not yet coupled to the asset library.
+2. Build and run it on the user's Windows PC. Record adapter name, dedicated-memory report, driver/runtime, Windows build, debug-layer status, present loop and clean shutdown.
+3. After it runs, compare D3D12 with a D3D11 baseline on the same machine and identical triangle/present conditions; build a Vulkan spike only if portability or results justify its cost.
+4. The production backend is not finally locked until the prototype builds/runs and the comparison records correctness, implementation complexity, CPU submission cost, frame-time distribution and stability. A triangle smoke test proves API operation, not game performance.
+5. Keep renderer APIs behind a backend-neutral boundary. Asset readers must not depend on D3D12 headers.
+
+**Current evidence:** no Windows/GPU runtime is available in this authoring environment. The D3D12 source and PowerShell build script are prepared as a first spike, but compilation and runtime status remain **NOT EXECUTED** here. No FPS or performance improvement is claimed.
+
+**Revisit when:** a Windows/GPU run demonstrates incompatibility, excessive implementation cost, driver problems, or a D3D11/Vulkan baseline offers a materially better correctness/performance trade-off.

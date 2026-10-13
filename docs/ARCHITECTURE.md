@@ -387,3 +387,8 @@ extensão `MSFT_lod` disponível.
 **Regra que decorre disso:** nenhum relatório deste projeto pode citar melhoria de
 desempenho sem dizer onde foi medida. `PERFORMANCE_BASELINE.md` continua sem
 baseline de FPS, e isso é uma limitação declarada, não uma omissão.
+
+
+## Renderer API policy — DEC-014 (2026-10-12)
+
+The product owner has set the primary target to modern Windows PCs with dedicated GPUs; old-hardware compatibility is not a hard requirement. D3D12 is the first isolated platform spike, not yet the final production API. Keep platform-specific graphics code behind the renderer boundary and keep asset parsing platform-neutral. After the D3D12 triangle runs on the target PC, compare D3D11 on the same hardware; evaluate Vulkan only if portability or measured evidence justifies the additional path. See docs/RENDERER_API_SPIKE.md and docs/DECISIONS.md.

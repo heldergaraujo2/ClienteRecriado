@@ -128,3 +128,18 @@ history was modified. The exact post-validation HEAD/status/diff checks are in
 [`evidence/ciclo17_reference_status_final.log`](evidence/ciclo17_reference_status_final.log).
 The manifest command compared sizes/CRCs; protected and licensing paths were
 not otherwise inspected. See [`REFERENCE_AUDIT.md`](REFERENCE_AUDIT.md).
+
+
+## Renderer API spike (2026-10-12) — prepared, not executed
+
+| Check | Result | Evidence / limitation |
+|---|---|---|
+| API decision reconciled with product target | **DOCUMENTED** | DEC-014; target is modern Windows + dedicated GPU |
+| D3D12 smoke-test source and PowerShell build helper added | **PREPARED, NOT COMPILED** | platform/windows/d3d12_triangle.cpp, scripts/build_d3d12_smoke.ps1 |
+| MSVC/Windows SDK compilation | **NOT EXECUTED** | Authoring environment is Linux and has no Windows SDK |
+| Hardware adapter/device creation | **NOT EXECUTED** | Requires target Windows PC and compatible driver |
+| GPU triangle / swap-chain presentation | **NOT EXECUTED** | Source code is not runtime evidence |
+| D3D11 comparison / Vulkan evaluation | **NOT EXECUTED** | Gate depends on first successful D3D12 run |
+| FPS / frametime / VRAM / speedup | **NOT MEASURED** | A triangle smoke test is not a benchmark |
+
+Do not mark this milestone passed until the Windows build and runtime logs are saved and reviewed.

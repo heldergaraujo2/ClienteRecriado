@@ -24,12 +24,7 @@ sandbox has no Windows, Windows cross-compiler, Wine, or GPU. Therefore:
 - if Windows/GPU hardware remains unavailable, limit work to safe parser and
   documentation tasks, leave the milestone blocked, and record why.
 
-**Renderer API policy is also unresolved.** DEC-008/DEC-008-A formally adopt
-OpenGL VBO/VAO and reject an API switch for older-hardware compatibility, while
-the newer target plan proposes evaluating D3D12/Vulkan and possibly D3D11. No
-formal superseding decision or Windows/GPU prototype exists. See DEC-014; do not
-write API-specific backend code until the product owner confirms whether
-DEC-008 remains binding or is superseded.
+**Renderer API policy was reopened by the product owner in DEC-014.** The primary target is modern Windows PCs with dedicated GPUs; old-hardware compatibility is not a hard requirement. D3D12 is the first isolated prototype, not yet the final production-backend selection. Compare it against a small D3D11 baseline after the D3D12 triangle runs on the target PC; evaluate Vulkan if portability or evidence justifies it. See docs/RENDERER_API_SPIKE.md.
 
 The reference `heldergaraujo2/Cliente` remains read-only. Do not modify or
 redistribute protected executables/assets; do not unpack VMProtect, remove

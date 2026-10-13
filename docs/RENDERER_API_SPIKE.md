@@ -1,0 +1,58 @@
+# Renderer API spike — first Windows/GPU vertical slice
+
+## Purpose and scope
+
+This spike proves only that a real Windows process can create a Win32 window, select a non-software DXGI adapter, create a D3D12 device/swap chain, submit a triangle to the GPU, present frames, and shut down cleanly. It is deliberately separate from the asset library and is **not** a playable client or a performance benchmark.
+
+## Criteria-based comparison
+
+| Criterion | Direct3D 12 | Vulkan | Direct3D 11 | OpenGL 3.x+ |
+|---|---|---|---|---|
+| Primary Windows fit | Native Windows API and SDK | Supported by many vendors on Windows, with loader/SDK | Native Windows API and SDK | Driver-provided implementation |
+| Explicit control / heavy-scene headroom | High; explicit queues, command lists, descriptors and resource lifetime | High; explicit low-level control and multi-vendor ecosystem | Moderate; runtime manages more synchronization/resource details | More driver-managed |
+| CPU submission scaling | Designed to reduce CPU overhead when used correctly | Designed for explicit/multithreaded command generation | Simpler, but can carry more driver/runtime overhead in CPU-heavy submission | Depends heavily on driver and implementation |
+| Implementation complexity | Highest in this shortlist | High | Lowest of these modern choices | Low to medium |
+| Debugging/validation | D3D12 debug layer and GPU-based validation | Khronos validation layers | Mature debug layer/tooling | Driver-dependent diagnostics |
+| Portability beyond Windows | No | Yes | No | Yes, with implementation differences |
+| Decision for this project | **First prototype** | Conditional candidate | **Comparison baseline** after D3D12 works | Not first path; retain only if evidence supports it |
+
+This table is a design comparison, not a benchmark. None of these APIs guarantees higher FPS by itself. D3D12 and Vulkan shift more synchronization and resource-lifetime responsibility to the application; D3D11 is simpler and helps distinguish API complexity from renderer/asset problems. Official documentation:
+- [Direct3D 12 programming guide](https://learn.microsoft.com/en-us/windows/win32/direct3d12/directx-12-programming-guide)
+- [Direct3D 12 changes from Direct3D 11](https://learn.microsoft.com/en-us/windows/win32/direct3d12/important-changes-from-directx-11-to-directx-12)
+- [Direct3D 11 graphics](https://learn.microsoft.com/en-us/windows/win32/direct3d11/)
+- [Vulkan specification introduction](https://docs.vulkan.org/spec/latest/chapters/introduction.html)
+
+## Build on Windows
+
+1. Install Visual Studio Build Tools or Visual Studio with **Desktop development with C++** and a Windows 10/11 SDK. Do not download random DLLs.
+2. Open **Developer PowerShell for Visual Studio** so cl.exe and SDK libraries are on PATH.
+3. From the repository root run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_d3d12_smoke.ps1
+```
+
+4. If build succeeds, run:
+
+```powershell
+.\build\d3d12_triangle.exe
+```
+
+A window should show a colored triangle. The console reports the selected adapter name and dedicated-memory value. Close the window normally. If compilation fails, save the complete first error and toolchain versions; do not claim the test passed.
+
+## What the smoke test proves—and does not
+
+If it builds and runs successfully, it proves basic Win32 window creation, D3D12 device/swap-chain creation, GPU draw submission and presentation on that adapter. It does **not** prove BMD decoding, texture/material/UV correctness, gameplay, network compatibility, frame-rate gains, or that D3D12 is the final API choice. The single-allocator frame loop waits for correctness and simplicity, so it must not be used as a performance benchmark.
+
+## Evidence checklist for the target PC
+
+Save output in docs/evidence/d3d12_smoke_<date>.log (do not commit proprietary assets or secrets):
+- Windows edition/build and architecture;
+- MSVC version and Windows SDK version;
+- adapter name, dedicated-memory report, driver version/date and D3D feature level;
+- whether the debug layer was available/enabled;
+- build exit code and complete compiler output;
+- successful window/triangle observation, present-loop duration and clean shutdown;
+- any device-removal/debug-layer errors.
+
+After success, implement an equivalent minimal D3D11 triangle and compare both on the same machine. Record implementation time/complexity, correctness, CPU submission time, median/p95/p99 frame times across repeatable runs, stability and driver behavior. Keep vsync/present settings identical. A triangle comparison is only an API smoke baseline, not representative game FPS; final renderer performance requires real, semantically verified game assets and controlled scenes.
