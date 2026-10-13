@@ -414,3 +414,15 @@ adotada: **`NOT EXECUTED`**, não "preservada".
 - DEC-014 records the modern-Windows/dedicated-GPU priority, formally reopens the renderer API decision and supersedes the old-hardware compatibility premise of DEC-008 for the current target.
 - D3D12 is the first prototype only. D3D11 is the comparison baseline after the spike runs; Vulkan remains conditional.
 - No Windows build/runtime test was possible in this environment. The new spike is NOT EXECUTED; no performance claim is made.
+
+
+## 2026-10-13 — D3D12 target-PC smoke pass; D3D11 baseline added
+
+### Added
+- `platform/windows/d3d11_triangle.cpp`: isolated D3D11 hardware-device/swap-chain triangle smoke test with normal shutdown reporting.
+- `scripts/build_d3d11_smoke.ps1`: MSVC build helper for the D3D11 baseline.
+
+### Verified on target PC
+- User reported AMD Radeon RX 6600, triangle visibly rendered, and `D3D12 smoke test: clean shutdown.` after closing the window normally.
+- DXGI reported 8147 MiB dedicated video memory; this is adapter metadata, not measured runtime VRAM use.
+- D3D11 build/runtime remain NOT EXECUTED. No benchmark or production API choice is claimed.
