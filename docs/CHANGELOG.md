@@ -3,6 +3,37 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
+## 2026-10-12 — cycle-17 asset audit corrections
+
+### Changed
+
+- Split BMD accounting into out-of-range vertex references, out-of-range normal
+  references, and triangles dropped once per invalid triangle. The full-tree
+  report now distinguishes 1,030,785/22,089,984 invalid reference fields
+  (4.666%) from 513,304/3,681,664 triangles dropped (13.94%).
+- Added standard uncompressed 24-bit BGR-to-BGRA8 OZT conversion and documented
+  the 24/32-bit conversion contract. Hardened software texture sampling against
+  undersized public pixel buffers.
+- Made render texture selection explicit (`--texture <file.ozt>` or
+  `--checkerboard`); an output filename no longer implicitly enables a
+  placeholder. Planar mapping is explicitly diagnostic when BMD UVs are unknown.
+- Updated probes, CLI labels, evidence logs, compatibility tables and continuity
+  documents to distinguish header recognition, structural validation, decoding,
+  semantics and verified rendering.
+
+### Measured / not claimed
+
+- `make test` and `make test-san`: 539 checks, 0 failures (cycle-17 clean build
+  and sanitizer logs are recorded separately).
+- The available 188-entry reference manifest check: 116 matches, 8 size
+  mismatches, 11 CRC mismatches, 53 missing; this is incomplete coverage, not a
+  188/188 integrity pass.
+- A real OZT was converted and supplied to the CPU diagnostic renderer next to a
+  different BMD. The files were not shown to be associated; no visual or GPU
+  compatibility was claimed.
+- No Windows/GPU build, FPS, frametime, VRAM, or authorized network test was run.
+  The BMD v0x0C and `Enc*` terrain ciphers remain BLOCKED under `AGENTS.md`.
+
 ## 2026-10-12 — performance target and renderer priority
 
 ### Added
@@ -329,9 +360,14 @@ adotada: **`NOT EXECUTED`**, não "preservada".
 - `docs/evidence/ciclo3_escala_medicoes.log` — população de cada medição
 - `docs/evidence/ciclo3_licensing_audit.log` — confirmações de licenciamento
 
-## Ciclo 2 (fechado)
+## Ciclo 2 (registro histórico; alegações de cifra não são status atual)
 
-### Quebrado
+> **Aviso do ciclo 17:** esta nota preserva os termos e contagens usados naquela
+> época. A cifra BMD v0x0C permanece **BLOCKED** em `AGENTS.md`; os 7.226 rótulos
+> do classificador legado não provam cifra validada, autorização ou compatibilidade.
+> Veja `COMPATIBILITY.md` e `TEST_RESULTS.md` para o estado atual.
+
+### Mudanças registradas naquela época
 - **Cifra BMD v0x0C** — XOR rolante sobre tabela de 16 B com chave corrente
   derivada do texto cifrado anterior. Nível 2 (payload em claro) de 1.496 <!-- historico -->
   (14,83%) para **8.571 (84,95%)**; nível 3 (geometria parseada) de 1.191 <!-- historico -->

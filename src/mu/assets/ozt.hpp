@@ -48,8 +48,12 @@ struct OztImage {
 };
 
 Status OztProbe(ByteView file, OztImage* out);
+/// Copies the declared, bottom-up pixel payload after a successful probe.
 Status OztRead(ByteView file, OztImage* out);
+/// Converts 24-bit BGR or 32-bit BGRA pixels to top-down RGBA8.
 bool OztToRgbaTopDown(const OztImage& img, std::vector<uint8_t>* out);
+/// Converts 24-bit BGR or 32-bit BGRA pixels to top-down BGRA8.
+/// 24-bit inputs receive an opaque alpha byte; 32-bit alpha is preserved.
 bool OztToBgraTopDown(const OztImage& img, std::vector<uint8_t>* out);
 bool OztWriteRgba(uint32_t width, uint32_t height, const uint8_t* rgba,
                   bool with_footer, std::vector<uint8_t>* out);

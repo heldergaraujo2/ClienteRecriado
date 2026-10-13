@@ -28,7 +28,7 @@ int main(){
   mu::BmdParseBodyV0A(payload,&body);
   auto r=mu::MeshFromBmd(body,path);
   mu::Mesh mesh=r.mesh;
-  std::cout<<"total verts "<<mesh.positions.size()<<" total tris mesh "<<mesh.indices.size()/3<<" body tris "<<body.triangles.size()<<" bad "<<r.mesh.bad_indices<<"\n";
+  std::cout<<"total verts "<<mesh.positions.size()<<" total tris mesh "<<mesh.indices.size()/3<<" body tris "<<body.triangles.size()<<" dropped "<<r.mesh.dropped_triangles<<"\n";
   mu::Bounds b_all = mu::ComputeBounds(mesh.positions);
   std::cout<<"bounds all valid "<<b_all.valid<<" min "<<b_all.min.x<<","<<b_all.min.y<<","<<b_all.min.z<<" max "<<b_all.max.x<<","<<b_all.max.y<<","<<b_all.max.z<<"\n";
   mu::Vec3 center{0,0,0};
@@ -76,8 +76,8 @@ int main(){
     ++ok;
     usedVerts.insert(i0); usedVerts.insert(i1); usedVerts.insert(i2);
   }
-  std::cout<<"tri stats: total "<<mesh.indices.size()/3<<" ok "<<ok<<" degenerate area<1e-6 "<<degenerate<<" clipped w<=0.001 "<<clipped<<" ok% "<<(double)ok*100.0/(mesh.indices.size()/3)<<"%\n";
-  std::cout<<"used verts in ok tris "<<usedVerts.size()<<" vs total verts "<<mesh.positions.size()<<" used% "<<(double)usedVerts.size()*100.0/mesh.positions.size()<<"%\n";
+  std::cout<<"tri stats: total "<<mesh.indices.size()/3<<" ok "<<ok<<" degenerate area<1e-6 "<<degenerate<<" clipped w<=0.001 "<<clipped<<" ok% "<<static_cast<double>(ok) * 100.0 / static_cast<double>(mesh.indices.size() / 3)<<"%\n";
+  std::cout<<"used verts in ok tris "<<usedVerts.size()<<" vs total verts "<<mesh.positions.size()<<" used% "<<static_cast<double>(usedVerts.size()) * 100.0 / static_cast<double>(mesh.positions.size())<<"%\n";
   std::vector<mu::Vec3> usedPos;
   for(auto idx: usedVerts) usedPos.push_back(mesh.positions[idx]);
   mu::Bounds b_used = mu::ComputeBounds(usedPos);

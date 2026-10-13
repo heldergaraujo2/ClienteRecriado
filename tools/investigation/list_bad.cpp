@@ -1,5 +1,5 @@
 // Ciclo: ciclo16 B
-// Pergunta: Lista bad_indices por arquivo, encontra máximas 29.49% Furniture06 etc, mede taxas Object1 14.22% Player 3.47%
+// Question: List dropped-triangle rates by file and identify outliers.
 // Evidência: docs/evidence/ciclo15_render_validation.log
 // Origem: /tmp/list_bad.cpp movido para backup permanente ciclo16 para garantir que todo trabalho está salvo no repositório
 // Categoria: (a) FERRAMENTA/SCRIPT DE DESCOBERTA ÚNICO
@@ -47,10 +47,10 @@ int main(int argc,char**argv){
     if(!mu::BmdParseBodyV0A(payload,&body).ok() || !body.complete) continue;
     auto r=mu::MeshFromBmd(body, p.path().string());
     if(!r.ok) continue;
-    size_t total_refs = body.triangles.size()*3;
-    size_t bad = r.mesh.bad_indices;
-    double rate = total_refs? (double)bad*100.0/total_refs : 0;
-    if(rate>10) printf("%s bad %zu total_tri %zu rate %.2f%% verts %zu tris_prod %zu\n", p.path().c_str(), bad, body.triangles.size(), rate, r.mesh.positions.size(), r.mesh.indices.size()/3);
+    size_t total_triangles = body.triangles.size();
+    size_t dropped = r.mesh.dropped_triangles;
+    double rate = total_triangles ? static_cast<double>(dropped) * 100.0 / static_cast<double>(total_triangles) : 0.0;
+    if(rate>10) printf("%s dropped %zu total_tri %zu rate %.2f%% verts %zu tris_prod %zu\n", p.path().c_str(), dropped, total_triangles, rate, r.mesh.positions.size(), r.mesh.indices.size()/3);
   }
   return 0;
 }

@@ -37,23 +37,20 @@ environment, so this path has never been compiled. It is written to be correct
 and reviewed, but unverified. Treat it as a starting point and record what
 actually happens in [`TEST_RESULTS.md`](TEST_RESULTS.md).
 
-From a *x86 Native Tools Command Prompt* (32-bit, to match the reference
-client's target):
+From an **x64 Native Tools PowerShell** prompt (candidate initial target; both
+x64 and x86 remain unverified, and the original client's x86 architecture does
+not by itself determine the reconstruction's ABI):
 
-```bat
-cl /nologo /std:c++17 /O2 /EHsc /W4 /permissive- /Isrc ^
-   src\mu\assets\format.cpp src\mu\assets\ozt.cpp src\mu\assets\ozj.cpp ^
-   src\mu\assets\tga.cpp src\mu\assets\bmd.cpp src\mu\assets\terrain.cpp ^
-   src\mu\assets\manifest.cpp src\mu\fs.cpp tools\mutool.cpp ^
-   /Fe:build\mutool.exe
+```powershell
+New-Item -ItemType Directory -Force build | Out-Null
+$src = Get-ChildItem src\mu -Recurse -Filter *.cpp | ForEach-Object FullName
+cl /nologo /std:c++17 /O2 /EHsc /W4 /permissive- /Isrc $src tools\mutool.cpp /Fe:build\mutool.exe
 ```
 
 Tests:
 
-```bat
-cl /nologo /std:c++17 /O2 /EHsc /W4 /permissive- /Isrc ^
-   src\mu\assets\*.cpp src\mu\fs.cpp tests\test_assets.cpp ^
-   /Fe:build\test_assets.exe
+```powershell
+cl /nologo /std:c++17 /O2 /EHsc /W4 /permissive- /Isrc $src tests\test_assets.cpp /Fe:build\test_assets.exe
 build\test_assets.exe
 ```
 
@@ -74,10 +71,12 @@ so this could not even be smoke-tested.
 
 ```sh
 x86_64-w64-mingw32-g++ -std=c++17 -O2 -Wall -Wextra -Isrc \
-  src/mu/assets/*.cpp src/mu/fs.cpp tools/mutool.cpp -o build/mutool.exe
+  src/mu/assets/*.cpp src/mu/render/*.cpp src/mu/platform/*.cpp \
+  src/mu/fs.cpp tools/mutool.cpp -o build/mutool.exe
 ```
 
-Use `i686-w64-mingw32-g++` for a 32-bit build matching the reference client.
+An `i686-w64-mingw32-g++` build may be tested as a separate architecture
+comparison; neither architecture has been compiled here.
 
 ## 5. Verifying a build
 
@@ -85,7 +84,7 @@ Use `i686-w64-mingw32-g++` for a 32-bit build matching the reference client.
 make test
 ```
 
-Expected: `231 checks, 0 failures`, and **no compiler warnings**. The warning
+Expected at the cycle-17 snapshot: `539 checks, 0 failures`, and **no compiler warnings**. The warning
 set is `-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion
 -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual
 -Wcast-align -Wdouble-promotion -Wformat=2`. Do not narrow it to silence a
@@ -97,8 +96,8 @@ warning.
 make test-san        # separate instrumented binary in build-san/
 ```
 
-Expected: `231 checks, 0 failures` with no AddressSanitizer,
-UndefinedBehaviorSanitizer or LeakSanitizer reports, and exit code 0.
+Expected at the cycle-17 snapshot: `539 checks, 0 failures` with no
+AddressSanitizer, UndefinedBehaviorSanitizer, or LeakSanitizer reports, and exit code 0.
 It is a separate target rather than a flag, so `make test` never silently runs
 an instrumented build.
 

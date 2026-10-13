@@ -8,7 +8,7 @@ namespace mu {
 PackedBuffers PackMeshForUpload(const Mesh& mesh) {
   PackedBuffers out;
   out.skipped_vertices = mesh.skipped_vertices;
-  out.bad_indices = mesh.bad_indices;
+  out.dropped_triangles = mesh.dropped_triangles;
   out.has_texcoords = mesh.has_texcoords;
   out.has_bone_weights = mesh.has_bone_weights;
 
@@ -71,21 +71,19 @@ PackedBuffers PackMeshForUpload(const Mesh& mesh) {
       out.problem = "indices not multiple of 3";
       return out;
     }
-    // Validate indices against vertex count
-    size_t bad = 0;
-    for (uint32_t idx : mesh.indices) {
-      if (idx >= mesh.positions.size()) ++bad;
-    }
-    out.bad_indices += bad;
-    // Copy only valid indices? For testability, we copy all but count bad
-    // For upload, we should drop triangles with bad indices (same as MeshFromBmd)
     out.indices.reserve(mesh.indices.size());
     for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
-      uint32_t a = mesh.indices[i];
-      uint32_t b = mesh.indices[i+1];
-      uint32_t c = mesh.indices[i+2];
-      if (a >= mesh.positions.size() || b >= mesh.positions.size() || c >= mesh.positions.size()) {
-        continue; // drop triangle with bad index
+      const uint32_t a = mesh.indices[i];
+      const uint32_t b = mesh.indices[i + 1];
+      const uint32_t c = mesh.indices[i + 2];
+      std::size_t invalid_references = 0;
+      if (a >= mesh.positions.size()) ++invalid_references;
+      if (b >= mesh.positions.size()) ++invalid_references;
+      if (c >= mesh.positions.size()) ++invalid_references;
+      out.invalid_index_references += invalid_references;
+      if (invalid_references != 0) {
+        ++out.dropped_triangles;
+        continue;
       }
       out.indices.push_back(a);
       out.indices.push_back(b);

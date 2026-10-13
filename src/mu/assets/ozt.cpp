@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <iterator>
+#include <limits>
 
 namespace mu {
 namespace {
@@ -17,6 +18,21 @@ constexpr uint32_t kMaxDimension = 8192;  // sanity cap, well above any asset
 // file that claims megabytes of metadata.
 constexpr std::size_t kMaxTrailerSize = 4096;
 constexpr std::size_t kNoSignature = static_cast<std::size_t>(-1);
+
+bool CheckedImageBytes(uint32_t width, uint32_t height, std::size_t channels,
+                      std::size_t* row_bytes, std::size_t* total_bytes) {
+  if (!row_bytes || !total_bytes || width == 0 || height == 0 || channels == 0)
+    return false;
+  const std::size_t max_size = std::numeric_limits<std::size_t>::max();
+  const std::size_t w = static_cast<std::size_t>(width);
+  const std::size_t h = static_cast<std::size_t>(height);
+  if (w > max_size / channels) return false;
+  const std::size_t row = w * channels;
+  if (h > max_size / row) return false;
+  *row_bytes = row;
+  *total_bytes = row * h;
+  return true;
+}
 
 /// Locates the 4-byte OZT signature. It normally sits at offset 0, but a group
 /// of files in the reference client (Data/Custom/Interface/Rank*.OZT, Next.OZT,
@@ -129,51 +145,125 @@ Status OztRead(ByteView file, OztImage* out) {
 }
 
 bool OztToRgbaTopDown(const OztImage& img, std::vector<uint8_t>* out) {
-  if (!out || img.bits_per_pixel != 32) return false;
-  const std::size_t row = static_cast<std::size_t>(img.width) * 4;
-  if (img.pixels.size() < row * img.height) return false;
-  out->resize(row * img.height);
-  // Optimized: process 2 pixels (8B) at a time via uint64_t with BGRA->RGBA swap via bit ops
-  // BGRA little-endian uint32_t = B | G<<8 | R<<16 | A<<24, desired RGBA = R | G<<8 | B<<16 | A<<24
-  // = (pixel & 0xFF00FF00) | ((pixel & 0xFF)<<16) | ((pixel>>16)&0xFF)
+  if (!out || (img.bits_per_pixel != 24 && img.bits_per_pixel != 32))
+    return false;
+
+  std::size_t source_row = 0;
+  std::size_t source_bytes = 0;
+  if (!CheckedImageBytes(img.width, img.height, img.bits_per_pixel / 8,
+                         &source_row, &source_bytes) ||
+      img.pixels.size() < source_bytes)
+    return false;
+
+  std::size_t output_row = 0;
+  std::size_t output_bytes = 0;
+  if (!CheckedImageBytes(img.width, img.height, 4, &output_row,
+                         &output_bytes))
+    return false;
+  out->resize(output_bytes);
+
+  if (img.bits_per_pixel == 24) {
+    for (uint32_t y = 0; y < img.height; ++y) {
+      const std::size_t source_y =
+          static_cast<std::size_t>(img.height - 1 - y);
+      const uint8_t* src = img.pixels.data() + source_row * source_y;
+      uint8_t* dst = out->data() + output_row * static_cast<std::size_t>(y);
+      for (uint32_t x = 0; x < img.width; ++x) {
+        dst[0] = src[2];
+        dst[1] = src[1];
+        dst[2] = src[0];
+        dst[3] = 255;
+        src += 3;
+        dst += 4;
+      }
+    }
+    return true;
+  }
+
+  // Optimized 32-bit path: process two pixels (8 bytes) at a time while
+  // swapping BGRA to RGBA. The row order is flipped from bottom-up to top-down.
+  // BGRA little-endian = B | G<<8 | R<<16 | A<<24; RGBA swaps R and B.
+  const std::size_t row = output_row;
   for (uint32_t y = 0; y < img.height; ++y) {
-    const uint8_t* src = img.pixels.data() + row * (img.height - 1 - y);
-    uint8_t* dst = out->data() + row * y;
-    uint32_t x=0;
-    for (; x+1 < img.width; x+=2) {
+    const std::size_t source_y =
+        static_cast<std::size_t>(img.height - 1 - y);
+    const std::size_t output_y = static_cast<std::size_t>(y);
+    const uint8_t* src = img.pixels.data() + row * source_y;
+    uint8_t* dst = out->data() + row * output_y;
+    uint32_t x = 0;
+    for (; x + 1 < img.width; x += 2) {
       uint64_t chunk;
       std::memcpy(&chunk, src, 8);
-      uint32_t p0 = static_cast<uint32_t>(chunk & 0xFFFFFFFFULL);
-      uint32_t p1 = static_cast<uint32_t>((chunk >> 32) & 0xFFFFFFFFULL);
-      uint32_t r0 = (p0 & 0xFF00FF00) | ((p0 & 0xFF) << 16) | ((p0 >> 16) & 0xFF);
-      uint32_t r1 = (p1 & 0xFF00FF00) | ((p1 & 0xFF) << 16) | ((p1 >> 16) & 0xFF);
-      uint64_t outChunk = (static_cast<uint64_t>(r1) << 32) | r0;
-      std::memcpy(dst, &outChunk, 8);
-      src+=8; dst+=8;
+      const uint32_t p0 = static_cast<uint32_t>(chunk & 0xFFFFFFFFULL);
+      const uint32_t p1 = static_cast<uint32_t>((chunk >> 32) & 0xFFFFFFFFULL);
+      const uint32_t r0 = (p0 & 0xFF00FF00) | ((p0 & 0xFF) << 16) |
+                          ((p0 >> 16) & 0xFF);
+      const uint32_t r1 = (p1 & 0xFF00FF00) | ((p1 & 0xFF) << 16) |
+                          ((p1 >> 16) & 0xFF);
+      const uint64_t out_chunk = (static_cast<uint64_t>(r1) << 32) | r0;
+      std::memcpy(dst, &out_chunk, 8);
+      src += 8;
+      dst += 8;
     }
     for (; x < img.width; ++x) {
-      uint32_t p;
-      std::memcpy(&p, src, 4);
-      uint32_t r = (p & 0xFF00FF00) | ((p & 0xFF) << 16) | ((p >> 16) & 0xFF);
-      std::memcpy(dst, &r, 4);
-      src+=4; dst+=4;
+      uint32_t pixel;
+      std::memcpy(&pixel, src, 4);
+      const uint32_t rgba = (pixel & 0xFF00FF00) | ((pixel & 0xFF) << 16) |
+                            ((pixel >> 16) & 0xFF);
+      std::memcpy(dst, &rgba, 4);
+      src += 4;
+      dst += 4;
     }
   }
   return true;
 }
 
 bool OztToBgraTopDown(const OztImage& img, std::vector<uint8_t>* out) {
-  // CAND-001 / OPT-005: BGRA upload direct via GL_BGRA (GL_EXT_bgra universal desktop GL)
-  // Elimina swap R<->B, apenas flip vertical via memcpy — 10,2× speedup medido 66,4us->6,5us 256x256
-  // Usar com glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, data)
-  if (!out || img.bits_per_pixel != 32) return false;
-  const std::size_t row = static_cast<std::size_t>(img.width) * 4;
-  if (img.pixels.size() < row * img.height) return false;
-  out->resize(row * img.height);
+  if (!out || (img.bits_per_pixel != 24 && img.bits_per_pixel != 32))
+    return false;
+
+  std::size_t source_row = 0;
+  std::size_t source_bytes = 0;
+  if (!CheckedImageBytes(img.width, img.height, img.bits_per_pixel / 8,
+                         &source_row, &source_bytes) ||
+      img.pixels.size() < source_bytes)
+    return false;
+
+  std::size_t output_row = 0;
+  std::size_t output_bytes = 0;
+  if (!CheckedImageBytes(img.width, img.height, 4, &output_row,
+                         &output_bytes))
+    return false;
+  out->resize(output_bytes);
+
+  if (img.bits_per_pixel == 32) {
+    // Preserve the measured direct-BGRA path: only reverse the row order.
+    for (uint32_t y = 0; y < img.height; ++y) {
+      const std::size_t source_y =
+          static_cast<std::size_t>(img.height - 1 - y);
+      const std::size_t output_y = static_cast<std::size_t>(y);
+      const uint8_t* src = img.pixels.data() + source_row * source_y;
+      uint8_t* dst = out->data() + output_row * output_y;
+      std::memcpy(dst, src, output_row);
+    }
+    return true;
+  }
+
+  // Convert 24-bit BGR to opaque BGRA, also flipping bottom-up rows to top-down.
   for (uint32_t y = 0; y < img.height; ++y) {
-    const uint8_t* src = img.pixels.data() + row * (img.height - 1 - y);
-    uint8_t* dst = out->data() + row * y;
-    std::memcpy(dst, src, row);
+    const std::size_t source_y =
+        static_cast<std::size_t>(img.height - 1 - y);
+    const std::size_t output_y = static_cast<std::size_t>(y);
+    const uint8_t* src = img.pixels.data() + source_row * source_y;
+    uint8_t* dst = out->data() + output_row * output_y;
+    for (uint32_t x = 0; x < img.width; ++x) {
+      dst[0] = src[0];
+      dst[1] = src[1];
+      dst[2] = src[2];
+      dst[3] = 255;
+      src += 3;
+      dst += 4;
+    }
   }
   return true;
 }

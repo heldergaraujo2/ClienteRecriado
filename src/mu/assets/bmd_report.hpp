@@ -8,19 +8,22 @@
 // rendering. These are different questions and they have very different
 // answers, so they get different metrics.
 //
-// Three levels, from weakest to strongest:
+// The report keeps distinct stages and sub-metrics rather than collapsing them
+// into one "parsed" percentage:
 //
-//   1. STRUCTURE  - the magic and version are recognised and, for v0x0C, the
+//   1. STRUCTURE  - magic and version are recognised and, for v0x0C, the
 //                   declared payload length agrees with the file length.
-//   2. CLEARTEXT  - the payload bytes can be obtained in the clear, either
-//                   because they are already plaintext or because the bux
-//                   cipher decrypts them.
-//   3. GEOMETRY   - vertices, faces and bones have actually been parsed out of
-//                   the payload.
+//   2. CLEARTEXT  - payload bytes are plaintext or a supported cipher is
+//                   verified/decrypted.
+//   3. GEOMETRY   - a supported body layout yields vertices and normals.
+//   4. TOPOLOGY   - triangle records are read; out-of-range vertex and normal
+//                   references are counted separately from usable triangles.
+//   5. BONES      - bone records pass the current parser's checks.
 //
-// Level 3 is currently zero for every file, because no BMD body parser exists.
-// Reporting it as zero rather than omitting the column is the point of this
-// module: the omission is what made the earlier percentage misleading.
+// These stages do not all form a cumulative hierarchy: topology is a subset of
+// parsed geometry, but the bone metric is reported independently. UV semantics,
+// texture association, animation meaning, and rendered appearance are not
+// measured by this module.
 #ifndef MU_ASSETS_BMD_REPORT_HPP
 #define MU_ASSETS_BMD_REPORT_HPP
 
@@ -54,14 +57,15 @@ struct BmdFileReport {
   double bux_gain = 0.0;
   std::string problem;  ///< Empty when nothing is wrong.
 
-  /// Level 3. Set only when a body parser actually extracted geometry, and
-  /// only for the versions whose layout is verified (v0x0A). Counts are the
-  /// parser's own tally, not the header's, so a mismatch cannot hide.
+  /// Level 3. Set only when a body parser extracted geometry from a supported
+  /// clear payload (currently v0x0A plaintext and verified v0x0C decryption).
+  /// Counts are the parser's own tally, not the header's.
   bool geometry_parsed = false;
   std::size_t vertex_count = 0;
   std::size_t normal_count = 0;
   std::size_t triangle_count = 0;
-  std::size_t bad_corner_refs = 0;
+  std::size_t out_of_range_vertex_refs = 0;
+  std::size_t out_of_range_normal_refs = 0;
   /// Non-empty when a body parse was attempted and failed. Kept separate from
   /// |problem| so a container-level fault and a body-level fault are not
   /// confused with each other.
@@ -97,7 +101,8 @@ struct BmdSummary {
   std::size_t geometry_parsed = 0;
   std::size_t topology_parsed = 0;
   std::size_t triangles_total = 0;
-  std::size_t bad_corner_refs = 0;
+  std::size_t out_of_range_vertex_refs = 0;
+  std::size_t out_of_range_normal_refs = 0;
 
   // Level 5 - bones
   std::size_t bones_parsed = 0;

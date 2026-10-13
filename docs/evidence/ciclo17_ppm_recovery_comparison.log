@@ -1,0 +1,11 @@
+Cycle-17 recovery comparison of six PPM paths that differed from published commit 4c36befab01263bf95a509d1c8306c56a1e876c5.
+Only file sizes and SHA-256 digests were compared. Published PPMs remain unchanged in Git; interrupted-workspace variants are preserved outside the repository at /home/user/ClienteRecriado_recovery_ppm/.
+This record does not establish file contents, rendering provenance, GPU execution, UV semantics, or visual compatibility. Do not cite either set as proof of the Windows/GPU milestone.
+
+path | published bytes | published sha256 | recovered bytes | recovered sha256
+docs/evidence/ciclo14_first_render_AmbitionShield.ppm | 1440015 | 68907abcc7241abb7dc0dc5312fec61944c66fe6f72e34b244232ef69a1bf7dc | 1450983 | 458f6a61cb151888ebd4c5b11867d50281fd328528162ff1d43fd8b474024e35
+docs/evidence/ciclo14_first_render_Axe11.ppm | 1440015 | 276268d0bc79bcc03ce323818f06d086fd6448c5430a2161d62076ddb9b17514 | 1691143 | 5eb7c30a9f4e7b5e0ce1884cb03d33e3191c25f1bf96c98688aa7c2eb247152c
+docs/evidence/ciclo14_first_render_Beer01.ppm | 1440015 | e36e1345b57c0aef918597b5d4f246b4a95ee4faf1bbb3983d9c735a4eff915d | 1574467 | 21808b0107ea0b46918101a5e37b6fc723135ce16285af4ec1ab2dc94333da52
+docs/evidence/ciclo14_first_render_Object03.ppm | 1440015 | babf507aaa8a467ae3d6453f3a1fc5f82531d81cc4c25742cbd74bd2bd236690 | 1745021 | a06e8c48235489ea8cf940d4b58aa05669a32f16a959210781f772431b5f0298
+docs/evidence/ciclo16_first_render_Beer01_textured.ppm | 1440015 | 47786e916ad92afc9b082ef9df2f1d7d2b9c31fbea5d531c6592353d950ffe44 | 1507329 | 9107ea9cb5e8847b6eac4f34a140c791697c7cf58ebdc88a591996b857e47fe9
+docs/evidence/ciclo16_first_render_Object03_textured.ppm | 1440015 | c97ff2e39f1cc4be3d7efe2819b935c4a571470c335c631fcebb48e12846cc08 | 1593287 | c3a529f413ccff496f54476c2db1be1769bc030066d97006c90eeee415339b94

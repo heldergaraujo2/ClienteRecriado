@@ -97,8 +97,8 @@ struct Mesh {
   std::vector<std::vector<BoneWeight>> bone_weights;
 
   /// Set only when texcoords is populated AND a mapping from each triangle
-  /// corner to a texcoord is known. The BMD importer leaves this false: it can
-  /// read the texcoord array but not the index that binds a corner to an entry,
+  /// corner to a texcoord is known. The BMD importer leaves this false: neither
+  /// the semantic coordinate array nor its corner mapping has been verified,
   /// so texturing would be guesswork. See docs/ASSET_FORMATS.md.
   bool has_texcoords = false;
 
@@ -113,9 +113,10 @@ struct Mesh {
   /// A converter that silently skipped bad vertices would produce a mesh that
   /// looks fine and is wrong, which is worse than one that reports the problem.
   std::size_t skipped_vertices = 0;
-  /// Triangle corners whose index fell outside the vertex array. BMD shows this
-  /// in about 8.4% of references, cause not established.
-  std::size_t bad_indices = 0;
+  /// Triangles rejected because at least one corner has an out-of-range vertex
+  /// or normal reference. Incremented once per rejected triangle, not once per
+  /// invalid reference.
+  std::size_t dropped_triangles = 0;
 };
 
 struct Skeleton {
@@ -156,24 +157,21 @@ namespace mu {
 /// Status: PARTIAL, and the gaps are reported rather than papered over.
 ///
 /// What this produces today:
-///   - positions and normals, which the BMD parser reads and validates;
-///   - triangle indices, when the body was single-mesh and the array fit;
+///   - positions and normals from a body accepted by the BMD parser;
+///   - triangle indices when the declared mesh arrays can be located and fit;
 ///   - a bounding box, computed here so culling does not pay for it per frame.
 ///
 /// What it deliberately does not produce:
-///   - texture coordinates. The BMD texcoord array can be read, but the index
-///     that binds a triangle corner to an entry was never located (seven
-///     hypotheses tested and rejected, see docs/ASSET_FORMATS.md). Emitting the
-///     array without the binding would let the renderer texturise with wrong
-///     coordinates, so has_texcoords stays false.
-///   - bones. The hierarchy is decoded at the file-format level but the order of
-///     the six transform floats is inferred, not confirmed; applying position and
-///     rotation swapped yields a silently wrong skeleton.
+///   - verified texture coordinates. A candidate byte region is not semantically
+///     validated as UV, and the index that binds each triangle corner to an
+///     entry is unknown. Emitting guessed coordinates would let the renderer
+///     silently use the wrong mapping, so has_texcoords stays false.
+///   - skinning weights. The BMD weights have not been decoded/validated; bone
+///     records alone do not establish usable skinning semantics.
 ///
-/// Index handling. Roughly 8.4% of BMD corner references fall outside the vertex
-/// array. Those triangles are dropped and counted in |bad_indices| rather than
-/// clamped: clamping would move a vertex and deform the mesh without any signal
-/// that it happened.
+/// Index handling. Triangles with any out-of-range vertex or normal reference
+/// are dropped and counted once in |dropped_triangles| rather than clamped;
+/// clamping could deform the mesh without any signal that it happened.
 MeshImportResult MeshFromBmd(const BmdBody& body, const std::string& name);
 
 }  // namespace mu

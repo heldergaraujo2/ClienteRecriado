@@ -1,0 +1,42 @@
+BMD animation block measurement for /tmp/cliente_ref/Data
+
+  files with bytes after the bones        500
+  extra divisible by 12*boneCount         385  ( 77.00%)
+
+  keyframes per bone, where it divides:
+       4 keyframes :    1 files
+       6 keyframes :    1 files
+       8 keyframes :   28 files
+      10 keyframes :   11 files
+      12 keyframes :   19 files
+      14 keyframes :   28 files
+      15 keyframes :    2 files
+      16 keyframes :    8 files
+      18 keyframes :   54 files
+      20 keyframes :   21 files
+      22 keyframes :   28 files
+      24 keyframes :   20 files
+      26 keyframes :    2 files
+      28 keyframes :   23 files
+      30 keyframes :    9 files
+      32 keyframes :    2 files
+      34 keyframes :    1 files
+      38 keyframes :   71 files
+      40 keyframes :    5 files
+      43 keyframes :    1 files
+      46 keyframes :    5 files
+      48 keyframes :    7 files
+      52 keyframes :    1 files
+      58 keyframes :   20 files
+      78 keyframes :    7 files
+      98 keyframes :    5 files
+     118 keyframes :    2 files
+     120 keyframes :    1 files
+     158 keyframes :    1 files
+     358 keyframes :    1 files
+
+  Model: animation = boneCount * keyframes * 12 bytes,
+  12 bytes = 3 floats. SIZE ONLY - what the three floats mean
+  is NOT determined and this tool does not interpret them.
+
+[exit code: 0]

@@ -1,4 +1,12 @@
-# Ciclo 12 — Relatório final
+# Ciclo 12 — Relatório histórico
+
+> **Qualificação do ciclo 17:** este relatório registra decisões e medições da
+> época; não define status atual. Em especial, expressões como "v0x0C validada",
+> recomendações de investigação da cifra, estimativas de memória como `w×h×4` e
+> alegações de gargalo/FPS não devem ser tratadas como conclusão atual. `AGENTS.md`
+> mantém a cifra BMD v0x0C e `Enc*` **BLOCKED**. As contagens são observações do
+> código/classificador daquele momento, não prova ou autorização. Use
+> `CURRENT_STATE.md`, `COMPATIBILITY.md` e `PERFORMANCE_BASELINE.md`.
 
 ## 1. O que foi pesquisado
 

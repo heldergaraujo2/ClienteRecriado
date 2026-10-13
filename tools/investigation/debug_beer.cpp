@@ -29,7 +29,7 @@ int main(){
     std::cout<<"\n";
   }
   auto r=mu::MeshFromBmd(body,path);
-  std::cout<<"mesh pos "<<r.mesh.positions.size()<<" indices "<<r.mesh.indices.size()<<" bad "<<r.mesh.bad_indices<<"\n";
+  std::cout<<"mesh pos "<<r.mesh.positions.size()<<" indices "<<r.mesh.indices.size()<<" dropped "<<r.mesh.dropped_triangles<<"\n";
   for(size_t i=0;i<std::min<size_t>(10, r.mesh.indices.size()/3);++i){
     std::cout<<"mesh tri "<<i<<" "<<r.mesh.indices[i*3]<<","<<r.mesh.indices[i*3+1]<<","<<r.mesh.indices[i*3+2]<<"\n";
   }

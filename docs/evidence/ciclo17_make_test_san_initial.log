@@ -1,0 +1,213 @@
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tests/test_assets.cpp -o build-san/tests/test_assets.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/format.cpp -o build-san/src/mu/assets/format.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozt.cpp -o build-san/src/mu/assets/ozt.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozj.cpp -o build-san/src/mu/assets/ozj.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd.cpp -o build-san/src/mu/assets/bmd.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_body.cpp -o build-san/src/mu/assets/bmd_body.o
+src/mu/assets/bmd_body.cpp: In lambda function:
+src/mu/assets/bmd_body.cpp:300:9: warning: this 'if' clause does not guard... [-Wmisleading-indentation]
+  300 |         if (a==0||b==0) return false; return a > limit / b;
+      |         ^~
+src/mu/assets/bmd_body.cpp:300:39: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'if'
+  300 |         if (a==0||b==0) return false; return a > limit / b;
+      |                                       ^~~~~~
+src/mu/assets/bmd_body.cpp: In function 'mu::Status mu::BmdParseBodyV0A(ByteView, BmdBody*)':
+src/mu/assets/bmd_body.cpp:348:97: warning: conversion to 'std::size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+  348 |         if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
+      |                                                                                                 ^~~~~
+src/mu/assets/bmd_body.cpp:348:126: warning: conversion to 'std::size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+  348 |         if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
+      |                                                                                                                              ^~~~~
+src/mu/assets/bmd_body.cpp:355:99: warning: conversion to 'std::size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+  355 |           if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
+      |                                                                                                   ^~~~~
+src/mu/assets/bmd_body.cpp:355:128: warning: conversion to 'std::size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+  355 |           if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
+      |                                                                                                                                ^~~~~
+src/mu/assets/bmd_body.cpp:393:64: warning: conversion to 'long unsigned int' from 'int' may change the sign of the result [-Wsign-conversion]
+  393 |           t.corners[k].vertex = static_cast<int>(base_vertex + v_idx);
+      |                                                                ^~~~~
+src/mu/assets/bmd_body.cpp:394:64: warning: conversion to 'long unsigned int' from 'int' may change the sign of the result [-Wsign-conversion]
+  394 |           t.corners[k].normal = static_cast<int>(base_normal + n_idx);
+      |                                                                ^~~~~
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/mesh.cpp -o build-san/src/mu/assets/mesh.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/cull.cpp -o build-san/src/mu/render/cull.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/buffers.cpp -o build-san/src/mu/render/buffers.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/skinning.cpp -o build-san/src/mu/render/skinning.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/software_rasterizer.cpp -o build-san/src/mu/render/software_rasterizer.o
+src/mu/render/software_rasterizer.cpp: In member function 'void mu::SoftwareFramebuffer::Resize(int, int)':
+src/mu/render/software_rasterizer.cpp:56:39: warning: conversion to 'size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+   56 |   color.assign(static_cast<size_t>(w)*h*3, 0);
+      |                                       ^
+src/mu/render/software_rasterizer.cpp:57:39: warning: conversion to 'size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+   57 |   depth.assign(static_cast<size_t>(w)*h, 1.0f);
+      |                                       ^
+src/mu/render/software_rasterizer.cpp: In member function 'bool mu::SoftwareFramebuffer::SetPixel(int, int, float, uint8_t, uint8_t, uint8_t)':
+src/mu/render/software_rasterizer.cpp:71:39: warning: conversion to 'size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+   71 |   size_t idx = static_cast<size_t>(y)*width + x;
+      |                                       ^~~~~
+src/mu/render/software_rasterizer.cpp:71:47: warning: conversion to 'size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+   71 |   size_t idx = static_cast<size_t>(y)*width + x;
+      |                                               ^
+src/mu/render/software_rasterizer.cpp: In member function 'void mu::SoftwareTexture::GenerateCheckerboard(int, int, int)':
+src/mu/render/software_rasterizer.cpp:94:23: warning: use of old-style cast to 'size_t' {aka 'long unsigned int'} [-Wold-style-cast]
+   94 |   bgra.resize((size_t)w*h*4);
+      |                       ^
+      |               ---------
+      |               static_cast<size_t> (w)
+src/mu/render/software_rasterizer.cpp:94:25: warning: conversion to 'size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+   94 |   bgra.resize((size_t)w*h*4);
+      |                         ^
+src/mu/render/software_rasterizer.cpp:102:36: warning: use of old-style cast to 'size_t' {aka 'long unsigned int'} [-Wold-style-cast]
+  102 |       size_t idx = (size_t)(y*w + x)*4;
+      |                                    ^
+      |                    -----------------
+      |                    static_cast<size_t> ((y*w + x))
+src/mu/render/software_rasterizer.cpp: In member function 'bool mu::SoftwareTexture::LoadFromOZT(const std::string&)':
+src/mu/render/software_rasterizer.cpp:137:13: warning: unused variable 'dummyDst' [-Wunused-variable]
+  137 |     uint8_t dummyDst[64*64*4];
+      |             ^~~~~~~~
+src/mu/render/software_rasterizer.cpp: In member function 'void mu::SoftwareTexture::Sample(float, float, uint8_t&, uint8_t&, uint8_t&) const':
+src/mu/render/software_rasterizer.cpp:163:33: warning: conversion from 'int' to 'float' may change value [-Wconversion]
+  163 |   int x = static_cast<int>(fu * width) % width;
+      |                                 ^~~~~
+src/mu/render/software_rasterizer.cpp:164:33: warning: conversion from 'int' to 'float' may change value [-Wconversion]
+  164 |   int y = static_cast<int>(fv * height) % height;
+      |                                 ^~~~~~
+src/mu/render/software_rasterizer.cpp:169:36: warning: use of old-style cast to 'size_t' {aka 'long unsigned int'} [-Wold-style-cast]
+  169 |   size_t idx = (size_t)(y*width + x)*4;
+      |                                    ^
+      |                --------
+      |                static_cast<size_t> ()
+src/mu/render/software_rasterizer.cpp: In member function 'mu::RenderStats mu::SoftwareRasterizer::RenderMeshes(const std::vector<mu::Mesh>&, const std::vector<mu::Vec3>&, const mu::Camera&, const mu::Vec3&)':
+src/mu/render/software_rasterizer.cpp:320:46: warning: conversion from 'int' to 'float' may change value [-Wconversion]
+  320 |       float sx = (ndc_x * 0.5f + 0.5f) * fb_.width;
+      |                                          ~~~~^~~~~
+src/mu/render/software_rasterizer.cpp:321:55: warning: conversion from 'int' to 'float' may change value [-Wconversion]
+  321 |       float sy = (1.0f - (ndc_y * 0.5f + 0.5f)) * fb_.height;
+      |                                                   ~~~~^~~~~~
+src/mu/render/software_rasterizer.cpp:376:22: warning: conversion from 'int' to 'float' may change value [-Wconversion]
+  376 |           float px = x + 0.5f;
+      |                      ^
+src/mu/render/software_rasterizer.cpp:377:22: warning: conversion from 'int' to 'float' may change value [-Wconversion]
+  377 |           float py = y + 0.5f;
+      |                      ^
+src/mu/render/software_rasterizer.cpp:390:13: warning: this 'if' clause does not guard... [-Wmisleading-indentation]
+  390 |             if (z < 0) z = 0; if (z > 1) z = 1;
+      |             ^~
+src/mu/render/software_rasterizer.cpp:390:31: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'if'
+  390 |             if (z < 0) z = 0; if (z > 1) z = 1;
+      |                               ^~
+src/mu/render/software_rasterizer.cpp:391:13: warning: this 'if' clause does not guard... [-Wmisleading-indentation]
+  391 |             if (intensity < 0) intensity = 0; if (intensity > 1) intensity = 1;
+      |             ^~
+src/mu/render/software_rasterizer.cpp:391:47: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'if'
+  391 |             if (intensity < 0) intensity = 0; if (intensity > 1) intensity = 1;
+      |                                               ^~
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/platform/win32_window.cpp -o build-san/src/mu/platform/win32_window.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/platform/main_loop.cpp -o build-san/src/mu/platform/main_loop.o
+src/mu/platform/main_loop.cpp: In member function 'bool mu::platform::MainLoop::PredictOverBudget() const':
+src/mu/platform/main_loop.cpp:90:10: warning: conversion from 'size_t' {aka 'long unsigned int'} to 'double' may change value [-Wconversion]
+   90 |   avg /= n;
+      |          ^
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_report.cpp -o build-san/src/mu/assets/bmd_report.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/terrain.cpp -o build-san/src/mu/assets/terrain.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/tga.cpp -o build-san/src/mu/assets/tga.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/manifest.cpp -o build-san/src/mu/assets/manifest.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/fs.cpp -o build-san/src/mu/fs.o
+ar rcs build-san/libmuassets.a build-san/src/mu/assets/format.o build-san/src/mu/assets/ozt.o build-san/src/mu/assets/ozj.o build-san/src/mu/assets/bmd.o build-san/src/mu/assets/bmd_body.o build-san/src/mu/assets/mesh.o build-san/src/mu/render/cull.o build-san/src/mu/render/buffers.o build-san/src/mu/render/skinning.o build-san/src/mu/render/software_rasterizer.o build-san/src/mu/platform/win32_window.o build-san/src/mu/platform/main_loop.o build-san/src/mu/assets/bmd_report.o build-san/src/mu/assets/terrain.o build-san/src/mu/assets/tga.o build-san/src/mu/assets/manifest.o build-san/src/mu/fs.o
+g++ -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer build-san/tests/test_assets.o build-san/libmuassets.a -o build-san/test_assets
+build-san/test_assets
+ClienteRecriado asset library tests
+[ RUN  ] crc32 known vectors
+[  OK  ] crc32 known vectors
+[ RUN  ] ozt round trip
+[  OK  ] ozt round trip
+[ RUN  ] ozt variant with extra prefix
+[  OK  ] ozt variant with extra prefix
+[ RUN  ] ozt rejects bad input
+[  OK  ] ozt rejects bad input
+[ RUN  ] ozj probe
+[  OK  ] ozj probe
+[ RUN  ] ozj duplicated header prefix
+[  OK  ] ozj duplicated header prefix
+[ RUN  ] bux cipher is self inverse
+[  OK  ] bux cipher is self inverse
+[ RUN  ] bmd probe
+[  OK  ] bmd probe
+[ RUN  ] entropy separates plaintext from ciphertext
+[  OK  ] entropy separates plaintext from ciphertext
+[ RUN  ] terrain probe
+[  OK  ] terrain probe
+[ RUN  ] manifest parse
+[  OK  ] manifest parse
+[ RUN  ] manifest verify
+[  OK  ] manifest verify
+[ RUN  ] extension helpers
+[  OK  ] extension helpers
+[ RUN  ] bmd v0x0c cipher
+[  OK  ] bmd v0x0c cipher
+[ RUN  ] bmd triangles
+[  OK  ] bmd triangles
+[ RUN  ] topology is a strict subset of geometry
+[  OK  ] topology is a strict subset of geometry
+[ RUN  ] mesh from bmd
+[  OK  ] mesh from bmd
+[ RUN  ] compute bounds
+[  OK  ] compute bounds
+[ RUN  ] frustum cull
+[  OK  ] frustum cull
+[ RUN  ] frustum from view projection
+[  OK  ] frustum from view projection
+[ RUN  ] terrain height
+[  OK  ] terrain height
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
+[ RUN  ] bmd report levels are separate
+[  OK  ] bmd report levels are separate
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
+[ RUN  ] bmd percent helper
+[  OK  ] bmd percent helper
+[ RUN  ] bmd report accumulates kinds
+[  OK  ] bmd report accumulates kinds
+[ RUN  ] bmd multi-mesh large counts (regression 8406)
+[  OK  ] bmd multi-mesh large counts (regression 8406)
+[ RUN  ] bmd multi-mesh extreme meshCount 0xFFFF
+[  OK  ] bmd multi-mesh extreme meshCount 0xFFFF
+[ RUN  ] bmd multi-mesh truncated payload
+[  OK  ] bmd multi-mesh truncated payload
+[ RUN  ] bmd multi-mesh overflow check
+[  OK  ] bmd multi-mesh overflow check
+[ RUN  ] bmd bones circular parent (cycle detection)
+[  OK  ] bmd bones circular parent (cycle detection)
+[ RUN  ] bmd bones extreme boneCount
+[  OK  ] bmd bones extreme boneCount
+[ RUN  ] bmd bones truncated payload
+[  OK  ] bmd bones truncated payload
+[ RUN  ] bmd bones overflow check
+[  OK  ] bmd bones overflow check
+[ RUN  ] mesh internal representation (C1)
+[  OK  ] mesh internal representation (C1)
+[ RUN  ] pack mesh for upload (D1)
+[  OK  ] pack mesh for upload (D1)
+[ RUN  ] skinning LBS CPU strict (D2)
+[  OK  ] skinning LBS CPU strict (D2)
+[ RUN  ] frustum cull real bounds (D3)
+[  OK  ] frustum cull real bounds (D3)
+[ RUN  ] win32 wgl skeleton BLOCKED (D5)
+[  OK  ] win32 wgl skeleton BLOCKED (D5)
+[ RUN  ] main loop skeleton update/render/present (E2)
+[  OK  ] main loop skeleton update/render/present (E2)
+[ RUN  ] software rasterizer framebuffer (B)
+[  OK  ] software rasterizer framebuffer (B)
+[ RUN  ] software rasterizer camera (B)
+[  OK  ] software rasterizer camera (B)
+[ RUN  ] software rasterizer triangle (B)
+[  OK  ] software rasterizer triangle (B)
+[ RUN  ] software rasterizer z-buffer (B)
+[  OK  ] software rasterizer z-buffer (B)
+
+500 checks, 0 failures

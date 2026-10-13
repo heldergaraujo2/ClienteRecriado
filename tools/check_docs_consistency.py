@@ -137,10 +137,10 @@ FORBIDDEN_ALLOWLIST_GLOB = ('docs/CICLO', '_RELATORIO')
 HISTORIC_MARKER = '<!-- historico -->'
 
 TABLE_CHECKS = [
-    ('1 — estrutura', 'nivel 1 - estrutura valida'),
+    ('1 — structure', 'nivel 1 - estrutura valida'),
     ('2 — payload', 'nivel 2 - payload em claro (1245+100+7226)'),
-    ('3 — vértice', 'nivel 3 - vertice + normal'),
-    ('4 — topologia', 'nivel 4 - topologia'),
+    ('3 — vertices', 'nivel 3 - vertice + normal'),
+    ('4 — topology', 'nivel 4 - topologia'),
     ('6 — UV', None),
 ]
 

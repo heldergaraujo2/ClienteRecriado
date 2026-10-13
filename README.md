@@ -41,7 +41,7 @@ outside this repository; see [docs/LICENSING.md](docs/LICENSING.md).
 | src/mu/platform/ | Win32/OpenGL window and main-loop skeletons; GPU execution remains blocked/unverified |
 | src/mu/fs.* | Portable recursive directory walker (POSIX + Win32) |
 | tools/mutool.cpp | Command-line inspection, validation and software-rendering tools |
-| tests/test_assets.cpp | Unit-test suite; current state reports 500 checks |
+| tests/test_assets.cpp | Unit-test suite; latest verified run reports 539 checks, 0 failures |
 | bench/bench_assets.cpp | Asset micro-benchmarks with percentile reporting |
 | docs/ | Audits, architecture, compatibility, measurements and continuity plan |
 
@@ -87,8 +87,10 @@ FPS or GPU benchmarks.
 
 - **Reference renderer:** fixed-function OpenGL 1.1. The original executable's
   imports include immediate-mode calls such as glBegin/glEnd and glReadPixels.
-- **Texture footprint:** 2,893.80 MB is a theoretical uncompressed RGBA
-  footprint derived from asset headers, not observed VRAM use.
+- **Texture bytes:** 2,893.80 MiB is a header/payload-derived image-byte estimate
+  (OZJ as RGBA8-equivalent; OZT/TGA declared or calculated payload bytes), not
+  decoded allocation, RAM, or VRAM. The BMD v0x0C classifier label is not cipher
+  validation or format compatibility; `AGENTS.md` keeps that work BLOCKED.
 - **Asset processing:** the current state document reports 13,832/13,928 OZJ
   files recognised, 3,404/3,470 OZT files recognised, and 10,023/10,090 BMD
   files structurally valid. Of the BMD tree, 8,406 files have parsed geometry;

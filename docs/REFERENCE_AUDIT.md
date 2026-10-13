@@ -293,17 +293,24 @@ Data/InGameShopScript/512.2011.006/IBSCategory.txt bab7f199 281
 The `512.xxxx` in-game-shop paths indicate client version 512, i.e. the Season
 6 line, with builds dated 2011 and 2025 present simultaneously.
 
-Verified with `build/mutool verify` against the checked-out tree:
+Cycle-17 recheck: the read-only sparse reference clone is at commit
+`88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`; the root
+`/tmp/cliente_ref/ListaPatch.txt` was verified against the available tree.
+Output:
+[`evidence/ciclo17_reference_manifest_verification_final.log`](evidence/ciclo17_reference_manifest_verification_final.log).
 
 ```
-total 188   match 116   size mismatch 9   crc mismatch 11   missing 52
+total 188   match 116   size mismatch 8   crc mismatch 11   missing 53
 ```
 
-**The repository does not match its own patch manifest.** 52 entries are absent
-from the tree (for example `Data/Item/axe10.ozj`, `Data/Item/Axe12.bmd`,
-`Data/Item/DarkHammer.bmd`), and 20 more differ in size or checksum, including
-`Data/gate.bmd`, `main.premium` and `3D.Premium`. A client installed from this
-repository is not the client the manifest describes.
+**The available tree does not match its manifest.** 53 listed paths are absent
+(for example `Data/Item/axe10.ozj`, `Data/Item/Axe12.bmd`,
+`Data/Item/DarkHammer.bmd`), and 19 present paths differ in size or checksum,
+including `Data/gate.bmd`, `main.premium` and `3D.Premium`. The check is incomplete
+as a full-tree verification; it does not establish that the reference is intact
+or installable. Protected/licensing paths were compared only as manifest
+size/CRC/absence checks, not inspected or modified. No reference file was
+changed.
 
 ## 7. Shader and scripting layer
 

@@ -85,11 +85,11 @@ Samples TimeIt(int reps, F&& fn) {
 }
 
 void PrintRow(const char* name, std::size_t bytes, const Samples& s) {
-  const double mb = static_cast<double>(bytes) / 1048576.0;
-  // Throughput in MB/s from the median, which is the stable statistic.
-  const double mbps = s.median > 0 ? mb / (s.median / 1e6) : 0.0;
+  const double mib = static_cast<double>(bytes) / 1048576.0;
+  // Throughput in MiB/s from the median, which is the stable statistic.
+  const double mib_per_s = s.median > 0 ? mib / (s.median / 1e6) : 0.0;
   std::printf("%-34s %8.1f %8.1f %8.1f %8.1f %10.2f %9.1f\n", name, s.median,
-              s.p95, s.p99, s.mean, mb, mbps);
+              s.p95, s.p99, s.mean, mib, mib_per_s);
 }
 
 std::vector<uint8_t> MakeRgba(std::size_t w, std::size_t h) {
@@ -105,9 +105,9 @@ int main() {
   std::printf("ClienteRecriado asset micro-benchmarks\n");
   std::printf("CPU-side decode cost only. Not a frame rate measurement.\n\n");
   std::printf("%-34s %8s %8s %8s %8s %10s %9s\n", "benchmark", "med us",
-              "p95 us", "p99 us", "mean us", "MB", "MB/s");
+              "p95 us", "p99 us", "mean us", "MiB", "MiB/s");
   std::printf("%-34s %8s %8s %8s %8s %10s %9s\n", "---------", "------",
-              "------", "------", "-------", "--", "----");
+              "------", "------", "-------", "---", "-----");
 
   // ------------------------------------------------ OZT probe (header only)
   {
@@ -331,12 +331,13 @@ int main() {
                 sa.mean, sa.stddev, sa.mean > 0 ? 100.0 * sa.stddev / sa.mean : 0.0,
                 sa.min, sa.max);
 
-    // The one-time vertex buffer upload that the VBO path pays instead.
+    // CPU-side copy into storage shaped like the future vertex buffer. There is
+    // no GPU or actual VBO upload in this benchmark.
     std::vector<V> upload(kVerts);
     Samples sc = TimeIt(50, [&] {
       std::memcpy(upload.data(), pool.data(), kVerts * sizeof(V));
     });
-    PrintRow("LOAD-TIME vertex buffer upload", kVerts * sizeof(V), sc);
+    PrintRow("LOAD-TIME vertex buffer preparation", kVerts * sizeof(V), sc);
     std::printf("    reps=50  mean=%.1f us  stddev=%.1f us (%.2f%% of mean)"
                 "  min=%.1f  max=%.1f\n",
                 sc.mean, sc.stddev, sc.mean > 0 ? 100.0 * sc.stddev / sc.mean : 0.0,
@@ -346,33 +347,33 @@ int main() {
     // Stated as bytes, because the COST is driver and bus work that cannot be
     // measured without a context. The comparison is exact and does not need a
     // GPU: it follows from glDrawElements being absent from the binary.
-    const double mb_expanded =
+    const double mib_expanded =
         static_cast<double>(expanded) * sizeof(V) / 1048576.0;
-    const double mb_resident =
+    const double mib_resident =
         (static_cast<double>(kVerts) * sizeof(V) +
          static_cast<double>(expanded) * sizeof(uint32_t)) / 1048576.0;
 
     std::printf("\n    LOAD-TIME, measured on CPU:\n");
     std::printf("      expansion, index -> flat          %10.1f us  (%6.2f MiB)\n",
-                sa.median, mb_expanded);
-    std::printf("      VBO upload, unique vertices only  %10.1f us  (%6.2f MiB)\n",
+                sa.median, mib_expanded);
+    std::printf("      CPU copy, unique vertices only     %10.1f us  (%6.2f MiB)\n",
                 sc.median, static_cast<double>(kVerts) * sizeof(V) / 1048576.0);
-    std::printf("      ratio expansion/upload            %10.2fx\n",
+    std::printf("      ratio expansion/preparation       %10.2fx\n",
                 sc.median > 0 ? sa.median / sc.median : 0.0);
     std::printf("\n    PER-FRAME, volume only - cost is BLOCKED, no GL context:\n");
     std::printf("      no glDrawElements, expanded       %10.2f MiB per draw\n",
-                mb_expanded);
-    std::printf("      VBO + index buffer, resident once %10.2f MiB total\n",
-                mb_resident);
+                mib_expanded);
+    std::printf("      hypothetical indexed buffers        %10.2f MiB resident\n",
+                mib_resident);
     std::printf("      per-frame volume ratio            %10.2fx\n",
-                mb_resident > 0 ? mb_expanded / mb_resident : 0.0);
+                mib_resident > 0 ? mib_expanded / mib_resident : 0.0);
     std::printf("      corner sends, expanded            %10zu per draw\n",
                 expanded);
-    std::printf("      unique vertices, indexed          %10zu uploaded once\n",
+    std::printf("      unique vertices, indexed          %10zu in hypothetical buffer\n",
                 kVerts);
-    std::printf("\n    The per-frame advantage of VBO/VAO is real and follows\n");
-    std::printf("    from the absent imports, but its COST is driver, bus and\n");
-    std::printf("    per-vertex call overhead: BLOCKED here. See DEC-008.\n");
+    std::printf("\n    This is a hypothetical data-volume comparison only; it does\n");
+    std::printf("    not establish runtime advantage. Driver, bus and per-vertex\n");
+    std::printf("    call costs are BLOCKED here. See DEC-008.\n");
   }
 
   std::printf("\nRun twice and compare the medians; a shift of more than a few\n"

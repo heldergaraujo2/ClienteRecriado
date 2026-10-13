@@ -1,5 +1,16 @@
 # Architecture
 
+## Cycle-17 status correction
+
+This document contains historical design decisions and snapshots. The
+cycle-17/current-state documents are authoritative for implementation status.
+Current architecture is an asset library/tools, partial BMD importer, CPU-side
+buffer preparation, and a CPU diagnostic rasterizer; there is no playable client
+or production GPU backend. The BMD v0x0C and `Enc*` ciphers remain BLOCKED under
+`AGENTS.md`. Candidate BMD coordinate floats are not verified UVs, and a PPM is
+not a visual-compatibility result. See [`CURRENT_STATE.md`](CURRENT_STATE.md),
+[`COMPATIBILITY.md`](COMPATIBILITY.md), and [`NEXT_TASK.md`](NEXT_TASK.md).
+
 ## 1. Design constraints
 
 Four constraints determined this architecture. They come from the audit, not
@@ -7,8 +18,10 @@ from preference.
 
 1. **The engine cannot be modified.** `Main.exe` is VMProtect-protected and the
    render loop is inside it. A patch-based optimisation strategy is impossible.
-2. **The assets can be read.** No asset format in the tree is protected. This is
-   the only route to visual parity with the original.
+2. **Only subsets of the asset tree are currently parsed.** Probes cover formats
+   more broadly than pixel/body decoders; some BMD payloads remain OPAQUE, the
+   v0x0C cipher is blocked by policy, and `Enc*` terrain is blocked. No probe is
+   evidence of visual parity.
 3. **Windows is the target, but development happens on Linux** with no GPU and
    no Windows machine. Everything must be testable headlessly, and the Windows
    build path must be verified by someone who has the machine.
@@ -18,23 +31,25 @@ from preference.
 ## 2. Layering
 
 ```
-+-------------------------------------------------------------+
-|  tools/mutool          command line inspection and reporting |
-+-------------------------------------------------------------+
-|  bench/bench_assets    micro-benchmarks                      |
-|  tests/test_assets     unit tests, self-generating fixtures  |
-+-------------------------------------------------------------+
-|  src/mu/assets         format readers (OZT, OZJ, TGA, BMD,   |
-|                        terrain, manifest) + CRC-32           |
-|  src/mu/fs             portable directory walking            |
-+-------------------------------------------------------------+
-             (future) renderer, resource manager, engine
-+-------------------------------------------------------------+
++--------------------------------------------------------------+
+| tools/mutool         inspection, reports, CPU PPM diagnostic  |
++--------------------------------------------------------------+
+| bench/bench_assets   CPU microbenchmarks                      |
+| tests/test_assets    unit tests, generated fixtures           |
++--------------------------------------------------------------+
+| src/mu/assets        partial readers (OZT/OZJ/TGA/BMD/terrain) |
+| src/mu/render        CPU rasterizer, culling, buffer packing   |
+| src/mu/platform      main-loop/window skeletons               |
+| src/mu/fs            portable directory walking               |
++--------------------------------------------------------------+
+          (future) GPU backend, resource manager, playable client
++--------------------------------------------------------------+
 ```
 
 The dependency direction is strictly downward. `src/mu/assets` knows nothing
-about `tools/`. Nothing in the library depends on OpenGL, Windows or any
-third-party library, which is what makes it testable here and portable there.
+about `tools/`. Shared code has no graphics API dependency; the CPU rasterizer
+is a diagnostic, and the platform files are not a functional Windows client or
+GPU backend.
 
 ## 3. Core conventions
 
@@ -62,7 +77,7 @@ struct ByteView { const uint8_t* data; std::size_t size; };
 ```
 
 Non-owning, so a caller can memory-map a file instead of copying it. On a
-2,372 MB asset tree the difference between copying and mapping is the
+2,372 MiB asset tree the difference between copying and mapping is the
 difference between a usable tool and an unusable one. `sub()` clamps instead of
 trusting its arguments.
 
@@ -140,26 +155,28 @@ idealised inputs. Three examples:
 - `TestBmdProbe` covers a bux-encrypted non-model because `Data/gate.bmd` is
   one.
 
-## 7. Modules not yet built
+## 7. Product modules and current implementation
 
-The layering anticipates these. None exists yet, and this list is a plan, not a
-claim.
+The names below are architectural targets, not a claim that the client is
+playable. Some partial foundations exist; their acceptance limits are in
+`CURRENT_STATE.md` and `COMPATIBILITY.md`.
 
-| Module | Purpose | Status |
+| Module / area | Purpose | Current status |
 |---|---|---|
-| `mu/gfx` | Renderer backend abstraction | NOT STARTED |
-| `mu/gfx/gl` | OpenGL backend | NOT STARTED |
-| `mu/gfx/null` | Headless backend for render tests | NOT STARTED |
-| `mu/res` | Resource cache, lifetime, budgeting | NOT STARTED |
-| `mu/world` | Terrain, maps, objects | NOT STARTED |
-| `mu/anim` | Skeletal animation | BLOCKED on the BMD payload cipher |
-| `mu/net` | Protocol | NOT STARTED |
-| `mu/audio` | Ogg Vorbis playback | NOT STARTED |
-| `mu/app` | Window, input, main loop | NOT STARTED |
+| `mu/assets` | Format readers and asset reports | Partial; probes exceed decoders; see compatibility matrix |
+| `mu/render` CPU | Diagnostic rasterizer, culling, CPU buffer packing/skinning helpers | Implemented for tests/PPM only; not a product renderer |
+| `mu/gfx` | GPU backend abstraction | Not implemented |
+| `mu/gfx/d3d12`, Vulkan, D3D11 | Candidate Windows GPU backends | Not implemented; API not selected by target-device prototype |
+| `mu/res` | Resource cache/lifetime/budgeting | Not implemented |
+| `mu/world` | Terrain/maps/objects | Partial parsers; no complete world renderer |
+| `mu/anim` | Skeletal animation | Not implemented as an animation system; bone records are partial and semantics remain unverified; cipher restrictions remain in force |
+| `mu/net` | Authorized game protocol/session | Not implemented; no authorized server test |
+| `mu/audio` | Audio playback | Not implemented |
+| `mu/app` | Window/input/main application | Only skeletons exist; no runnable Windows game client |
 
-`mu/anim` is blocked because BMD payloads cannot be decrypted, so there is no
-vertex or bone data to animate. That is a hard dependency, recorded in
-[`TEST_RESULTS.md`](TEST_RESULTS.md).
+Animation is not blocked simply because no geometry exists: some bodies produce
+vertices/topology, but BMD weights, transform meanings, and keyframe values are
+not verified, and the v0x0C cipher remains BLOCKED under `AGENTS.md`.
 
 ## 8. Decisions that shaped this
 
@@ -168,129 +185,89 @@ Recorded in full, with alternatives considered, in
 
 ---
 
-## 9. Importação dual: representação interna única e dois caminhos
+## 9. Shared mesh representation and importer status
 
-Adotado no ciclo 2, quando o escopo passou a incluir conteúdo significativamente
-mais pesado que o original. Ver `DECISIONS.md` (DEC-008, DEC-009).
+The architecture defines one internal mesh/skeleton representation so future
+asset importers and render backends can share data. The C++ structures exist;
+there is no implemented glTF importer, and the BMD import path is partial.
+Historical design decisions are recorded in `DECISIONS.md` (DEC-008/009).
 
-### 9.1 Representação interna única (C1 — CONCLUÍDO E VALIDADO ciclo12)
+### 9.1 Internal representation (C1 — data structures implemented)
 
-Existe **uma** representação de malha e esqueleto no motor, independente do
-formato de origem. Nenhum renderer, sistema de colisão ou de animação lê BMD,
-OZJ, OZT ou glTF diretamente. Isso é o que permite que dois importadores
-coexistam sem duplicar lógica de renderização.
-
-**Definição C++ (implementada em `src/mu/assets/mesh.hpp`, ciclo12 C1):**
+The `Mesh`, `Skeleton`, and packing types live in `src/mu/assets/mesh.hpp` and
+`src/mu/render/buffers.hpp`. They are data structures and CPU helpers, not a
+complete asset/rendering system.
 
 ```cpp
-struct Vec3 { float x,y,z; };
-struct Vec2 { float u,v; };
-struct BoneWeight { uint32_t bone; float weight; }; // por vértice, count explícito 0..N, não fixo 4
+struct Vec3 { float x, y, z; };
+struct Vec2 { float u, v; };
+struct BoneWeight { uint32_t bone; float weight; };
 constexpr int32_t kNoBoneParent = -1;
-struct Bone { std::string name; int32_t parent=kNoBoneParent; Vec3 position; Vec3 rotation; };
-struct Bounds { Vec3 min,max; bool valid=false; };
+struct Bone { std::string name; int32_t parent = kNoBoneParent; Vec3 position; Vec3 rotation; };
+struct Bounds { Vec3 min, max; bool valid = false; };
 struct Mesh {
   std::string name;
-  std::vector<Vec3> positions;          // vértices
-  std::vector<Vec3> normals;            // normais
-  std::vector<Vec2> texcoords;          // UV quando disponível
-  std::vector<uint32_t> indices;        // índices triângulo, multiple de 3
-  std::vector<std::vector<BoneWeight>> bone_weights; // pesos skinning por vértice, paralelo a positions
-  bool has_texcoords=false;             // true quando texcoords populado E mapeamento canto->texcoord conhecido
-  bool has_bone_weights=false;          // true quando bone_weights populado, refs válidas, soma ~1.0
-  Bounds bounds;                        // AABB computada na importação
-  size_t skipped_vertices=0;
-  size_t bad_indices=0;
+  std::vector<Vec3> positions, normals;
+  std::vector<Vec2> texcoords;          // empty for current BMD import
+  std::vector<uint32_t> indices;        // triangle indices, count multiple of 3
+  std::vector<std::vector<BoneWeight>> bone_weights;
+  bool has_texcoords = false;           // requires verified corner-to-UV mapping
+  bool has_bone_weights = false;        // requires validated weights/bone references
+  Bounds bounds;
+  std::size_t skipped_vertices = 0;
+  std::size_t dropped_triangles = 0;    // once per rejected triangle
 };
-struct Skeleton {
-  std::vector<Bone> bones;              // hierarquia ossos por nome e pai
-  bool has_bones=false;                 // true quando hierarquia lida
-};
+struct Skeleton { std::vector<Bone> bones; bool has_bones = false; };
 struct MeshImportResult { Mesh mesh; Skeleton skeleton; bool ok; std::string problem; };
-Bounds ComputeBounds(const std::vector<Vec3>& positions);
-MeshImportResult MeshFromBmd(const BmdBody& body, const std::string& name); // Caminho A
 ```
 
-| Requisito C1 | Estado em código ciclo12 |
+| Capability | Current status |
 |---|---|
-| Posição e normal por vértice | **CONCLUÍDO E VALIDADO** — `std::vector<Vec3> positions, normals`, `MeshFromBmd` produz, teste `TestMeshFromBmd` |
-| UV por vértice (quando disponível) | **CONCLUÍDO** — `texcoords` + `has_texcoords`, campo existe, BMD deixa false (índice UV não localizado), glTF preencherá |
-| Índice de triângulo separado | **CONCLUÍDO E VALIDADO** — `indices`, `MeshFromBmd` produz 3681664 tris em 8405 arquivos, teste |
-| Hierarquia de ossos por nome e pai | **CONCLUÍDO E VALIDADO** — `Bone` name parent position rotation, `Skeleton` bones has_bones, 3693 arquivos loose 7879 bones ratio per file 1846,28× definitivo, strict 1186 headline conservador |
-| Pesos de skinning por vértice | **CONCLUÍDO** — `BoneWeight` bone weight, `Mesh::bone_weights` vector<vector> paralelo a positions, `has_bone_weights`, tipo existe, BMD deixa false (pesos não decodificados), glTF preencherá, teste criação/preenchimento básico ciclo12 |
-| Caixa delimitadora na importação | **CONCLUÍDO E VALIDADO** — `ComputeBounds`, chamado por `MeshFromBmd`, teste `TestComputeBounds` |
-| Contagem 32 bits, não u16 | **CONCLUÍDO E VALIDADO** — `uint32_t`, `size_t`, evita limite 65535 do formato origem |
+| Position/normal arrays and bounds | Implemented in the BMD path for accepted layouts; unit tests and full-tree parser counts exist; not visual-equivalence validation |
+| Separate triangle indices | Implemented; 3,681,664 body triangles read in 8,405 files, with invalid refs handled separately |
+| UV storage field | **Data structure only**; BMD UV semantics and mapping are unverified, so BMD importer leaves `has_texcoords` false |
+| Bone/skeleton structures | **Data structure only** for import/packing; BMD bone records are partially parsed, but transform semantics and usable skinning are not verified |
+| Bone weights | Field exists; no verified BMD weight import or glTF importer |
+| Bounds | `ComputeBounds` is implemented and unit-tested |
+| Counts wider than source `u16` | Internal containers use `std::size_t` / `uint32_t`; this does not change BMD's on-disk limits |
 
-**Status C1: CONCLUÍDO E VALIDADO ciclo12** — estrutura única definida e implementada em código real `src/mu/assets/mesh.hpp`, com testes unitários de criação/preenchimento básico (ver `TestMeshInternalRepresentation` ciclo12), acomoda vértices, normais, UV, índices, hierarquia ossos, pesos skinning, independente de formato origem (BMD original ou glTF customizado).
+### 9.2 Original asset path (BMD / OZT / OZJ / terrain)
 
-### 9.2 Caminho A — assets originais (BMD / OZJ / OZT)
-
-Importador dos formatos do cliente para a representação interna.
-
-**Status real: PARCIAL.** O que está concluído e o que não está, sem generalizar:
-
-| Parte | Status |
+| Area | Current status |
 |---|---|
-| Decifragem v0x0C | **CONCLUÍDO E VALIDADO** (7.226 de 8.741; validação independente por normais unitárias a 99,98%) |
-| Posições de vértice | **CONCLUÍDO E VALIDADO** (8.406 arquivos, 83,31%) |
-| Normais | **CONCLUÍDO E VALIDADO** (99,91% com norma 1) |
-| Localização do array de triângulos | **CONCLUÍDO** (98,05% contra controle de 2,35%) |
-| Registro de triângulo (topologia) | **CONCLUÍDO, em C++** — 3 referências de 8 B em +0/+8/+16; `bmd_body.cpp` lê o array; 3.681.664 triângulos em 8.405 arquivos |
-| Array de coordenadas UV | **CONCLUÍDO** — pares `f32`, zero não-finitos em 250.450 leituras |
-| Hierarquia de ossos | **CONCLUÍDO** — registro intercalado de 59 B; 98,68% dos 3.552 cujo tamanho fecha |
-| Tamanho do registro de animação | **PARCIAL — 77,00%** — `boneCount × keyframes × 12 B`, 385 de 500 |
-| Altura de terreno | **CONCLUÍDO** — `TerrainHeight.OZB`, BMP de 8 bits com prefixo duplicado |
-| **Índice de UV por canto** | **BLOQUEADO** — **nove** hipóteses descartadas |
-| **Ordem dos 6 floats de transformação** | **NÃO CONFIRMADO** — posição antes de rotação é inferência |
-| **Conteúdo dos 3 floats de keyframe** | **NÃO DETERMINADO** |
-| **Escala vertical da altura** | **NÃO DETERMINADO** — três caminhos fechados |
-| Texturas OZJ/OZT | **CONCLUÍDO** para decodificação de contêiner |
+| BMD structural probe | 10,066 probe-recognized; 10,023 structurally valid in the current report |
+| BMD payload access | 8,571 classified clear by the current tool (1,245 plaintext, 100 BUX-labelled, 7,226 v0x0C-labelled); `AGENTS.md` still marks v0x0C cipher **BLOCKED** |
+| BMD geometry | 8,406 accepted by the current body parser (83.31%); see `COMPATIBILITY.md` for scope and index counters |
+| BMD topology | 8,405 files, 3,681,664 triangle records; 513,304 triangles are dropped by mesh import because of invalid vertex/normal refs |
+| Candidate coordinate bytes | Float-like statistical observations exist, but the region is not semantically validated as UV and is not exposed as BMD UV data |
+| BMD per-corner UV/material mapping | **BLOCKED / not located**; no correctly associated textured-model render is verified |
+| BMD bone records | 3,693 files under the loose criterion; names/parent/layout observations do not prove transform order or animation semantics |
+| BMD animation | **NOT IMPLEMENTED as a semantic animation decoder**; trailing-size arithmetic is size-only |
+| OZT | Probe/read and 24-bit BGR / 32-bit BGRA-to-BGRA8 conversion; one real file loaded; no original-client visual comparison |
+| OZJ | Container/JPEG-marker probing only; pixel decoder not implemented |
+| Terrain | Some grid parsing exists; `Enc*` cipher remains BLOCKED and vertical scale/rendering are unresolved |
 
-**Implementado em código:** `MeshFromBmd` produz posições, normais, índices e
-caixa delimitadora, com testes. **Não produz UV nem ossos**, e `has_texcoords`
-fica `false` de propósito.
+The reported BMD counters are parser/classifier outcomes, not a claim that
+cipher work is authorized or every accepted geometry is visually correct. On
+the current reference snapshot, geometry is extracted in **8.406** of **10.090**
+BMD files (**83,31%**) and triangle records are read in **8.405** (**83,30%**).
+These counts do not imply verified UV semantics or rendering. Current
+invalid-index accounting is 1,030,785/22,089,984 reference fields (4.666%),
+versus 513,304/3,681,664 triangles dropped (13.94%). These quantities have
+different units.
 
-**Contra a tabela corrigida de seis níveis** (`COMPATIBILITY.md`, evidência em
-`evidence/ciclo3_scan_final.log` e `evidence/ciclo4_topology_subset.log`):
+The multi-mesh parser work recovered the earlier implementation limit; it does
+not solve UV/material semantics. Older cycle-4/5 tables that describe
+`meshCount != 1` as an unhandled cause are historical snapshots and should not be
+read as current behavior. See the current six-stage table in `COMPATIBILITY.md`.
 
-| Nível | Arquivos | % de 10.090 |
-|---|---|---|
-| 1 — estrutura válida | 10.023 | 99,34% |
-| 2 — decifrado | 8.571 | 84,95% |
-| 3 — vértice + normal | **8.406** | **83,31%** |
-| 4 — topologia | **8.405** | **83,30%** |
-| 5 — ossos | 3.800 | 37,66% |
-| 6 — UV | **0** | **0,00%** |
+### 9.3 Future custom-asset path — glTF decision, importer not implemented
 
-Os níveis **não** são cumulativos na mesma população. A única relação de
-subconjunto é nível 4 ⊂ nível 3, verificada em código e por
-`TestTopologyIsSubsetOfGeometry`.
-
-**A queda do nível 3 para o 4 tem causa medida, e é deste importador, não do
-formato (ciclo 4, histórico):** `meshCount != 1` em **100,00%** dos 4.257 arquivos
-afetados (4.256 com `meshCount>1` verdadeiro multi-mesh + 1 com `meshCount==0`
-zero-faces). Nenhum falha por tamanho, versão ou campo ausente. O parser lia um
-bloco de triângulos; com várias malhas a sequência se repete e ler um bloco leria
-o errado em silêncio. Estender para multi-mesh recuperou os 4.256 (ciclo 5-6) e é
-implementação concluída — nível 4 hoje 8.405/83,30% — mas não destrava renderização,
-porque o nível 6 continua zero. Ver `ARCHITECTURE.md` §10 para os tetos que isso
-impõe. População correta via ferramenta: `mutool bmdreport` mostra 4.149 meshCount 1,
-1 meshCount 0, 4.256 meshCount>1, total 4.257 meshCount!=1. Evidência
-`evidence/ciclo6_item1_bmdreport.log` e `ciclo6_level4_breakdown.log`.
-
-O caminho A **não está pronto** e não há data que este projeto possa prometer
-para ele. O que mudou é a natureza do bloqueio: **não é mais geometria** — malha
-é montada. É **texturização** (índice de UV) e **animação** (ordem dos floats e
-conteúdo de keyframe). Um modelo sem textura pode ser desenhado; um modelo
-texturizado não pode.
-
-### 9.3 Caminho B — assets pesados customizados
-
-Formato adicional para conteúdo novo, com malhas e texturas acima do que o BMD
-expressa.
-
-**Escolha: glTF 2.0 (`.gltf`/`.glb`).** Comparação com as alternativas
-consideradas:
+The earlier architecture selected glTF 2.0 (`.gltf`/`.glb`) as a possible
+interchange format for new custom assets. The comparison below records that
+design decision only: this repository does **not** currently contain a glTF
+importer, and this path is not part of the current original-asset compatibility
+claim.
 
 | Critério | **glTF 2.0** | FBX | OBJ + MTL |
 |---|---|---|---|
@@ -313,50 +290,39 @@ animados, que é exatamente o conteúdo pesado que se quer suportar.
 cuja variante binária pode ser lida por um parser próprio, preservando a
 propriedade de zero dependência do build.
 
-### 9.4 O caminho B NÃO substitui o caminho A
+### 9.4 A custom-asset path does not replace original assets
 
-Declarado explicitamente, porque é a confusão mais fácil de cometer aqui:
-
-- O caminho B é para **conteúdo novo e customizado apenas**.
-- Ele **não** resolve, não contorna e não torna opcional o trabalho pendente em
-  faces, UV e ossos do BMD original.
-- O requisito (a) do escopo — reaproveitar **100%** dos assets 3D originais —
-  continua pendente do bloqueio nº 1, e o caminho B não o satisfaz.
-- Um projeto que entregasse só o caminho B teria um motor capaz de desenhar
-  modelos modernos e **nenhum** dos 10.090 modelos do cliente.
-
-A regra de rotulagem de `DECISIONS.md` (DEC-009) se aplica: teste com geometria
-sintética ou com asset do caminho B nunca conta como progresso no caminho A.
+- The proposed glTF path is for new/custom content only and currently has no
+  importer implementation.
+- It does not resolve, bypass, or make optional the unfinished BMD topology,
+  UV/material, and bone-semantic work.
+- Parsing a subset of the 10,090 BMD files is not full original-asset
+  compatibility.
+- A synthetic or future custom-format test is not evidence that an original BMD
+  asset is interpreted correctly (DEC-009).
 
 ---
 
 ## 10. Limites reais do formato BMD, medidos
 
-Levantados no ciclo 3 a partir da árvore completa, não de amostra. Estes são os
-tetos que a representação interna precisa não herdar.
+The following observations come from real assets. Distinguish on-disk limits
+from the subset currently accepted by the parser.
 
-| Limite | Valor | Como foi medido | Consequência |
-|---|---|---|---|
-| Contagens de vértice/normal/UV/triângulo | `u16` = 65.535 por malha | offsets 38/40/42/44 do payload | Teto por malha, não por arquivo. Malha maior exige dividir |
-| Malhas por arquivo | 18 observado | offset 32, máximo na árvore | **Só `meshCount == 1` é parseado.** O layout de múltiplas malhas não foi confirmado |
-| Ossos por arquivo | 8 testados, máximo real não determinado | registro de 59 B | O parser rejeita `boneCount > 8`; o teto real é desconhecido |
-| Registro de vértice | 16 B fixos | `f32 ×3` + 2 × `u16` | Precisão `f32`, sem posição em dupla precisão |
-| Registro de normal | 20 B fixos | `f32 ×5` | Dois floats auxiliares sem identificação |
-| Registro de triângulo | 64 B fixos | 3 × 8 B + 36 B `f32` + 4 B | Bytes 24..59 são `f32` não identificados |
-| Registro de osso | 59 B | 32 B nome + 27 B transformação | Nome truncado a 31 caracteres |
-| Nome de textura | 32 B ASCII NUL-pad | após o array de triângulos | Caminhos longos não cabem |
-| Grid de terreno | 256 × 256, `u8` de altura | `TerrainHeight.OZB` | Altura de 8 bits: 256 níveis, sem sub-nível |
+| Field / region | Observation | Current parser/semantic limit |
+|---|---|---|
+| Vertex/normal/coordinate/triangle counts | `u16` fields, maximum representable value 65,535 per declared field | A representable count is not proof the corresponding array is semantically valid |
+| Mesh count | Maximum observed: 30 in the current report history; multi-mesh parsing is implemented for accepted layouts | 4,256 of 8,406 geometry-parsed files have `meshCount > 1`; this is no longer an unsupported-by-design category |
+| Bone count | Maximum observed: 63; parser's defensive bound is 64 | Record-name/layout acceptance does not confirm transform meaning or weights |
+| Vertex record | 16 bytes: three `f32` values plus two `u16` auxiliary fields | Auxiliary semantics are not established |
+| Normal record | 20 bytes: five `f32` values | Trailing pair is not confirmed as texture coordinates |
+| Triangle record | 64 bytes: three 8-byte corner records plus other bytes | Only vertex/normal fields are used; other fields are not decoded as UV |
+| Bone record | 59-byte interleaved layout in accepted bodies | Transform order and keyframe semantics remain unverified |
+| Texture-name region | 32-byte name observed after mesh triangle arrays | Name positioning does not establish complete material/texture association |
+| Terrain grid | 256×256 byte-grid observation in supported inputs | Vertical scale and `Enc*` decryption/rendering remain unresolved |
 
-**O que estes limites significam para o caminho B.** Cada um deles é uma razão
-concreta para a representação interna usar contagem de 32 bits e precisão
-configurável, em vez de espelhar o formato de origem. Herdar o teto `u16`
-significaria que "suportar assets mais pesados" falharia na camada de dados,
-antes de o renderer entrar na história.
-
-**O que NÃO é limite do formato, e sim do parser atual:**
-
-- Malhas múltiplas: o formato provavelmente suporta, o parser não lê
-- `boneCount > 8`: rejeitado por cautela, não por evidência de teto
+These observations inform the internal count widths but do not establish complete
+format compatibility. Internal `std::size_t`/`uint32_t` storage avoids an
+unnecessary implementation limit; it does not change on-disk constraints.
 
 ---
 
@@ -371,8 +337,7 @@ GPU, então quase nada aqui está medido.
 **Por que:** `glBegin`/`glEnd` envia um vértice por chamada. Com malha pesada, o
 custo de driver domina antes do custo de rasterização.
 
-**Estado:** `DEC-008` registra VBO/VAO como piso mínimo. **Nenhuma linha de código
-de backend existe** — ver `DEC-010` para o que está bloqueado até a decisão formal.
+**Status:** CPU-side buffer preparation and a CPU diagnostic rasterizer exist, but **no production GPU backend/device path exists**. The graphics API must be selected by an on-target prototype; indexed GPU buffers remain a design requirement, not a measured performance result.
 
 **Medido:** não. Sem GPU.
 
@@ -384,10 +349,10 @@ existe, porque custa matemática em CPU e economiza uma chamada inteira.
 **Estado:** **implementado e testado** (`src/mu/render/cull.cpp`). Conservador na
 direção segura: pode custar uma draw call extra, nunca descartar geometria visível.
 
-**Medido:** `mutool culltest` conta draw calls evitadas sobre malhas reais. O
-número (97,54%) **não é número de jogo** — os objetos são posicionados em grade
-sintética porque o BMD não carrega transformação de mundo. **Efeito sobre FPS:
-não medido.**
+**Measured:** the current synthetic `mutool culltest` classifies 8,086/8,406
+bounds (96.19%) as culled. This is **not a game metric**: objects use an
+artificial grid because BMD does not provide world transforms. **FPS impact is
+not measured.**
 
 ### 11.3 Níveis de detalhe
 
@@ -401,13 +366,11 @@ extensão `MSFT_lod` disponível.
 
 ### 11.4 Streaming e orçamento de memória
 
-**Por que:** o inventário do ciclo 1 estimou **2.893,80 MB** de textura se tudo
-estivesse carregado. Esse número é **estimativa teórica `w × h × 4`, não gargalo
-medido** — a correção está registrada desde o ciclo 1 e continua valendo.
+**Por que:** a varredura do ciclo 17 somou **2.893,80 MiB** em estimativas de bytes de imagem derivadas de cabeçalhos/payloads (OZJ como equivalente RGBA8; OZT/TGA pelos payloads declarados/calculados). Isso **não** mede alocação decodificada, RAM/VRAM, residência simultânea, nem demonstra que texturas sejam o gargalo dominante ou um limite superior de memória. Consulte [`PERFORMANCE_BASELINE.md`](PERFORMANCE_BASELINE.md).
 
 **Estado:** **não implementado.** Não há gerenciador de residência de textura.
 
-**Medido:** não. O número citado é footprint máximo teórico.
+**Medido:** não. Orçamento e streaming dependem de uma medição real de residência em Windows/GPU.
 
 ### 11.5 O que este ambiente pode e não pode estabelecer
 

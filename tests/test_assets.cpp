@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 // SPDX-License-Identifier: MIT
 // Test suite for the ClienteRecriado asset library.
@@ -152,6 +153,46 @@ void TestOztRoundTrip() {
     CHECK_EQ(back.size(), rgba.size());
     CHECK(back == rgba);  // the vertical flip and BGRA swap must cancel out
   }
+}
+
+void TestOzt24BitPixelConversion() {
+  // Embedded TGA truecolour fixture: 2x2, 24-bit BGR, bottom row first.
+  std::vector<uint8_t> file(22 + 2 * 2 * 3, 0);
+  file[0] = 0x00;
+  file[1] = 0x00;
+  file[2] = 0x02;
+  file[3] = 0x00;
+  file[4 + 2] = 2;
+  file[4 + 12] = 2;
+  file[4 + 14] = 2;
+  file[4 + 16] = 24;
+  const uint8_t bottom_up_bgr[12] = {
+      255, 0, 0, 255, 255, 255,  // bottom: blue, white
+      0, 0, 255, 0, 255, 0,      // top: red, green
+  };
+  std::memcpy(file.data() + 22, bottom_up_bgr, sizeof(bottom_up_bgr));
+
+  mu::OztImage image;
+  CHECK(mu::OztRead(mu::ByteView(file.data(), file.size()), &image).ok());
+  CHECK_EQ(image.width, 2u);
+  CHECK_EQ(image.height, 2u);
+  CHECK_EQ(image.bits_per_pixel, 24u);
+
+  const std::vector<uint8_t> expected_bgra = {
+      0, 0, 255, 255, 0, 255, 0, 255,
+      255, 0, 0, 255, 255, 255, 255, 255,
+  };
+  std::vector<uint8_t> bgra;
+  CHECK(mu::OztToBgraTopDown(image, &bgra));
+  CHECK(bgra == expected_bgra);
+
+  const std::vector<uint8_t> expected_rgba = {
+      255, 0, 0, 255, 0, 255, 0, 255,
+      0, 0, 255, 255, 255, 255, 255, 255,
+  };
+  std::vector<uint8_t> rgba;
+  CHECK(mu::OztToRgbaTopDown(image, &rgba));
+  CHECK(rgba == expected_rgba);
 }
 
 void TestOztVariantWithExtraPrefix() {
@@ -609,6 +650,8 @@ void TestSoftwareRasterizerFramebuffer();
 void TestSoftwareRasterizerCamera();
 void TestSoftwareRasterizerTriangle();
 void TestSoftwareRasterizerZBuffer();
+void TestSoftwareTextureLoadFromOZT();
+void TestSoftwareRasterizerUsesMeshTexcoords();
 std::vector<std::uint8_t> MakeBmdBody(
     const char* name, const std::vector<mu::BmdVertex>& verts,
     const std::vector<mu::BmdNormal>& norms);
@@ -619,6 +662,7 @@ void TestBmdReportAccumulatesKinds();
 const Test kTests[] = {
     {"crc32 known vectors", TestCrc32KnownVectors},
     {"ozt round trip", TestOztRoundTrip},
+    {"ozt 24-bit pixel conversion", TestOzt24BitPixelConversion},
     {"ozt variant with extra prefix", TestOztVariantWithExtraPrefix},
     {"ozt rejects bad input", TestOztRejectsBadInput},
     {"ozj probe", TestOzjProbe},
@@ -663,6 +707,9 @@ const Test kTests[] = {
     {"software rasterizer camera (B)", TestSoftwareRasterizerCamera},
     {"software rasterizer triangle (B)", TestSoftwareRasterizerTriangle},
     {"software rasterizer z-buffer (B)", TestSoftwareRasterizerZBuffer},
+    {"software texture loads OZT pixels", TestSoftwareTextureLoadFromOZT},
+    {"software rasterizer uses mesh texcoords",
+     TestSoftwareRasterizerUsesMeshTexcoords},
 };
 
 }  // namespace
@@ -1152,6 +1199,23 @@ void TestBmdTriangles() {
   CHECK_EQ(1u, bad.out_of_range_vertices);
   CHECK_EQ(0u, bad.out_of_range_normals);
 
+  // The report preserves vertex and normal reference counts separately. The
+  // output percentage denominator is six index fields per triangle, not three
+  // geometric corners.
+  PutU16LeAt(body, tri_off + mu::kBmdCornerRecordSize + 2, 999);
+  const std::vector<std::uint8_t> file = FakeBmd(
+      0x0A, static_cast<std::uint32_t>(body.size()), body);
+  const mu::BmdFileReport file_report = mu::BmdClassifyBytes(
+      mu::ByteView(file.data(), file.size()), "bad-refs.bmd");
+  CHECK(file_report.geometry_parsed);
+  CHECK_EQ(1u, file_report.out_of_range_vertex_refs);
+  CHECK_EQ(1u, file_report.out_of_range_normal_refs);
+  mu::BmdSummary summary;
+  mu::BmdAccumulate(file_report, &summary);
+  CHECK_EQ(1u, summary.triangles_total);
+  CHECK_EQ(1u, summary.out_of_range_vertex_refs);
+  CHECK_EQ(1u, summary.out_of_range_normal_refs);
+
   // A declared triangle array that does not fit must yield no triangles rather
   // than a partial read presented as complete.
   PutU16LeAt(body, tri_off, 0);
@@ -1324,7 +1388,7 @@ void TestMeshFromBmd() {
   CHECK_EQ(4u, r.mesh.normals.size());
   CHECK_EQ(3u, r.mesh.indices.size());
   CHECK_EQ(0u, r.mesh.skipped_vertices);
-  CHECK_EQ(0u, r.mesh.bad_indices);
+  CHECK_EQ(0u, r.mesh.dropped_triangles);
   CHECK(r.mesh.name == "Test.SMD");
 
   // Bounding box must be computed at import, and must be the real extent.
@@ -1351,7 +1415,22 @@ void TestMeshFromBmd() {
   const mu::MeshImportResult rb = mu::MeshFromBmd(bad, "x");
   CHECK(rb.ok);
   CHECK_EQ(3u, rb.mesh.indices.size());  // only the good triangle survived
-  CHECK_EQ(1u, rb.mesh.bad_indices);
+  CHECK_EQ(1u, rb.mesh.dropped_triangles);
+
+  // Multiple invalid vertex/normal references in one triangle still increment
+  // the dropped-triangle metric once; reference counts are a separate report.
+  mu::BmdBody several_bad = body;
+  mu::BmdTriangle bad_refs;
+  bad_refs.corners[0].vertex = 99;
+  bad_refs.corners[0].normal = 99;
+  bad_refs.corners[1].vertex = 98;
+  bad_refs.corners[1].normal = 98;
+  bad_refs.corners[2].vertex = 2;
+  bad_refs.corners[2].normal = 2;
+  several_bad.triangles.push_back(bad_refs);
+  const mu::MeshImportResult rs = mu::MeshFromBmd(several_bad, "x");
+  CHECK(rs.ok);
+  CHECK_EQ(1u, rs.mesh.dropped_triangles);
 
   // A non-finite position must be skipped and counted, and skipping shifts
   // indices, so indices must be withheld rather than silently misaligned.
@@ -2040,13 +2119,14 @@ void TestPackMeshForUpload() {
   mu::Mesh mesh3;
   mesh3.positions = {{0,0,0}, {1,0,0}, {0,1,0}};
   mesh3.normals = {{0,0,1}, {0,0,1}, {0,0,1}};
-  mesh3.indices = {0,1,2, 0,1,5}; // second triangle has bad index 5
+  mesh3.indices = {0, 1, 2, 0, 5, 6};  // second triangle has two bad refs
   mesh3.has_texcoords = false;
   mesh3.has_bone_weights = false;
   auto packed3 = mu::PackMeshForUpload(mesh3);
   CHECK(packed3.ok);
   CHECK(packed3.indices.size()==3); // only first triangle kept
-  CHECK(packed3.bad_indices==1);
+  CHECK(packed3.dropped_triangles == 1);
+  CHECK(packed3.invalid_index_references == 2);
 }
 
 
@@ -2229,6 +2309,91 @@ void TestMainLoopSkeleton() {
 #include "mu/render/software_rasterizer.hpp"
 
 namespace {
+
+void TestSoftwareTextureLoadFromOZT() {
+  const std::vector<uint8_t> rgba = {
+      255, 0, 0, 255, 0, 255, 0, 255,
+      0, 0, 255, 255, 255, 255, 255, 255,
+  };
+  std::vector<uint8_t> file;
+  CHECK(mu::OztWriteRgba(2, 2, rgba.data(), false, &file));
+
+  mu::SoftwareTexture texture;
+  const mu::Status status =
+      texture.LoadFromOZT(mu::ByteView(file.data(), file.size()));
+  CHECK(status.ok());
+  CHECK(texture.valid);
+  CHECK_EQ(texture.width, 2);
+  CHECK_EQ(texture.height, 2);
+  CHECK_EQ(texture.bgra.size(), 16u);
+  CHECK(texture.bgra == std::vector<uint8_t>({
+                            0, 0, 255, 255, 0, 255, 0, 255,
+                            255, 0, 0, 255, 255, 255, 255, 255,
+                        }));
+
+  uint8_t r = 0;
+  uint8_t g = 0;
+  uint8_t b = 0;
+  texture.Sample(0.25f, 0.25f, r, g, b);
+  CHECK(r == 255 && g == 0 && b == 0);
+  texture.Sample(0.75f, 0.25f, r, g, b);
+  CHECK(r == 0 && g == 255 && b == 0);
+  texture.Sample(0.25f, 0.75f, r, g, b);
+  CHECK(r == 0 && g == 0 && b == 255);
+
+  const mu::Status bad = texture.LoadFromOZT(
+      mu::ByteView(file.data(), std::min<std::size_t>(file.size(), 10)));
+  CHECK(!bad.ok());
+  CHECK(!texture.valid);
+  CHECK_EQ(texture.width, 0);
+  CHECK(texture.bgra.empty());
+
+  mu::SoftwareTexture malformed;
+  malformed.valid = true;
+  malformed.width = 1;
+  malformed.height = 1;
+  malformed.bgra = {0};
+  malformed.Sample(0.5f, 0.5f, r, g, b);
+  CHECK(r == 255 && g == 255 && b == 255);
+}
+
+void TestSoftwareRasterizerUsesMeshTexcoords() {
+  const std::vector<uint8_t> rgba = {
+      255, 0, 0, 255, 0, 255, 0, 255,
+      0, 0, 255, 255, 255, 255, 255, 255,
+  };
+  std::vector<uint8_t> file;
+  CHECK(mu::OztWriteRgba(2, 2, rgba.data(), false, &file));
+  mu::SoftwareTexture texture;
+  CHECK(texture.LoadFromOZT(mu::ByteView(file.data(), file.size())).ok());
+
+  mu::Mesh mesh;
+  mesh.positions = {{-1, -1, 0}, {1, -1, 0}, {0, 1, 0}};
+  mesh.normals = {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}};
+  mesh.texcoords = {{0.25f, 0.25f}, {0.25f, 0.25f}, {0.25f, 0.25f}};
+  mesh.indices = {0, 1, 2};
+  mesh.has_texcoords = true;
+  mesh.bounds = mu::ComputeBounds(mesh.positions);
+
+  mu::Camera camera;
+  camera.eye = {0, 0, 5};
+  camera.target = {0, 0, 0};
+  camera.up = {0, 1, 0};
+  camera.aspect = 1.0f;
+  mu::SoftwareRasterizer rasterizer(100, 100);
+  rasterizer.Clear(mu::Vec3{0, 0, 0});
+  rasterizer.SetTexture(texture);
+  const mu::RenderStats stats = rasterizer.RenderMesh(
+      mesh, nullptr, nullptr, camera, mu::Vec3{0, 0, 1});
+  CHECK(stats.ok);
+  CHECK(stats.pixels_written > 0);
+
+  const std::size_t pixel = 50 * 100 + 50;
+  const auto& color = rasterizer.framebuffer().color;
+  CHECK(color[pixel * 3] == 255);
+  CHECK(color[pixel * 3 + 1] == 0);
+  CHECK(color[pixel * 3 + 2] == 0);
+}
 
 void TestSoftwareRasterizerFramebuffer() {
   mu::SoftwareFramebuffer fb(10,10);

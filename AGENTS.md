@@ -115,7 +115,7 @@ files: 29060   total: 2372.04 MB
 .bmd  10090 files, 10066 ok,    24 fail
 .tga     15 files,    15 ok,     0 fail
 .att/.map/.obj 265 files, 265 ok, 0 fail
-verify: 188 entries -> 116 match, 9 size mismatch, 11 crc mismatch, 52 missing
+verify (cycle 17 audit): 188 entries -> 116 match, 8 size mismatch, 11 crc mismatch, 53 missing
 ```
 
 A drop in any `ok` count is a regression. Investigate it rather than updating

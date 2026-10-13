@@ -1,4 +1,10 @@
-# Ciclo 4 — relatório de fim de ciclo
+# Ciclo 4 — relatório histórico de fim de ciclo
+
+> **Qualificação do ciclo 17:** este relatório registra o estado daquele ciclo,
+> não a compatibilidade atual. As referências a v0x0C "decifrado" descrevem o
+> classificador legado e não validam a cifra nem autorizam nova engenharia
+> reversa; `AGENTS.md` mantém o BMD v0x0C cipher **BLOCKED**. Consulte
+> `COMPATIBILITY.md` e `CURRENT_STATE.md`.
 
 > **Base:** `8c83376` (fim do ciclo 3). A ponta do ciclo é o commit que
 > acrescenta este arquivo, cujo hash **não pode aparecer dentro dele** — é o

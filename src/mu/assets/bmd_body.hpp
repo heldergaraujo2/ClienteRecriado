@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// BMD v0x0A body parsing - the two verified sections.
+// BMD body parsing: accepted geometry/topology/bone records and remaining gaps.
 //
 // This module exists because the container header and the body are different
 // problems, and only the body yields geometry. The layout below was derived
@@ -41,18 +41,18 @@
 // in that revision was shifted by 4 bytes. The corrected measurements are the
 // ones above.
 //
-// What this module deliberately does NOT do:
+// Remaining limits (kept explicit so accepted bytes are not mistaken for
+// complete format compatibility):
 //
-//   - It does not read face indices, texture coordinates or bones. The section
-//     after the normals is not decoded; several plausible layouts were tested
-//     and none held. Emitting guessed indices would produce silently wrong
-//     geometry, which is worse than emitting none.
-//   - It does not read the per-mesh texture coordinate array, triangle array or
-//     texture name. The full per-mesh layout is documented in
-//     docs/ASSET_FORMATS.md; porting it is pending.
-//   - It handles only the f32 arrays used by v0x0A. The v0x0C variant stores
-//     these arrays as half-floats, so this parser must not be pointed at a
-//     v0x0C payload; doing so reads the wrong width and yields garbage.
+//   - The parser reads triangle records and some bone records, but it does not
+//     establish UV semantics, corner-to-UV indices, texture/material
+//     association, skinning weights, or animation meaning.
+//   - The candidate coordinate region is not exposed as verified UV data. A
+//     plausible float distribution is not semantic confirmation.
+//   - The BMD v0x0C cipher remains BLOCKED by the repository policy in
+//     AGENTS.md. Existing tool labels are classifier observations and must not
+//     be treated as authorization to extend cipher work or claim full format
+//     compatibility.
 #ifndef MU_ASSETS_BMD_BODY_HPP
 #define MU_ASSETS_BMD_BODY_HPP
 
@@ -94,18 +94,18 @@ struct BmdNormal {
 /// One corner of a triangle. The record holds three of these, 8 bytes each, at
 /// record offsets 0, 8 and 16.
 ///
-/// Measured over 58,836 references in 319 single-mesh files: |vertex| is below
-/// the mesh vertex count in 97.66% of cases and |normal| below the normal count
-/// in 97.20%. Those are not 100%, so a consumer must bounds-check rather than
-/// trust the file. See docs/ASSET_FORMATS.md.
+/// A historical restricted sample of 58,836 references in 319 single-mesh
+/// files measured 97.66% / 97.20% in-range (limited to the first 80 triangles
+/// per file). The cycle-17 full-tree report counts 523,717 out-of-range vertex
+/// refs and 507,068 out-of-range normal refs. Consumers must bounds-check; see
+/// docs/COMPATIBILITY.md and docs/ASSET_FORMATS.md.
 struct BmdTriangleCorner {
   int32_t vertex = -1;
   int32_t normal = -1;
-  /// The u16 at record offset 4. This is PADDING, not an index. Measured over
-  /// 40,902 samples: 64.95% zero and 18.18% exactly 0xCDCD, which is the MSVC
-  /// uninitialised-memory fill pattern. Excluding those, it is below the
-  /// texcoord count in only 5.33% of cases. Carried so nothing is silently
-  /// dropped, but it must not be used as an index.
+  /// The u16 at record offset 4. Observed as padding-like (64.95% zero and
+  /// 18.18% 0xCDCD in 40,902 samples); it is not a validated UV index and must
+  /// not be used for texturing. Retained as raw data so the parser does not
+  /// silently discard it.
   uint16_t optional = 0;
   uint8_t flag = 0;
 };
@@ -121,11 +121,11 @@ struct BmdTriangle {
 /// consumer. Measured over the whole asset tree in
 /// docs/evidence/ciclo4_topology_skip_reasons.log.
 enum class BmdTopologySkip : uint8_t {
-  kNone = 0,      ///< Triangles were read.
-  kMultiMesh,     ///< meshCount != 1; the single-mesh arithmetic does not apply.
+  kNone = 0,      ///< Triangle records were read.
+  kMultiMesh,     ///< A multi-mesh body could not be parsed by the current path.
   kZeroFaces,     ///< The file declares no triangles at all.
-  kDoesNotFit,    ///< The declared array runs past the end of the payload.
-  kNoHeader,      ///< Payload shorter than the triangle count field.
+  kDoesNotFit,    ///< A declared array runs past the end of the payload.
+  kNoHeader,      ///< Payload shorter than a required count field.
 };
 
 const char* BmdTopologySkipName(BmdTopologySkip s);
@@ -143,8 +143,9 @@ struct BmdBody {
   bool has_source_name = false;
   std::vector<BmdVertex> vertices;
   std::vector<BmdNormal> normals;
-  /// Triangles, when the mesh counts allowed locating the array. Empty when the
-  /// body was not laid out as a single mesh, which is not an error.
+  /// Triangle records from parsed mesh arrays. May be empty when the declared
+  /// body has no faces or a required count/array could not be validated; see
+  /// |topology_skip| and |problem|.
   std::vector<BmdTriangle> triangles;
   /// Why `triangles` is empty. `kNone` when it is not. Only meaningful once the
   /// vertex and normal arrays parsed successfully, since the same arithmetic
@@ -172,9 +173,9 @@ struct BmdBody {
   std::vector<BmdBone> bones;
   bool has_bones = false;
 
-  /// Corner indices that fall outside the vertex or normal array. Measured at
-  /// roughly 2.4% of all references, cause not established. Reported rather than
-  /// rejected so a caller can bounds-check instead of reading out of bounds.
+  /// Triangle-corner references outside the vertex or normal array. Kept as
+  /// separate reference counts; MeshFromBmd drops each affected triangle once.
+  /// The cycle-17 full-tree totals are recorded in docs/COMPATIBILITY.md.
   std::size_t out_of_range_vertices = 0;
   std::size_t out_of_range_normals = 0;
 

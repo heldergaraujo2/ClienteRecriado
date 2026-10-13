@@ -1,5 +1,7 @@
 # STATUS FINAL — Ciclo 16
 
+> **Historical Cycle-16 snapshot only; not the current product status or a GPU-render milestone.** It records 500 checks and CPU-only PPM/procedural-texture work as understood then. Cycle 17 did not produce a Windows/GPU render; current counts, caveats, and blockers are in [`CURRENT_STATE.md`](CURRENT_STATE.md), [`TEST_RESULTS.md`](TEST_RESULTS.md), and [`COMPATIBILITY.md`](COMPATIBILITY.md).
+
 > **Base:** ciclo13 `9784e22` → ciclo14 `0b471cb` → ciclo15 `59d0c31` + `9bb961e` → HEAD atual ciclo16. Branch `arena/519f8fc9-clienterecriado`. Referência `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` intacto. 500 checks 0 failures, test-san 500 checks 0 failures 0 ASan/UBSan. Primeira prova visual CPU-only + textura placeholder.
 
 ## Métricas medidas (10.090 arquivos .bmd)

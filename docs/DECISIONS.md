@@ -271,9 +271,16 @@ report and a misleading one.
 
 ---
 
-## DEC-007 — Usar a cifra v0x0C de um projeto open-source em vez de continuar a derivá-la
+## DEC-007 — Registro histórico: proposta de usar transformação v0x0C de terceiro
 
-**Data:** ciclo 2 · **Status:** aceita
+**Data original:** ciclo 2 · **Status atual (ciclo 17): SUPERSEDIDA / BLOCKED por `AGENTS.md`.
+
+> Este registro preserva a decisão tomada à época; não autoriza o uso ou a
+> expansão da implementação atual. A cifra BMD v0x0C permanece **BLOCKED**.
+> Os rótulos/counts do código são observações do classificador existente, não
+> prova de cifra validada, legitimidade da fonte, semântica ou compatibilidade.
+> Não retomar esse trabalho sem fonte legítima/autorização e atualização explícita
+> do bloqueio em `AGENTS.md`.
 
 **Problema.** A cifra do payload BMD v0x0C tornava 8.594 de 10.090 arquivos <!-- historico -->
 opacos e era o bloqueio nº 1 do projeto. Cinco abordagens haviam sido tentadas e
@@ -297,20 +304,17 @@ código.
 3. A licença ISC é permissiva e compatível com a MIT deste repositório, e exige
    apenas atribuição, que está registrada em três lugares.
 
-**Consequência que precisa ser dita sempre que o resultado for citado.** Este é
-**resultado de terceiros validado**, não resultado derivado por este projeto. O
-relatório e o `CURRENT_STATE.md` dizem isso explicitamente. As chaves derivadas
-aqui continuam sendo o XOR-3 do bux e o layout do corpo v0x0A.
+**Alegação do ciclo 2, retirada no ciclo 17.** O texto anterior dizia que o
+resultado era "de terceiros validado" e que o filtro de nome impedia uma chave
+errada de classificar lixo. Essas frases eram fortes demais e não são mais uma
+conclusão aceita: um campo imprimível e um corpo aceito pelo parser não validam
+criptograficamente a transformação nem a legitimidade/abrangência da fonte.
 
-**Alternativas consideradas.** Continuar a criptoanálise (inviável no orçamento
-restante), reimplementar sem a tabela (impossível sem a chave) e deixar o formato
-sem suporte (incompatível com a missão).
-
-**O que foi validado por este projeto, e não apenas aceito.** A decifragem é
-submetida a uma verificação de plausibilidade: o campo de nome de 32 bytes
-precisa ser ASCII imprimível, e a decifragem é rejeitada caso contrário. Isso é
-o que impede que uma chave errada reclassifique lixo como decifrado, e é o que
-produz o número honesto de 7.226 arquivos decifrados em vez de 8.741.
+**Alternativas consideradas à época.** O relatório propunha continuar, reutilizar
+a fonte ou deixar v0x0C sem suporte. Esta escolha histórica não muda o bloqueio
+atual. O único número que pode ser citado hoje é **7.226 arquivos com rótulo
+v0x0C pelo classificador legado**, não "arquivos decifrados" nem compatibilidade
+validada. Veja `COMPATIBILITY.md` e `TEST_RESULTS.md`.
 
 ---
 

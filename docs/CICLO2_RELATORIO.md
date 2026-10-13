@@ -1,4 +1,12 @@
-# Relatório de fim de ciclo 2
+# Relatório histórico de fim de ciclo 2
+
+> **Qualificação do ciclo 17:** este relatório preserva as conclusões daquele
+> momento. Expressões como "cifra RESOLVIDA/CONCLUÍDO/validada" foram retiradas
+> como status atual: `AGENTS.md` mantém a cifra BMD v0x0C **BLOCKED**. Os resultados
+> são observações do código/classificador legado, não prova criptográfica,
+> autorização ou compatibilidade geral. Não retome essa engenharia reversa sem
+> fonte legítima/autorização e atualização explícita do bloqueio. O estado atual
+> está em `COMPATIBILITY.md`, `CURRENT_STATE.md` e `TEST_RESULTS.md`.
 
 Base do ciclo: `12aa5d1` · Fim: `77662f5` · Branch `arena/519f8fc9-clienterecriado`
 Referência `Cliente_ref`: `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` no início e

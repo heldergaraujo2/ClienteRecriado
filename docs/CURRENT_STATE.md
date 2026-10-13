@@ -1,151 +1,195 @@
-# Current state — ciclo16
+# Current state — cycle 17 audit (2026-10-12)
 
-An honest snapshot. What exists, what works, what does not.
+This snapshot separates **probe**, structural validation, decoding, semantics,
+and verified rendering. The repository contains a C++17 asset library and
+inspection tools; **it is not yet a playable Windows client**.
 
-## 1. What exists and works — ciclo16
+## Executive summary
 
-**An asset format library**, C++17, zero dependencies, warning-clean, 500 checks 0 failures, test-san 500 checks 0 ASan/UBSan (fix ciclo13 item1, 474->500 ciclo14 rasterizer 4 tests 26 checks = 20+6 extras):
+- Reference `heldergaraujo2/Cliente` is read-only. Its observed HEAD at the start
+  and end of this audit is `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`. No reference
+  branch, file, or history was changed. The temporary clone contains `Data/`;
+  the Git-tree search found no client C/C++ source.
+- `mutool scan` inventories the whole tree but performs **format probes**; it does
+  not establish that pixels, UVs, materials, or images were decoded.
+- There is a BMD parser for layouts accepted by the current implementation, an
+  internal mesh representation, CPU-side buffer preparation, and a **CPU-only**
+  rasterizer. PPM output is not the product's graphics milestone and does not
+  prove visual compatibility.
+- A real OZT was converted to BGRA pixels and explicitly passed to the render
+  CLI. The BMD used in that run is a different file; no association between the
+  two or visual correctness was demonstrated. BMD UVs still lack a verified
+  semantic mapping.
+- There is no Windows executable, GPU device, or measured FPS, frametime, or
+  VRAM. Windows x86/x64, D3D12/Vulkan/D3D11, game startup, audio, UI, and network
+  remain without runtime validation.
 
-| Module | What it does | Verified against | Status ciclo16 |
-|---|---|---|---|
-| `mu/assets/ozt` | OZT read, write, probe, RGBA conversion, BGRA direct | 3,404 of 3,470 real files 98,10%, OztToRgba 63,0us median 89,7us p99 3969 MB/s, OztToBgra 6,6us median 11,3us p99 38057 MB/s 9,45× median 12,26× p99 vs old 62,4us 138,6us | CONCLUÍDO E VALIDADO + OPT-005 — usado em textura placeholder ciclo16 D via LoadFromOZT |
-| `mu/assets/ozj` | OZJ container + JPEG marker parsing word-at-a-time | 13,832 of 13,928 real files 99,31%, OzjProbe 179,2us→15,2us 11,79× median 8,47× p99 OPT-004, after 22,9us 8342 MB/s 7,8× | CONCLUÍDO E VALIDADO + OPT-004 — usado em textura placeholder ciclo16 D |
-| `mu/assets/tga` | TGA probe and uncompressed read | 15 of 15 real files 100% | CONFIRMADO |
-| `mu/assets/bmd` | BMD container classification, bux cipher word-at-a-time, entropy, V0C decrypt | 10,023 of 10,090 structurally valid 99,34%, payload in clear 8571 84,95% OPAQUE 1519 15,05% full-scan 1503 PlausiblePath 0 variantes plausíveis, BuxCrypt 1 MiB N=10 median 391,3us 2555,8 MB/s stdev 30,42 min 2510,7 max 2606,0 vs original 1135,7us 880,5 MB/s speedup 2,90× mediana, pico 3437 MB/s outlier não representativo max N=10 2606 24% abaixo 3437, evidence ciclo14_buxcrypt_10runs.log | CONCLUÍDO E VALIDADO + OPT-003 reconciliado |
-| `mu/assets/bmd_report` | Three-level usability reporting + bones ratio reconciliado | total 10090 valid 10023 plaintext 8571 OPAQUE 1519 parsed 8406 with_tri 8405 with_bones_loose 3693 36,60% 43,93% geom ratio per file 1846,28× definitivo vs ctrl 0,023795% 2/8405, strict 1186 11,75% 14,11% geom taxa FP 0/25218 limite sup 0,003966% ratio >3557× per trial >1185× per file strict ⊂ loose, 1271× erro parser simplificado single-mesh 2966 vs 3693 subcontou 727 descartado, 5538× per trial unidades diferentes INVÁLIDO | CONCLUÍDO E VALIDADO — ratio history ciclo14_ratio_history.md |
-| `mu/assets/bmd_body` | v0x0A body parser: vertex positions and normals, multi-mesh 14B header, bones 59B intercalado cycle detection visited[64] self-loop parent==i rejeitado bc>64 | 8406 parsed 83,31%, 8405 with triangles 83,30% 3.681.664 tris, 3693 bones loose 7879 bones, 1186 strict, max_mc 30 Object157/Object06.bmd, max_bc 63 Stick32.bmd limite prático 64 teto aceitação 63 máximo real sem contradição, max_vc 22987 Ozarugold.bmd, max_ntri 39193, 1 textura por mesh sbow06_R.jpg, triângulos 64B 3×8B v,n,opt,flag, muitos degenerados v1,1,1 etc bad_indices 8,4% geral | CONCLUÍDO E VALIDADO |
-| `mu/assets/mesh` | Mesh internal representation C1 + Skeleton | positions normals texcoords indices bone_weights vector<vector<BoneWeight>> has_bone_weights has_texcoords bounds skipped_vertices bad_indices, Bone name parent position rotation, Skeleton has_bones, MeshImportResult | CONCLUÍDO E VALIDADO — TestMeshInternalRepresentation 23 checks |
-| `mu/render/buffers` | Vertex/index buffer CPU-side VBO/VAO without GL | PackMeshForUpload PackedVertex px,py,pz,nx,ny,nz,u,v,bone_ids[4],bone_weights[4],weight_count PackedBuffers vertices flat indices flat has_texcoords has_bone_weights bounds skipped_vertices bad_indices ok, PackSkeletonForUpload parents names positions rotations has_bones valid parent range self-loop cycle visited[64] | CONCLUÍDO E VALIDADO — TestPackMeshForUpload 21 checks byte a byte |
-| `mu/render/skinning` | LBS skinning CPU strict without GL | Mat4 Identity TransformPoint ValidateSkeletonForSkinning has_bones parent range self-loop cycle visited[64], ApplySkinningLBS strict count positions normals mismatch has_bone_weights false retorna original zero movement, true exige bone_weights size == positions, skeleton validado, boneTransforms size == bones size, sum weight_i*(bone*pos) | CONCLUÍDO E VALIDADO — TestSkinningLBS 15 checks (a) identity (b) self-loop fails safe (c) zero movement (d) rotação 90° Z não-trivial (0,1,0) esperado cálculo manual cos=0 sin=1 (1,0,0)->(0,1,0) matriz row-major [0 -1 0 0;1 0 0 0;0 0 1 0;0 0 0 1] fabs<1e-5 evidência ciclo14_skinning_90z_code.md |
-| `mu/render/cull` | Frustum culling CPU bounds reais | Plane normal d, Frustum planes[6] left/right/bottom/top/near/far, FrustumFromViewProjection Gribb-Hartmann, CullBox p-vertex conservative safe invalid->kIntersect fail safe, IsVisible true para kInside/kIntersect false só kOutside invalid true, PlaneDistance | CONCLUÍDO E VALIDADO — TestFrustumCull (a) inside 2..8 kInside (b) outside -8..-2 12..18 kOutside (c) invalid never culled, TestFrustumCullRealBounds Mesh sintético 4 vértices (a) inside 0..1 frustum 0..10 kInside (b) outside -20..-10 kOutside (c) invalid true kIntersect, escala real 8406 bounds reais total_bmd 10090 with_bounds 8406 inside 7 outside 233 intersect 8166 culled 2,77% frustum 0..10 X, identity VP with_bounds 8406 inside 2 outside 662 intersect 7742 culled 7,88%, evidência ciclo14_culling_camera.md, ciclo13_cull_scale.log |
-| `mu/render/software_rasterizer` | **ciclo14 B + ciclo15 B validação objetiva + ciclo16 D textura placeholder — rasterizador software CPU-only** | Framebuffer RGB 800x600 1,4MB P6, Camera eye target up fov aspect near far GetViewMatrix lookAt GetProjectionMatrix perspective GetViewProjection P*V GetFrustum FrustumFromViewProjection, Multiply row-major a*b, TransformDirection w=0, Normalize Dot Cross Sub Add, SoftwareRasterizer Resize Clear RenderMesh RenderMeshes SavePPM, pipeline vértices Mesh BMD → transformação câmera perspectiva → rasterização triângulo z-buffer → sombreamento simples dot(normal, luz fixa 0.3,0.5,1) lambert 0.8*dot+0.2 ambient, usa Mesh C1 Skeleton C1 skinning D2 quando has_bone_weights, culling D3 antes rasterizar, exporta PPM binário P6 sem lib externa, sem OpenGL/DirectX/GPU/Windows, puro C++17, 4 renders reais ciclo14: Beer01 48v 30t 6 raster 33768 non-bg 7% tela, Object03 88v 103t 82 raster 108154 non-bg 22% tela, AmbitionShield 385v 545t 448 raster 32945 non-bg 6,8% tela 3 bones V0C, Axe11 1364v 2665t 528 raster 61696 non-bg 12,8% tela 1 bone, silhueta reconhecível proporções corretas z-buffer funcionando, **ciclo15 B validação objetiva**: bbox 2D não-bg min/max X/Y proporção W/H vs 3D bounds 8 corners projetada mesma câmera tolerância a priori 15-67% baseada em degenerados/inflação bounds (não post-hoc 50%), Beer01 expectedTol 17.8% observed 9.85% PASS, Object03 expectedTol 15% observed 4.26% PASS, AmbitionShield expectedTol 15% observed 10.49% PASS, Axe11 expectedTol 67.3% observed 37.40% PASS (80% degenerados 73% vértices não usados inflação X1.57), evidência ciclo16_axe11_tolerance_analysis.log, **determinismo**: double render SHA-256 idêntico 64 chars hex Beer01 e36e1345b57c0aef918597b5d4f246b4a95ee4faf1bbb3983d9c735a4eff915d identical YES, Object03 babf507aaa8a467ae3d6453f3a1fc5f82531d81cc4c25742cbd74bd2bd236690 YES, Shield 68907abcc7241abb7dc0dc5312fec61944c66fe6f72e34b244232ef69a1bf7dc YES, Axe11 276268d0bc79bcc03ce323818f06d086fd6448c5430a2161d62076ddb9b17514 YES, evidência ciclo16_determinism_hashes.log saída bruta literal, **segurança bad_indices**: mesh.cpp 92 ++bad_indices quando vertex_ok false good=false continue triângulo dropado não entra em mesh.indices, rasterizer.cpp 276 if i0>=vout.size() continue filtra ANTES acesso, ASan/UBSan 0 reports alta taxa 29,49% Furniture06, **ciclo16 D textura placeholder**: SoftwareTexture struct width height bgra BGRA 4*W*H ready GL_BGRA (OPT-005) valid, GenerateCheckerboard 256x256 32px procedural, LoadFromOZT usa OztToBgra/OzjProbe otimizados OPT-004/OPT-005 via chamada caminho OZT real, Sample u,v fract repeat BGRA->RGB, SoftwareRasterizer SetTexture ClearTexture HasTexture GetTexture, VertexOut u,v placeholder UV planar baseado em posição vértice (pos.x-bmin.x)/dx*4 etc, NÃO UV real, interpolação UV perspective correct, amostragem textura e modulação lambert, mutool render --textured flag, 2 renders novos Beer01 textured 800x600 1,4MB 33768 non-bg bright 35.5% dark 56.9% bimodal checkerboard PASS objetivo, Object03 textured 800x600, evidência ciclo16_first_render_Beer01_textured.ppm, ciclo16_first_render_Object03_textured.ppm, ciclo16_textured_validation.log validação objetiva PASS | **IMPLEMENTADO (software, CPU-only, textura placeholder) — VALIDADO OBJETIVAMENTE ciclo15 B + ciclo16 D** — TestSoftwareRasterizerFramebuffer 7 checks, Camera 8 checks, Triangle 7 checks, ZBuffer 4 checks, total 26 checks = 20+6 extras, parte de 500 checks 0 failures, evidência ciclo15_tests_extra.md, ciclo16_determinism_hashes.log 64 chars hex, ciclo16_axe11_tolerance_analysis.log a priori 15-67%, ciclo16_textured_validation.log bimodal PASS, ciclo16_backup_count_reconciliation.log 21=19+2 |
-| `mu/platform/win32_window` | Esqueleto Win32 wglCreateContext BLOCKED | Win32GLConfig width height title fullscreen colorBits depthBits stencilBits, Win32GLWindow handle opaco created flag, CreateGLWindow DestroyGLWindow SwapGLWindow PollEvents GetWin32GLStatus kBlockedNoWindowsSDK kBlockedNoGPU kBlockedNoDisplay kOk só Windows real com GPU, sequência RegisterClassExW CS_OWNDC CreateWindowExW GetDC PIXELFORMATDESCRIPTOR ChoosePixelFormat SetPixelFormat 1× wglCreateContext wglMakeCurrent loop PeekMessage/TranslateMessage/DispatchMessage QPC SwapBuffers cleanup, não inclui <windows.h> nem <GL/gl.h> propositalmente | CONCLUÍDO — esqueleto documentado BLOCKED com aviso literal e lista verificação Windows real, TestWin32GLSkeletonBlocked 4 checks |
-| `mu/platform/main_loop` | Esqueleto main loop update/render/present com predição frame budget sem GL | FrameBudget target_fps target_frame_ms update_ms render_ms present_ms total_ms slack_ms over_budget frame_index, InputState quit_requested, UpdateResult visible_objects culled_objects, RenderResult draw_calls_prepared triangles_submitted, PresentResult, MainLoop ctor target_fps Tick retorna FrameBudget ordem update->render->present mede via high_resolution_clock QPC, SetTargetFps PredictOverBudget média móvel 30 frames >90% budget History 120 frames | CONCLUÍDO — TestMainLoopSkeleton 9 checks |
-| `tools/investigation` | Backup completo scripts/ferramentas descoberta única ciclo15 A + ciclo16 A-D | 20 arquivos atualmente (19 ciclo15 A + ciclo15_render_validation.cpp + ciclo16: determinism_hashes, axe11_tolerance, backup_count, textured_validation, all_degen, axe11_degen, validate_tex etc?), add_skinning_nontrivial.py ciclo13 D2 rotação 90° Z, bench_ozt.cpp ciclo13 OztToRgba, bench_ozt2.cpp ciclo13 OztToBgra 10,2×, cull_scale.cpp ciclo13 culling escala real 8406 bounds 2,77%, cull_scale2.cpp ciclo13 identity VP 7,88%, debug_beer.cpp ciclo14 B Beer01 degenerados, debug_bonfire.cpp ciclo14 B Bonfire clip ndc, debug_bonfire2.cpp ciclo14 B Bonfire degenerados idx 1,1,1, find_bones.cpp ciclo14 B modelos com ossos, test_frustum.cpp ciclo14 B frustum câmera 0,0,5, fix_makefile.py ciclo13 test-san 389 vs 469, fix_makefile2.py ciclo13, update_ozt.py ciclo13 ozt.cpp OPT-005, update_bench.py ciclo13 bench_assets, run_bux10.sh ciclo14 A2 N=10 BuxCrypt mediana, test.log reflog.txt graph.txt logs git incident, ciclo15_render_validation.cpp ciclo15 B bbox 2D vs 3D, ciclo16 determinismo hashes, tolerância a priori, backup count, textura placeholder | **ciclo15 A + ciclo16 A-D — BACKUP COMPLETO WORKSPACE** |
+## Implemented capability and measured results
 
-**A command line tool**, `build/mutool`, with `scan`, `info`, `verify`, `dedupe`, `bmdreport`, `meshimport`, `culltest`, `terrain`, `bmdanim`, `render [--textured]`. Whole-tree scan 2,372 MB in 1.67 s. `bmdreport` 8406 parsed, 8405 with_tri, 3693 bones loose ratio 1846,28×, 1186 strict. `render` produces 6 PPMs 800x600 1,4MB cada (4 ciclo14 + 2 textured ciclo16), validado objetivamente ciclo15 B bbox 2D vs 3D bounds projetada consistent YES 4 modelos tolerância a priori 15-67%, determinismo SHA-256 identical YES 4 modelos 64 chars hex, segurança bad_indices filtering ANTES acesso ASan0 alta taxa 29,49%, textura placeholder bimodal checkerboard PASS objetivo.
+### BMD and meshes
 
-**A test suite**, 500 checks, 0 failures (474 ciclo13 + 26 ciclo14 rasterizer = 20+6 extras), self-generating fixtures, also clean under ASan and UBSan, evidence ciclo16_determinism_hashes.log 64 chars hex saída bruta literal, ciclo16_axe11_tolerance_analysis.log a priori 15-67% baseada em degenerados/inflação, ciclo16_backup_count_reconciliation.log 21=19+2, ciclo16_textured_validation.log bimodal PASS.
+`mutool bmdreport` measured 10,090 BMD files. Full output:
+[`evidence/ciclo17_bmdreport_final.log`](evidence/ciclo17_bmdreport_final.log).
 
-## 2. Metrics ciclo16
+| Stage / metric | Result | Interpretation |
+|---|---:|---|
+| Structurally valid containers | **10.023 (99,34%)** | Signature/version and declared v0x0C size consistency |
+| Payload access classified by current tool | **8.571 (84,95%)** | 1.245 plaintext + 100 BUX + 7.226 v0x0C-labelled (classifier only) |
+| OPAQUE | **1.519 (15,05%)** | Not recovered by the current classifier |
+| Geometry extracted by current parser | **8.406 (83,31%)** | Vertices/normals read for accepted body layouts |
+| Files with triangle records | **8.405 (83,30%)** | 3.681.664 triangle records read |
+| Files with loose bone records | **3.693 (36,60%)** | 7.879 bones; discoverability is not animation semantics |
+| Out-of-range vertex references | **523,717** | Reference fields, not triangles |
+| Out-of-range normal references | **507,068** | Reference fields, not triangles |
+| Combined invalid references | **1,030,785 / 22,089,984 (4.666%)** | Six index fields per triangle |
 
-```
-make test: 500 checks 0 failures
-make test-san: 500 checks 0 failures 0 ASan/UBSan 100% cobertura mesmo total checks
-bench_assets: BuxCrypt 1 MiB N=10 median 391,3us 2555,8 MB/s stdev 30,42 min 2510,7 max 2606,0 vs original 1135,7us 880,5 MB/s speedup 2,90× mediana, pico 3437 MB/s outlier não representativo max N=10 2606 24% abaixo 3437, evidence ciclo14_buxcrypt_10runs.log
-  OztToRgba 63,0us median p95 77,9 p99 89,7 3969 MB/s
-  OztToBgra 6,6us median p95 7,2 p99 11,3 38057 MB/s 9,45× median 12,26× p99
-  OzjProbe 22,9us median p95 33,5 p99 36,4 8342 MB/s vs original 179,2us 1064 MB/s 7,8× median 11,79× peak
+**Policy caveat:** `AGENTS.md` still classifies the BMD v0x0C cipher as
+**BLOCKED**. The counts labelled v0x0C-decryptable by the existing tool are an
+observed implementation/classifier result, not permission to further reverse,
+claim an officially validated cipher, or redistribute results as an authorized
+format. Do not expand that work unless a legitimate source/authorization changes
+the documented blocker. The remaining `Enc*` terrain cipher is also BLOCKED.
 
-ciclo16_determinism_hashes.log saída bruta literal 64 chars hex:
-  e36e1345b57c0aef918597b5d4f246b4a95ee4faf1bbb3983d9c735a4eff915d  /tmp/ciclo16_beer_a.ppm
-  e36e1345b57c0aef918597b5d4f246b4a95ee4faf1bbb3983d9c735a4eff915d  /tmp/ciclo16_beer_b.ppm
-  babf507aaa8a467ae3d6453f3a1fc5f82531d81cc4c25742cbd74bd2bd236690  /tmp/ciclo16_obj03_a.ppm
-  babf507aaa8a467ae3d6453f3a1fc5f82531d81cc4c25742cbd74bd2bd236690  /tmp/ciclo16_obj03_b.ppm
-  68907abcc7241abb7dc0dc5312fec61944c66fe6f72e34b244232ef69a1bf7dc  /tmp/ciclo16_shield_a.ppm
-  68907abcc7241abb7dc0dc5312fec61944c66fe6f72e34b244232ef69a1bf7dc  /tmp/ciclo16_shield_b.ppm
-  276268d0bc79bcc03ce323818f06d086fd6448c5430a2161d62076ddb9b17514  /tmp/ciclo16_axe_a.ppm
-  276268d0bc79bcc03ce323818f06d086fd6448c5430a2161d62076ddb9b17514  /tmp/ciclo16_axe_b.ppm
-  identical YES 4 modelos determinismo PASS
+The stages use the same denominator of 10,090 and are not a fully cumulative
+hierarchy. Positive topology is a subset of parsed geometry, verified by test.
+`bmdreport` exits with code 2 because OPAQUE payloads remain; this is not reported
+as an entirely successful decode.
 
-ciclo16_axe11_tolerance_analysis.log tolerância a priori:
-  Beer01 totalTris 30 ok6 degen24 ok%20% degen%80% totalVerts48 used15 used%31% unused%68% inflation X1 Y1 Z1.078 max1.078 expectedTol 17.8% a priori observed 9.85% PASS
-  Object03 totalTris103 ok82 degen21 ok79.6% degen20% verts88 used83 used94% unused5.68% inflation1,1,1 expectedTol15% observed4.26% PASS
-  AmbitionShield totalTris545 ok448 degen97 ok82% degen17% verts385 used372 used96% unused3.37% inflation1,1,1 expectedTol15% observed10.49% PASS
-  Axe11 totalTris2665 ok528 degen2137 ok19.8% degen80% verts1364 used357 used26% unused73.8% bounds all dx249.91 vs used dx158.849 inflation X1.57 Y1 Z1 max1.57 expectedTol67.3% a priori observed37.40% PASS
-  Fonte erro quantificada Axe11: 80.19% tris degenerados descartados fabs(area)<1e-6, 73.82% vértices não usados inflam bbox 3D até 57% em X, esperamos desvio até ~67% (57%+10% margem perspectiva)
+`mutool meshimport` read 8,406 meshes, 8,327 with triangles. Of 3,681,664 body
+triangles, **3,168,360** were emitted and **513,304 (13.94%)** were dropped due
+to at least one invalid vertex/normal reference. Zero meshes were rejected for
+another reason in that stage. A triangle counts once as dropped even if it has
+multiple invalid references. This differs from 4.666%, which counts individual
+references.
 
-ciclo16_backup_count_reconciliation.log:
-  git show --stat 59d0c31 21 files = 19 tools/investigation/ (18+README) + 2 docs/evidence/ inventory+manifest
+The UV-per-corner index and complete mesh/material/texture association are not
+known. Statistical float/offset candidates documented in
+[`ASSET_FORMATS.md`](ASSET_FORMATS.md) are not semantic validation; the importer
+does not expose usable BMD UVs (`has_texcoords` remains false when mapping is
+unknown).
 
-ciclo16_textured_validation.log:
-  Beer01 textured w800 h600 nonBg33768 bright12003 dark19201 brightRatio35.5% darkRatio56.9% hasBoth1
-  Beer01 plain nonBg33768 unique intensity 200
-  Beer01 textured unique intensity 223
-  Validation textured sampling PASS bimodal checkerboard objective not subjective
+### Textures and diagnostic rendering
 
-ciclo16_first_render_Beer01_textured.ppm 800x600 1,4MB PPM com padrão xadrez visível 33768 non-bg bright35.5% dark56.9% bimodal
-ciclo16_first_render_Object03_textured.ppm 800x600 1,4MB
+- `mutool scan`: 29,060 files, 2,372.04 MiB. Probes accepted 13,832/13,928 OZJ
+  and 3,404/3,470 OZT. The BMD scan counter is container recognition, not
+  geometry extraction. Header/payload-derived image-byte totals are **estimates**,
+  not measured RAM/VRAM. See
+  [`evidence/ciclo17_scan_final.log`](evidence/ciclo17_scan_final.log).
+- The standard OZT conversion path supports uncompressed 24-bit BGR and 32-bit
+  BGRA input to BGRA8; unit tests use synthetic fixtures. Real file
+  `Axes06.ozt` was loaded as 64×64 BGRA8 (declared payload 16,384 bytes, 26-byte
+  trailer).
+- A real `mutool render` call explicitly loaded that OZT alongside
+  `Player/Axe11.bmd` (1,364 vertices, 2,665 triangles), output 800×600, exit 0.
+  The OZT was provided explicitly and was **not associated** with the model by
+  evidence. Without decoded BMD UVs, the rasterizer reports a planar diagnostic
+  mapping. Loaded/rendered pixels do not prove a faithful appearance. Logs:
+  [`ciclo17_ozt_real_asset_info.log`](evidence/ciclo17_ozt_real_asset_info.log),
+  [`ciclo17_ozt_real_asset_load.log`](evidence/ciclo17_ozt_real_asset_load.log),
+  and [`ciclo17_ozt_real_asset_status.log`](evidence/ciclo17_ozt_real_asset_status.log).
+- OZJ: the code probes JPEG structure/markers; it **does not decode pixels**.
+  TGA: probe and uncompressed type-2 read are implemented; RLE type 10 is not
+  decoded. Recognition is not decoding.
+- `--checkerboard` and planar mapping are CPU diagnostic tools, not UVs or
+  correctly textured original rendering.
 
-Tests extras: 500=474+20+6, 26 checks adicionados ciclo14 B = 20 alegados +6 extras (2 out-of-bounds framebuffer, 1 frustum IsVisible camera, 2 depth>0+corner background triangle, 1 depth<1 z-buffer), evidência ciclo15_tests_extra.md
-```
+### Other measurements that are not product metrics
 
-## 3. What does not exist or is BLOCKED
+- `mutool terrain`: 76/76 complete grids; 72/76 are below the 30.00 smoothness
+  heuristic. Exit code 2 is due to four values at/above the heuristic threshold.
+  This does not prove those files invalid or validate terrain units/scale.
+  Evidence: [`ciclo17_terrain_after_audit.log`](evidence/ciclo17_terrain_after_audit.log).
+- `mutool bmdanim`: 500 files have bytes after bones; 385 are divisible by
+  `boneCount × 12`. This is a **size test**, not animation decoding or
+  identification of the three floats.
+- `mutool culltest`: synthetic scene; 8,086/8,406 bounds were classified as
+  culled under artificial camera/placement parameters. It counts avoided draws
+  in that scenario, **not FPS or frametime**.
+- `build/bench_assets`: CPU microbenchmarks for parsing/conversion/preparation.
+  They do not measure GPU, full-client loading, FPS, or latency. Latest single-run output:
+  [`ciclo17_bench_final.log`](evidence/ciclo17_bench_final.log).
 
-| Component | Status | Evidence |
-|---|---|---|
-| Renderer GPU (VBO/VAO/OpenGL) | NOT STARTED, esqueleto Win32 BLOCKED, software CPU-only IMPLEMENTADO VALIDADO OBJETIVAMENTE ciclo15 B + textura placeholder ciclo16 D | win32_window.hpp NÃO COMPILADO BLOCKED requer Windows+GPU, software_rasterizer.hpp/.cpp CONCLUÍDO 6 renders PPM 800x600 1,4MB validados objetivamente bbox 2D vs 3D bounds projetada consistent YES tolerância a priori 15-67% determinismo SHA-256 identical YES 64 chars hex segurança bad_indices ASan0 textura placeholder bimodal PASS |
-| Window / input / main loop | PARTIAL — esqueleto MainLoop CONCLUÍDO update/render/present predição budget sem GL, Win32 BLOCKED | main_loop.hpp/.cpp TestMainLoopSkeleton 9 checks, win32_window BLOCKED |
-| Resource cache and manager | NOT STARTED | — |
-| Texture upload to GPU | NOT STARTED, but OztToBgra 6,6us ready for GL_BGRA, software rasterizer com textura placeholder IMPLEMENTADO prova conceito pipeline textura, NÃO UV real | OPT-005, ciclo16 D |
-| Model loading | PARTIAL — 8406 vertex+normal, 8405 topology, 3693 bones loose 1186 strict, 7879 bones, UV 0% continua BLOQUEADO ciclo16, triângulos degenerados 8,4% bad_indices | bmd_body parser |
-| Audio mu/audio | NOT STARTED, arquitetura definida docs/AUDIO.md, 1020 WAV files | AUDIO.md |
-| Network mu/network | NOT STARTED, estrutura pacotes documentada com rótulos docs/NETWORK.md | NETWORK.md |
-| Interface mu/interface | NOT STARTED, fluxo telas definido docs/INTERFACE.md | INTERFACE.md |
-| Animation | NOT DECODED — 62 plausíveis ratio 0,02× NÃO discriminativo, 53 plausíveis [-pi,pi] ratio 0,04× NÃO discriminativo | ciclo11_item5_anim_validation_full.log |
-| OPAQUE cipher | BLOQUEADO — 1519 15,05% cifra não recuperada full-scan 1503 PlausiblePath 0 variantes plausíveis tentativa falha | ciclo11_opaque_step_fullscan.log |
-| UV | NOT DECODED — 0% 11 hipóteses descartadas platô 9-26× explicado artefato floats pequenos, com rasterizador funcionando nova abordagem possível gerar renders teste com diferentes hipóteses offset/layout UV aplicadas como textura pista exploratória, textura placeholder usa UV planar baseado em posição vértice NÃO é UV real | ciclo10_itemA4_uv_ratio_per_offset.log, ciclo14_first_render_validation.md Parte C, ciclo16 escolha próxima tarefa textura OZT/OZJ placeholder marcado, RENDERING.md §12.8, STATUS_FINAL.md ciclo16 |
-| FPS/VRAM baseline | NOT EXECUTED — no Windows no GPU, but CPU-only rasterizer first visual proof sem GPU validado objetivamente + textura placeholder | PERFORMANCE_BASELINE.md, RENDERING.md §12.7-12.8, ciclo16_* logs |
+## Build and tests
 
-## 4. Security and dependencies — ciclo16
+| Check | State in this audit |
+|---|---|
+| `make clean && make` | **PASS** — full build, no warnings |
+| `make test` | **PASS** — **539 checks, 0 failures** |
+| `make test-san` | **PASS** — **539 checks, 0 failures**, no ASan/UBSan report |
+| `python3 tools/check_docs_consistency.py /tmp/cliente_ref/Data` | **PASS (exit 0)** — 54 checks, 0 failures against reference HEAD `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` |
+| Full available patch-manifest check | **INCOMPLETE / exit 2**: 188 entries, 116 match, 8 size mismatches, 11 CRC mismatches, 53 missing in the available tree; not 188/188 coverage |
+| Windows build/run and GPU device | **NOT EXECUTED** — no Windows, cross-toolchain, or GPU here |
+| Equivalent visual comparison with reference client | **NOT EXECUTED** |
+| FPS, frametime, VRAM, runtime RAM, and latency | **NOT EXECUTED** |
+| Authorized server/network compatibility | **NOT EXECUTED** — no authorized test server |
 
-- Parser ossos: detecção ciclo visited[64] self-loop parent==i rejeitado bc>64 limite overflow, reduz FP 8,32%→0,0079% ratio 1846,28×, testes CircularParent ExtremeCount Truncated Overflow 500 checks ASan0
-- BuxCrypt word-at-a-time 8B key64[3] phase advances 2 mod 3, memcpy unaligned safe, self-inverse mantido, N=10 median 2555,8 MB/s stdev 30,42 vs original 880,5 MB/s speedup 2,90× mediana, pico 3437 MB/s outlier não representativo max 2606 24% abaixo
-- OzjProbe word-at-a-time 8B chunk has_zero bitmask sem FF skip 8B unaligned safe via memcpy sem strict-aliasing sem leitura além file.size preserva escape FF 00 e FF D0..D7 edge remaining<8 4 casos PASS 0 ASan/UBSan
-- OztToRgbaTopDown 2px 8B via uint64_t bit ops (pixel & 0xFF00FF00) | ((pixel & 0xFF)<<16) | ((pixel>>16)&0xFF) memcpy unaligned safe, OztToBgraTopDown BGRA direct via GL_BGRA elimina swap só flip memcpy 10,2× 66,4us→6,5us 9,45× median 12,26× p99
-- Software rasterizer: sem alocação extra além framebuffer W*H*3 + depth W*H float + textura BGRA 256x256 256KB opcional, sem overread, sem GL, sem Windows, sem DRM contorno, sem rede, sem exposição credenciais, sem backface culling desabilitado winding desconhecido, sem clipping avançado só w<=0.001, z-buffer SetPixel só escreve se z<stored depth inicial 1.0 far, testes framebuffer depth test out of bounds, camera eye→origem, triangle center pixel lit, z-buffer closer vence, 500 checks 0 failures ASan0, validação objetiva bbox 2D não-bg vs 3D bounds projetada consistent YES 4 modelos tolerância a priori 15-67% baseada em degenerados/inflação bounds (não post-hoc 50%), determinismo SHA-256 identical YES 4 modelos 64 chars hex saída bruta literal ciclo16_determinism_hashes.log, segurança bad_indices filtering ANTES acesso mesh.cpp 92 ++bad_indices good=false continue triângulo dropado não entra em mesh.indices + rasterizer.cpp 276 if i0>=vout.size() continue filtra ANTES acesso vout[i], ASan/UBSan 0 reports alta taxa 29,49% Furniture06, textura placeholder explicitamente marcada PLACEHOLDER NÃO UV real, nunca apresentada como UV real, validação objetiva bimodal checkerboard bright 35.5% dark 56.9% PASS ciclo16_textured_validation.log
-- Hashes SHA-256 nunca digitados manualmente — sempre redirecionar saída comando para arquivo e colar conteúdo arquivo, evidência ciclo16_determinism_hashes.log com saída bruta literal, regra permanente ciclo16
-- Tolerância validação definida a priori com justificativa quantificada, não ajustada ao resultado — ciclo16_axe11_tolerance_analysis.log com degenerados/inflação bounds
-- Benchmark N>=5 mediana+desvio padrão — BuxCrypt N=10 median 2555,8 MB/s stdev 30,42
-- Comparação real-vs-controle unidades idênticas — ratio per file 1846,28× definitivo per trial 5538× inválido não usar
-- Nenhum script descoberta apenas fora repositório — tools/investigation/ 20 arquivos atualmente
-- Nunca mexer Cliente_ref — hash 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9 intacto, /tmp/cliente_ref 10090 BMD
-- Nunca force-push nem reescrever histórico publicado
-- Workspace backup ciclo15 A: tools/investigation/ 18 arquivos categoria (a) + README 19 total 84KB com cabeçalho ciclo pergunta referência log, categoria (b) clones re-obteníveis /tmp/cliente_ref 88edfc73 e /tmp/bmdref 3f11bf89 documentados LICENSING.md DEPENDENCIES.md não commitados, categoria (c) Data 2,4GB NÃO commitar, categoria (d) binários temporários descartáveis fonte preservada, .gitignore sem regras excluindo ppm/log/bmp, 4 PPMs 1,4MB cada já commitados 0b471cb + 2 PPMs textured ciclo16, logs evidência todos commitados, nenhum dado sensível/proprietário grande volume commitado, reconciliação 21=19+2 docs/evidence inventory+manifest ciclo16_backup_count_reconciliation.log
+Manifest output:
+[`evidence/ciclo17_reference_manifest_verification_final.log`](evidence/ciclo17_reference_manifest_verification_final.log).
+Manifest verification read asset bytes to compare sizes/CRCs; protected/licensing
+files were not otherwise inspected. No such file was changed. The reference tree
+remains read-only.
 
-## 5. Next task — ciclo17
+## Product compatibility matrix
 
-**Escolha: áudio WAV miniaudio 1020 arquivos + investigação OPAQUE/UV com nova abordagem usando rasterizador textured como ferramenta**
+| System | Actual status |
+|---|---|
+| Runnable Windows client / startup / functioning window and input | **NOT IMPLEMENTED / NOT EXECUTED** |
+| Windows x86 and x64 | **NOT EXECUTED**; architecture choice still needs a validated target build |
+| GPU backend (D3D12, Vulkan, or D3D11) and device creation | **NOT IMPLEMENTED / NOT EXECUTED** |
+| BMD model assets | **PARTIAL** — supported subset and counts above; 1,519 OPAQUE |
+| OZT textures | Pixel conversion implemented; one real OZT loaded, no visual association validated |
+| OZJ textures | JPEG probe only; pixel decoding **NOT IMPLEMENTED** |
+| BMD UV/material/texture association | **BLOCKED** — no semantic mapping or verifiable visual comparison |
+| Terrain | Partial parsing; `Enc*` cipher, vertical scale, and appearance unresolved |
+| Bones/skinning/animation | Partial bone-record parsing; no verified BMD weights, transform order, or keyframe semantics |
+| UI, HUD, fonts, effects, particles | **NOT IMPLEMENTED** |
+| Audio | **NOT IMPLEMENTED** |
+| Network, authentication, game session | **NOT IMPLEMENTED / NOT EXECUTED**; no bypass or unauthorized-server testing |
+| Client performance and long-session stability | **NOT EXECUTED** |
 
-Justificativa: textura placeholder validado objetivamente ciclo16 D bimodal PASS, pipeline textura prova conceito, UV real continua BLOQUEADO 0% mas agora com ferramenta textured pode testar hipóteses UV com métrica objetiva textura (ex.: entropia imagem renderizada com diferentes offsets UV, cobertura textura). Próximo passo de maior valor após textura placeholder:
+The first graphics milestone remains: **a real Windows executable, a created GPU
+device, and at least one original model rendered with correctly interpreted
+geometry and texture association, verified**. CPU rasterization, PPM output,
+checkerboard, or planar UV do not satisfy it.
 
-- Áudio WAV: 1020 arquivos WAV em Data, decodificador via miniaudio single-header (zero dep), bench decode WAV, medir tempo carregamento, memória, sem depender de Windows, puro C++17, prioridade (5) tempo inicialização/carregamento e (6) uso CPU/RAM, arquitetura já definida docs/AUDIO.md
-- OPAQUE/UV: com rasterizador textured, nova abordagem UV: gerar renders com diferentes hipóteses offset/layout UV aplicadas como textura real OZT e medir métrica objetiva (ex.: entropia, cobertura, bimodal) para discriminar hipótese plausível vs ruído, tratar como pista exploratória não prova, documentar
+## Key evidence
 
-Critérios aceite ciclo17:
-- build limpo: make clean && make test 500+ checks 0 failures, make clean && make test-san 500+ checks 0 failures 0 ASan/UBSan 100% cobertura mesmo total checks
-- números batendo com ferramenta: bench_assets N=5+ runs mediana + desvio padrão + mínimo + máximo + unidades idênticas (med_us, MB/s), não pico outlier, hashes SHA-256 sempre 64 chars hex saída bruta literal redirecionada para arquivo
-- sem contradição entre documentos: BENCHMARKS § textura placeholder vs pico vs mediana, RENDERING §12.8 textura placeholder marcado PLACEHOLDER NÃO UV real, STATUS_FINAL ciclo16, CURRENT_STATE ciclo16, NEXT_TASK ciclo17 consistentes
-- comparação real-vs-controle com unidades idênticas: ratio per file 1846,28× definitivo per trial 5538× inválido não usar, textura placeholder marcada como PLACEHOLDER não UV real, UV real continua BLOQUEADO 0%
-- seção obrigatória ao final de CADA ciclo com dados reais: ESTADO DO GIT NESTE CICLO — commits locais hashes+mensagens push realizado sim/não confirmação hash remoto==local comando+saída git status final motivo explícito se algo não commitado/publicado
-- evidência visual PPM com textura placeholder checkerboard ou OZT real mapeado placeholder, silhueta reconhecível proporções corretas z-buffer funcionando, marcado PLACEHOLDER, validação objetiva bimodal PASS
-- tolerâncias validação sempre definidas a priori com justificativa quantificada, nunca ajustadas post-hoc, se falhar é falha real a investigar
+- Final whole-tree scan, BMD report, and mesh import:
+  `ciclo17_scan_final.log`, `ciclo17_bmdreport_final.log`,
+  `ciclo17_meshimport_final.log`.
+- Real OZT diagnostic run: `ciclo17_ozt_real_asset_*.log` (explicitly not a
+  verified model/texture pair or GPU render).
+- Six differing local PPM variants were kept outside Git; hash/size comparison
+  only: `ciclo17_ppm_recovery_comparison.log`; neither set proves GPU rendering.
+- 188-entry patch-manifest comparison:
+  `ciclo17_reference_manifest_verification_final.log`.
+- Clean build, normal/sanitizer tests, benchmark build/run, and documentation
+  check: corresponding `ciclo17_*_final.log` files under [`evidence/`](evidence/).
 
-## ESTADO DO GIT NESTE CICLO — até ciclo16 D
+## Next task
 
-- Branch: arena/519f8fc9-clienterecriado
-- Base: 972fabcea1b0d4e80345f0f5abd287b46d819455 main
-- HEAD ciclo14: 0b471cb feat(ciclo14-B): implementa rasterizador software CPU-only primeira prova visual real sem GPU
-- HEAD ciclo15 A: 59d0c31 chore(ciclo15): backup completo de scripts/ferramentas de investigação para evitar perda em restauração de ambiente — 21 files 1162 insertions, push realizado sim, git push origin arena/519f8fc9-clienterecriado 0b471cb..59d0c31 sucesso, git rev-parse HEAD 59d0c315ee711c2f2246dc753c4a31b7a4aeeb35 == git ls-remote origin 59d0c315ee711c2f2246dc753c4a31b7a4aeeb35, git status limpo
-- HEAD ciclo15 B+C: 9bb961e feat(ciclo15-BC): validação objetiva renderizador bbox 2D vs 3D bounds + determinismo SHA-256 + segurança bad_indices ASan0 + tests extras 500=474+20+6 + escolha textura placeholder — 6 files 768 insertions, push realizado sim 59d0c31..9bb961e sucesso, git rev-parse HEAD 9bb961e4e94850c217767d4d52579f2704fc987b == git ls-remote origin 9bb961e4e94850c217767d4d52579f2704fc987b, git status limpo
-- Commits locais ciclo16 pendentes: Parte A hashes corrigidos 64 chars hex saída bruta literal, Parte B tolerância a priori 15-67% Axe11 67.3% baseada em degenerados/inflação, Parte C backup 19 vs 21 reconciliação 21=19+2, Parte D textura placeholder SoftwareTexture checkerboard 256x256 32px UV planar placeholder NÃO UV real + 2 renders textured + validação objetiva bimodal PASS
-- Push ciclo16: pendente, será feito neste ciclo após commit
-- Referência Cliente_ref: 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9 intacto, /tmp/cliente_ref 10090 BMD, confirmado periodicamente
-- Métricas ciclo16: 500 checks 0 failures, 500 checks 0 failures test-san, determinismo SHA-256 identical YES 4 modelos 64 chars hex, tolerância a priori 15-67% PASS 4 modelos, backup 21=19+2, textura placeholder bimodal PASS bright35.5% dark56.9%
-- git status final ciclo16 A-C: 5 arquivos novos evidência + 1 novo render + 1 render textured + 2 atualizados docs + 2 src modificados pendentes commit
+Follow [`NEXT_TASK.md`](NEXT_TASK.md): prepare the first verifiable Windows/GPU
+vertical slice on an appropriate machine/toolchain, without claiming runtime
+progress in this environment. In parallel, advance BMD/UV/material semantics
+only with legitimate sources and controls capable of testing meaning, not just
+statistical plausibility.
 
+## Git state for this cycle
 
-
-## Product target update — 2026-10-12
-
-The strategic target is now maximum practical performance on modern Windows PCs
-with capable dedicated GPUs, preserving original MU Online assets while allowing
-opt-in visual improvements and heavier scenes. The architecture and benchmark
-contract are recorded in [PERFORMANCE_TARGET.md](PERFORMANCE_TARGET.md).
-
-This target does not change implementation status: the existing rasterizer is
-CPU-only and its texture coordinates are explicitly placeholders. A production
-Windows/GPU renderer, real-asset GPU rendering, FPS/frame-time/VRAM/input-latency
-measurements, long-session stability and authorised server compatibility remain
-unverified or not executed until actual evidence is recorded. The next task is
-the Windows GPU renderer vertical slice, as defined in [NEXT_TASK.md](NEXT_TASK.md).
+- Session-fixed branch: `arena/1d9c1f53-clienterecriado` (the session's remote
+  ref did not exist at recovery start; this branch name is fixed by the host).
+- Recovery-start local HEAD: `972fabcea1b0d4e80345f0f5abd287b46d819455`; the
+  working tree had one modified tracked README, no staged diff, and the rest of
+  the project as untracked files. Published `main` was also at `972fabc`.
+- Published branch `arena/519f8fc9-clienterecriado` was at
+  `4c36befab01263bf95a509d1c8306c56a1e876c5` (193 commits ahead of the local
+  base). A safe fast-forward moved this fixed session branch to that commit;
+  no branch checkout, destructive Git reset/clean, or force-push was used (the
+  project `make clean` target was run for validation). The 519 branch was not
+  modified.
+- Pre-integration comparison: 260 local files vs. 227 at published 519; 46
+  differing shared files, 33 local-only evidence/log files, and no remote-only
+  project paths. Six differing PPM variants were kept outside Git and are
+  recorded in `evidence/ciclo17_ppm_recovery_comparison.log`.
+- Final commit/push hashes and post-publication `git status` will be recorded
+  after the validated changes are committed and published on the fixed branch.

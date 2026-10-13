@@ -1,5 +1,5 @@
 // Ciclo: ciclo16 B
-// Pergunta: Mede bad_indices Axe11 bad 71 total 2736 rate 2.59% bounds min/max
+// Question: Measure dropped-triangle counts for Axe11 and compare bounds.
 // Evidência: docs/evidence/ciclo15_render_validation.log
 // Origem: /tmp/axe11_bad.cpp movido para backup permanente ciclo16 para garantir que todo trabalho está salvo no repositório
 // Categoria: (a) FERRAMENTA/SCRIPT DE DESCOBERTA ÚNICO
@@ -24,13 +24,14 @@ int main(){
   mu::BmdBody body;
   mu::BmdParseBodyV0A(payload,&body);
   auto r=mu::MeshFromBmd(body,path);
-  std::cout<<"verts "<<r.mesh.positions.size()<<" tris body "<<body.triangles.size()<<" tris mesh "<<r.mesh.indices.size()/3<<" bad "<<r.mesh.bad_indices<<" skipped "<<r.mesh.skipped_vertices<<"\n";
+  std::cout<<"verts "<<r.mesh.positions.size()<<" tris body "<<body.triangles.size()<<" tris mesh "<<r.mesh.indices.size()/3<<" dropped "<<r.mesh.dropped_triangles<<" skipped "<<r.mesh.skipped_vertices<<"\n";
   size_t total=body.triangles.size();
-  size_t bad=r.mesh.bad_indices;
-  double rate = total? (double)bad*100.0/total:0;
-  std::cout<<"bad rate vs body tris "<<rate<<"%\n";
+  size_t dropped=r.mesh.dropped_triangles;
+  double rate = total ? static_cast<double>(dropped) * 100.0 / static_cast<double>(total) : 0.0;
+  std::cout<<"dropped rate vs body tris "<<rate<<"%\n";
   // also count degenerate area <1e-6 after projection? Need to compute degenerate in mesh
-  // For Axe11, also compute bounds inflation due to bad triangles? Bad triangles are dropped, so they don't affect rendered bbox, but they DO affect 3D bounds if their vertices are extreme? Actually bounds computed from positions, not triangles, so bad_indices doesn't affect bounds directly.
+  // Bounds are computed from positions, not triangles, so dropping a triangle
+  // does not change the bounds directly.
   // But degenerate triangles (area 0) are still in mesh.indices but dropped at rasterization fabs(area)<1e-6, so they don't affect 2D bbox but their vertices still affect 3D bounds.
   std::cout<<"bounds min "<<r.mesh.bounds.min.x<<","<<r.mesh.bounds.min.y<<","<<r.mesh.bounds.min.z<<" max "<<r.mesh.bounds.max.x<<","<<r.mesh.bounds.max.y<<","<<r.mesh.bounds.max.z<<"\n";
   return 0;

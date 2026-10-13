@@ -1,36 +1,70 @@
 # Asset formats
 
-Every layout in this document was established by measuring bytes in the
-reference client's asset tree, not by assuming what a MU Online format looks
-like. Each section states the evidence, the implementation that reads it, and
-the measured success rate over the **entire** tree, not a sample.
+This document records observed layouts and the limits of each observation. The
+historical investigations below contain hypotheses and test history; the current
+audit summary here is authoritative where earlier prose differs.
 
-Reproduce the numbers with:
+`mutool scan` enumerates the **entire** asset tree, but its per-format counters
+are probes/header checks, not proof of pixel decoding, semantic interpretation,
+or correct rendering. Reproduce with:
 
 ```sh
 build/mutool scan /path/to/Cliente_ref/Data
+build/mutool bmdreport /path/to/Cliente_ref/Data
+build/mutool meshimport /path/to/Cliente_ref/Data
 ```
 
-Reference tree measured: 29,060 files, 2,372.04 MB.
+The scanner's `MiB` values divide bytes by 1,048,576; older cycle logs may
+label these same binary units `MB`. Reference tree measured: 29,060 files,
+2,372.04 MiB. Final scan evidence:
+[`evidence/ciclo17_scan_final.log`](evidence/ciclo17_scan_final.log).
 
-| Format | Files | Parsed | Rate |
-|---|---|---|---|
-| OZJ (JPEG texture) | 13,928 | 13,832 | 99.31% |
-| OZT (BGRA texture) | 3,470 | 3,404 | 98.10% |
-| BMD (model container) | 10,090 | 10,066 | 99.76% |
-| TGA | 15 | 15 | 100% |
-| `.att` terrain attribute | 105 | 105 | 100% |
-| `.map` terrain map | 79 | 79 | 100% |
-| `.obj` terrain object list | 81 | 81 | 100% |
+| Format | Files | Probe accepted | Meaning / limit |
+|---|---:|---:|---|
+| OZJ | 13,928 | 13,832 (99.31%) | JPEG structure/markers only; image pixels are not decoded |
+| OZT | 3,470 | 3,404 (98.10%) | Header/payload probe; standard 24-bit BGR and 32-bit BGRA conversion exists, but scan does not convert every image |
+| BMD | 10,090 | 10,066 (99.76%) | Container recognition only; 10,023 are structurally valid in `bmdreport` |
+| TGA | 15 | 15 (100%) | Probe acceptance; current pixel reader handles uncompressed type 2, not RLE type 10 |
+| `.att` terrain attribute | 105 | 105 (100%) | Probe acceptance, not full terrain rendering |
+| `.map` terrain map | 79 | 79 (100%) | Probe acceptance, not full terrain rendering |
+| `.obj` terrain object list | 81 | 81 (100%) | Probe acceptance, not semantic/rendering verification |
 
-**Estimated uncompressed texture memory: 2,893.80 MB** — see
-[`PERFORMANCE_BASELINE.md`](PERFORMANCE_BASELINE.md).
+### Current BMD parser stages
+
+These counts are independent stages measured on the same 10,090-file population;
+they are not a fully cumulative hierarchy. Positive topology is a subset of
+parsed geometry. The tool's v0x0C-labelled classifier result is experimental;
+`AGENTS.md` still marks the v0x0C cipher BLOCKED. The `Enc*` terrain cipher is
+also BLOCKED.
+
+| Stage | Files | Rate |
+|---|---:|---:|
+| 1 — structure | **10.023** | **99.34%** |
+| 2 — payload | **8.571** | **84.95%** |
+| 3 — vertices | **8.406** | **83.31%** |
+| 4 — topology | **8.405** | **83.30%** |
+| 5 — loose bones | **3.693** | **36.60%** |
+| 6 — UV | **0** | **0.00%** |
+
+There are 1.519 OPAQUE payloads (15.05%). For 3,681,664 triangle records, the
+parser counts 523,717 out-of-range vertex references and 507,068 out-of-range
+normal references: 1,030,785 / 22,089,984 = 4.666% of reference fields.
+`meshimport` drops 513,304 triangles (13.94%) and emits 3,168,360; these are
+triangle counts, not reference counts. Details are in
+[`COMPATIBILITY.md`](COMPATIBILITY.md) and the cycle-17 evidence logs.
+
+### Image-byte estimates are not runtime memory
+
+The scan's **2,893.80 MiB** is a header/payload-derived image-byte estimate (OZJ
+uses an RGBA8-equivalent; OZT/TGA use declared/calculated payload bytes). It is
+not decoded OZJ storage, measured RAM, VRAM, or proof that all images are loaded
+at once. See [`PERFORMANCE_BASELINE.md`](PERFORMANCE_BASELINE.md).
 
 ---
 
 ## OZJ — JPEG textures
 
-13,928 files, 971.7 MB. The largest single format in the client.
+13,928 files, 971.7 MiB. The largest single format in the client.
 
 ### Layout
 
@@ -101,9 +135,12 @@ resolved; recorded in [`TEST_RESULTS.md`](TEST_RESULTS.md).
 
 ---
 
-## OZT — 32-bit BGRA textures
+## OZT — standard TGA-like truecolour textures
 
-3,470 files, 442.0 MB. Every one measured is 32 bits per pixel.
+3,470 files, 442.0 MiB; 3,404 pass the current header/payload probe. A 400-file
+sample measured 32 bits per pixel in all 400. The reader/converter supports the
+standard uncompressed 24-bit BGR and 32-bit BGRA layouts; the whole-tree probe
+is not a whole-tree pixel-decode test.
 
 ### Layout
 
@@ -179,17 +216,19 @@ arithmetically is not a format conclusion.
 
 ### Implementation
 
-`mu/assets/ozt.cpp`. `OztProbe` validates without copying (22 bytes touched —
-this is what makes a 29,000-file inventory finish in 1.7 s). `OztRead` copies
-the payload. `OztToRgbaTopDown` converts BGRA bottom-up to RGBA top-down, which
-is what `glTexImage2D` with `GL_RGBA`/`GL_UNSIGNED_BYTE` wants. `OztWriteRgba`
-writes valid OZT files and is what the test suite uses to generate fixtures.
+`mu/assets/ozt.cpp`. `OztProbe` checks the header, dimensions, payload bounds,
+and trailer without copying pixel data (22 header bytes inspected). `OztRead`
+copies the declared payload. `OztToRgbaTopDown` converts bottom-up BGR/BGRA to
+top-down RGBA8; `OztToBgraTopDown` converts to top-down BGRA8. For 24-bit input,
+both add opaque alpha. These conversions have synthetic-fixture tests, and one
+real OZT passed the read/conversion path in cycle 17. This is not a GPU upload or
+visual comparison. `OztWriteRgba` writes valid fixtures for the test suite.
 
 ---
 
 ## BMD — model container
 
-10,090 files, 585.5 MB.
+10,090 files, 585.5 MiB.
 
 ### Container layout
 
@@ -454,13 +493,21 @@ unrecognised          24  ( 0.24%)
 payload entropy: max 7.9980 bits/byte, 8,570 above 7.5
 ```
 
-**Consequence.** Usable BMD geometry is `BLOCKED` for 85.17% of files, and
-`NOT IMPLEMENTED` for the remaining 14.83%. This is the project's number-one
-blocker; see [`COMPATIBILITY.md`](COMPATIBILITY.md).
+## Histórico do ciclo 1 — classificação anterior (superada)
 
-One useful consequence of the split: the 1,396 plaintext-payload files are
-enough to **write and test a BMD body parser today**, without waiting for the
-cipher. That is a concrete unblocked path.
+> Os percentuais abaixo descrevem o classificador/layout daquele ciclo, não o
+> estado atual. Não são evidência de cifra v0x0C validada. A política vigente em
+> `AGENTS.md` mantém essa cifra **BLOCKED**; veja o resumo atual no início deste
+> documento e `COMPATIBILITY.md`.
+
+**Registro histórico:** naquela revisão, o relatório classificava geometria
+BMD como `BLOCKED` para 85,17% dos arquivos e `NOT IMPLEMENTED` para 14,83%. <!-- historico -->
+Essa partição foi superada por medições e parser posteriores e não deve ser
+usada como status atual.
+
+A observação de então era que 1.396 payloads considerados plaintext seriam
+suficientes para desenvolver testes iniciais do parser de corpo v0x0A; isso não
+diz nada sobre a cifra v0x0C e não altera o bloqueio atual.
 
 ### What has been established about the body, and what has not
 
@@ -470,12 +517,12 @@ over the list of clear files emitted by
 `mutool bmdreport <dir> --list-clear` (1,465 entries) so that classification
 comes from the tool rather than from a re-derived heuristic.
 
-**Established, measured:**
+**Snapshot terminology at cycle 1 (not the current level-2 classification):**
 
-- The clear set is 1,365 `PLAINTEXT` plus 100 `BUX_DECRYPTABLE`. The 100 bux
+- The then-labelled clear set contained 1,365 `PLAINTEXT` plus 100 `BUX_DECRYPTABLE`. The 100 BUX
   files do **not** begin with `BMD` once decrypted, confirming they are bux
   containers and not models.
-- Among the clear files: 1,194 are v0x0A and 171 are v0x0C.
+- Among that cycle-1 set: 1,194 were v0x0A-labelled and 171 v0x0C-labelled under the then-current classifier.
 - **433 of them open with a 32-byte ASCII field holding the source model's
   name**, and all 433 end in `.SMD`. 351 of those contain a path separator, so
   the field holds an authoring path such as `Data2\Item\Bow\...`, not just a
@@ -577,10 +624,12 @@ offset  size   field
   `[0, 1]` often, so the test cannot discriminate. Without that control the
   95.5% would have been reported as confirmation.
 
-### The v0x0A body layout, partially decoded and verified
+### Historical cycle-1 v0x0A body-layout measurements (later extended)
 
-Two sections are now verified with exact arithmetic across **145 of 145**
-testable files, zero exceptions. Full output in
+The initial investigation verified two sections with exact arithmetic across
+**145 of 145** testable files, zero exceptions. Later cycles added topology and
+bone-record parsing; this subsection preserves the original layout evidence, not
+the current implementation status. Full initial output in
 [`evidence/ciclo1_bmd_layout.log`](evidence/ciclo1_bmd_layout.log).
 
 ```
@@ -626,10 +675,12 @@ vertices at 52..1460 (88*16), normals at 1460..4040 (129*20).
 - 9 of 154 files disagree on the normal count; 46 of 200 show no detectable
   region.
 
-**Classification: two sections verified (vertex positions and normals) with
-exact offsets, counts and record sizes. A parser that extracts vertex positions
-and normals is now possible for the 145 confirmed files. Face indices, texture
-coordinates and bones are not.** Layout as a whole: **PARTIAL**.
+**Cycle-1 snapshot classification:** vertex positions and normals had exact
+verified offsets/counts/record sizes; face indices, texture coordinates and bones
+had not yet been decoded at that point. Later work added triangle and partial
+bone parsing. Current counts and remaining semantic gaps are in the cycle-17
+summary at the top of this document and in `COMPATIBILITY.md`. The layout as a
+whole remains **PARTIAL**.
 
 The one paired `.smd`/`.bmd` in the tree, `Object40` (3,847,871 B of plain-text
 SMD beside a 1,041,808 B **opaque** BMD), does not currently close the
@@ -768,7 +819,7 @@ records, no fixed grid. They are classified separately and never forced into the
 
 ## TGA
 
-15 files, 7.85 MB. All 15 parse.
+15 files, 7.85 MiB. All 15 parse.
 
 Standard 18-byte header. `mu/assets/tga.cpp` reads uncompressed 24/32-bit
 images and **detects but does not decode** RLE (image type 10). None of the 15
@@ -798,8 +849,8 @@ Not a format, but found by the same scan and worth recording:
 
 ```
 Thumbs.db        12 files    677,376 bytes
-Data/**/*.rar     1 file     1.2 MB
-Data/**/*.zip     1 file    13.1 MB
+Data/**/*.rar     1 file     1.2 MiB
+Data/**/*.zip     1 file    13.1 MiB
 Data/**/*.att1    1 file   131,076 bytes   (typo for .att)
 ```
 
@@ -809,12 +860,16 @@ listing of whoever packaged the client and serves no purpose in a distribution.
 
 ---
 
-# Anexo do ciclo 2 — a cifra v0x0C e o layout do corpo, ambos resolvidos
+# Anexo histórico do ciclo 2 — afirmações sobre v0x0C e layout (não autoritativo)
 
-Este anexo **substitui** a seção "BLOQUEIO nº 1" acima e a seção que descrevia o
-layout do corpo como verificado só nas duas primeiras seções.
+Este anexo preserva as medições e decisões registradas naquela fase; **não**
+substitui o resumo atual no início deste documento. A política vigente em
+`AGENTS.md` mantém a cifra BMD v0x0C **BLOCKED**. A função e os rótulos existentes
+são observações da implementação/classificador, não prova de cifra validada,
+autorização para continuar a engenharia reversa ou compatibilidade semântica.
+Use as tabelas iniciais e `COMPATIBILITY.md` para o estado atual.
 
-## Cifra do payload v0x0C — RESOLVIDA
+## Registro histórico da transformação v0x0C — status atual: BLOCKED
 
 ```
 plain[i] = (cipher[i] ^ key[i & 15]) - running
@@ -831,9 +886,11 @@ como o XOR-3 do bux. Determinística, passada única, O(n).
 `xulek/muonline-bmd-viewer` (licença ISC), reimplementados aqui. Ver
 `docs/LICENSING.md` e `docs/DECISIONS.md` (DEC-007).
 
-**Validação deste projeto:** a decifragem só é aceita se o campo de nome de 32
-bytes for ASCII imprimível. Sem isso uma chave errada reclassificaria lixo como
-decifrado. Resultado: **7.226 de 8.741** v0x0C decifrados; 1.519 rejeitados.
+**Registro histórico do classificador:** a implementação existente aplica um
+filtro de plausibilidade (nome de 32 bytes ASCII imprimível) e classificou 7.226
+de 8.741 arquivos v0x0C com esse critério; 1.519 ficaram OPAQUE. Isso não
+valida a cifra ou o filtro, não demonstra semântica, e não autoriza ampliar esse
+trabalho. `AGENTS.md` mantém a cifra BLOCKED.
 
 ## Layout do corpo — PARCIAL, com uma fonte externa que NÃO se confirmou
 
@@ -897,8 +954,9 @@ assumir.
 
 O projeto `xulek/muonline-bmd-viewer` inicia cada registro com índice de osso e
 padding, colocando as coordenadas no deslocamento 4. **Isso não se aplica a
-estes arquivos.** A cifra daquele projeto foi confirmada de forma independente;
-as tabelas de layout, não.
+estes arquivos.** O código-fonte de terceiros descreve sua própria transformação;
+este projeto não a valida como prova sobre os arquivos v0x0C. As tabelas de
+layout citadas também não foram confirmadas aqui.
 
 ### Duas correções de afirmações deste projeto
 
@@ -988,43 +1046,42 @@ revelou a estrutura: **três referências de 8 bytes** no início do registro.
   A leitura anterior ("campo opcional com sentinela −1, mediana 0, máximo
   65535") era uma inferência que os dados não sustentam. O máximo 65535 vinha de
   leituras desalinhadas, não de uma sentinela real.
-- **O índice de UV por vértice do triângulo continua não localizado.** O campo
-  em +4 era o candidato natural e foi descartado. O *array* de UV, porém, está
-  confirmado — ver abaixo.
+- **The UV-per-corner index remains unlocated.** The +4 field was a natural
+  candidate and was rejected. The byte region calculated as a coordinate-array
+  candidate is readable, but its semantic role has not been verified; see below.
 - Os bytes 24..59. Todos zero em apenas 40,9% dos registros, então há conteúdo
   ali que não foi identificado.
 - Os `u16` em +60 e +62.
 - O primeiro byte **não** é tamanho do polígono: valores 3 e 4 somam 3,01%,
   indistinguível de aleatório. As tabelas do projeto ISC não se aplicam.
 
-**Restrição de confiança, e uma discrepância que precisa constar.** Os 97,66% e
-97,20% foram medidos sobre 58.836 referências em 319 arquivos, **limitando a 80
-triângulos por arquivo**. Ao rodar o parser C++ sobre a população inteira
-antes da extensão multi-mesh (1.221.030 triângulos em 4.149 arquivos), as
-referências fora de faixa somavam **8,357%**, não ~2,4%. Após multi-mesh
-(ciclo 5, 3.524.366 triângulos em 8.400 arquivos), a taxa é **9,517%** (evidência
-em `ciclo5_bmd_multimesh.log`).
+**Historical measurement limitation.** The 97.66%/97.20% rates came from
+58,836 corner references in 319 single-mesh files and were limited to the first
+80 triangles per file. Older full-scan notes quoted 8.357% and 9.517% using a
+different denominator/measurement version; those figures are not comparable to
+the current six-field accounting and are not current rates. The old statement
+that roughly one in twelve references would be read out of bounds is withdrawn.
 
-A amostra truncada subestimava o problema: os primeiros 80 triângulos de um
-arquivo são mais bem comportados que o conjunto. **A cifra correta é 8,357%.**
-Causa não determinada. Renderizar sem validar limites leria fora dos arrays em
-cerca de uma em cada doze referências, o que é inaceitável — por isso o parser
-conta e reporta esses casos em vez de aceitá-los silenciosamente.
+**Current cycle-17 accounting** covers 3,681,664 triangle records and six
+vertex/normal reference fields per triangle: 1,030,785/22,089,984 = 4.666% of
+fields are out of range. Mesh import separately drops 513,304/3,681,664 triangles
+(13.94%). The importer validates references and drops each affected triangle
+once. Current full-tree evidence is linked near the top of this document and in
+`COMPATIBILITY.md`.
 
-**Restrição do levantamento.** Tudo acima vale para **arquivos de malha única**
-(586 dos 1.500 examinados). Para malhas múltiplas o corpo se repete por malha e
-a aritmética de um bloco só não se aplica; isso não foi medido.
-
-### Array de coordenadas de textura — CONFIRMADO
+### Candidate coordinate array — semantic role UNVERIFIED
 
 ```
-uvstart = 52 + numVertices*16 + numNormals*20
-ntc entradas de 8 bytes, cada uma [f32 u][f32 v]
+calculated_start = 52 + numVertices*16 + numNormals*20
+ntc candidate entries of 8 bytes each, interpreted in the investigation as [f32 u][f32 v]
 ```
 
-A posição já era conhecida indiretamente — é ela que faz o array de triângulos
-cair no lugar certo, confirmado pelo nome de textura em 87,9% dos arquivos. O
-que faltava era verificar o **conteúdo**, e isso agora está feito.
+The body parser uses header counts to locate later regions, but it does not
+expose or semantically validate these candidate values as texture coordinates.
+The investigation below measured finite-float/range distributions in selected
+files. Those statistics can support a hypothesis that the bytes contain floats;
+they cannot establish that the values are UVs, that the calculated layout is
+universally correct, or which coordinate belongs to a triangle corner.
 
 **Evidência** (250.450 leituras em 319 arquivos de malha única):
 
@@ -1035,14 +1092,16 @@ que faltava era verificar o **conteúdo**, e isso agora está feito.
 | Componentes em [0,1] | 245.773/250.450 = **98,13%** |
 | Distribuição | mín −0,4266 · p1 0,0083 · mediana 0,5058 · p99 1,5518 · máx 1,9980 |
 
-**Zero não-finitos em 250.450 leituras é o argumento forte.** Bytes arbitrários
-interpretados como `f32` produzem NaN ou Inf em ~0,39% dos casos; em 250.450
-leituras isso seriam ~976 ocorrências. Observar zero não é compatível com dados
-que não sejam float.
+**Zero non-finite values in 250,450 reads is evidence about representation, not
+meaning.** Under the stated random-byte model, arbitrary bytes interpreted as
+`f32` would produce NaN/Inf in roughly 0.39% of cases (about 976 here). This
+supports a float-like interpretation for the candidate region, but it does not
+identify the semantic attribute.
 
-A distribuição fecha o caso como coordenadas de textura e não como outro tipo de
-float: concentrada em [0,1] com cauda até ~2,0, que é o padrão de *tiling* de
-textura em modelos reais.
+The measured range is concentrated in [0,1] with a tail to about 2.0. That is
+compatible with texture tiling, but also does not distinguish UVs from another
+normalized float attribute. No material/UV association or rendered comparison
+was made; classify this as a candidate only.
 
 **Um controle que falhou e precisa constar.** Deslocar a leitura 4 bytes deu
 97,91% em [0,1] contra 98,13% da hipótese — razão 1,00×, sem poder
@@ -1051,10 +1110,10 @@ pares `f32` ainda lê floats válidos do par vizinho. É a mesma armadilha do
 controle dentro do array de triângulos. **Controle válido precisa sair da região,
 não se deslocar dentro dela.**
 
-**O que continua bloqueado.** O array existe e está legível, mas **o índice que
-liga cada vértice de um triângulo a uma entrada desse array não foi localizado**.
-Sem esse índice não há como texturizar a malha: sabe-se quais coordenadas
-existem, não qual pertence a cada canto.
+**What remains blocked.** The candidate byte region is readable, but the parser
+does not validate it as a texture-coordinate array and **the index that would
+map each triangle corner to an entry has not been located**. The current importer
+therefore has no verified BMD UVs and cannot produce a verified textured model.
 
 Três hipóteses para essa ligação foram testadas e **todas descartadas**:
 
@@ -1170,18 +1229,18 @@ Testada no ciclo 3, e é genuinamente diferente das oito anteriores: não procur
 registro de triângulo. Os bytes 24..59 são 36 bytes = 9 floats, e nunca haviam sido
 testados para isso.
 
-**O teste é o mesmo que validou o array de UV:** fração de valores em [0,1].
+**The comparison uses the same numeric range statistic:** fraction of values in [0,1]. The candidate array is not semantically validated as UV.
 
 | Medição | % em [0,1] |
 |---|---|
 | Bytes 24..59 do registro de triângulo | **79,42%** (217.160 de 273.429) |
 | **Controle: array de normais** (f32 reais, sabidamente não UV) | **70,34%** |
 | Controle: bytes aleatórios como `f32` | 24,82% |
-| **Referência: array de UV confirmado** | **98,13%** |
+| **Candidate float region (UV role unverified)** | **98.13%** |
 
 **A razão sobre o controle válido é 1,13×.** Dados `f32` ordinários já caem em
 [0,1] em 70% dos casos, porque valores normalizados são comuns em geometria. Os
-79,42% estão pouco acima disso e muito abaixo dos 98,13% que UV real produz.
+79,42% estão pouco acima do controle da mesma classe e abaixo dos 98,13% observados na região candidata. Como essa região não foi verificada semanticamente como UV, a comparação não identifica coordenadas de textura.
 
 A distribuição por posição também não ajuda: os nove floats vão de 72,07% a
 85,78%, sem o pareamento `(u, v)` que coordenadas de textura produziriam.
@@ -1541,14 +1600,15 @@ ficariam arbitrárias.
 geometria — a grade 256×256 com altura por célula já está legível. Isso é
 independente do bloqueio de UV dos modelos `.bmd`.
 
-### Verificação independente da decifragem v0x0C
+### Medição histórica do classificador v0x0C (não é validação independente)
 
-A decifragem foi confirmada por uma via que não depende do campo de nome: sobre
-400 arquivos v0x0C decifrados, o corpo parseia completamente sob o layout
-v0x0A e as normais têm norma 1 em **99,98%** dos casos (37.988 de 37.997),
-contra 31,46% no deslocamento 4. Uma chave errada não produziria vetores
-unitários. Isso também descarta a hipótese de que v0x0C usaria half-floats nos
-arrays — usa `f32` como v0x0A.
+Uma amostra histórica de 400 arquivos que a implementação existente classificou
+como v0x0C-label produziu corpos que o parser aceitou sob o layout v0x0A; o
+parser observou normais unitárias em **99,98%** (37.988/37.997), contra 31,46%
+no deslocamento 4. Isso é um resultado da mesma cadeia de código/classificador,
+não uma validação independente da cifra, do filtro ou da compatibilidade v0x0C.
+Não comprova autorização e não altera o bloqueio em `AGENTS.md`; não use estes
+números para ampliar o trabalho de cifra.
 
 **Atenção à base do cabeçalho, que difere por versão:**
 
@@ -1557,10 +1617,10 @@ arrays — usa `f32` como v0x0A.
 | v0x0A | `"BMD"` + versão = 4 B | offset 4 |
 | v0x0C | `"BMD"` + versão + `u32 payloadSize` = 8 B | offset 8 |
 
-Usar 4 para v0x0C desalinha tanto o corpo quanto o fluxo da cifra, e o resultado
-parece uma falha do layout quando é uma falha da medição. Foi o que aconteceu
-numa primeira tentativa, que reportou "54 de 8.741 com corpo completo" e
-"normais unitárias 0,02%" — ambos artefatos da base errada.
+O registro de ciclo 2 atribuiu a diferença observada ao deslocamento de base:
+usar 4 em vez de 8 bytes produziu "54 de 8.741 com corpo completo" e "normais
+unitárias 0,02%". Isso documenta uma falha daquela medição de layout; não é
+validação da cifra e não modifica o status BLOCKED.
 
 ### Registro de um erro de método deste ciclo
 
@@ -1578,11 +1638,12 @@ inconclusivo, porque encerra a investigação.
 
 | Etapa | Status |
 |---|---|
-| Cifra v0x0C em C++ (`mu::BmdV0CDecrypt`) | **CONCLUÍDO** |
-| Vértices + normais (v0x0A) | **CONCLUÍDO** |
-| Vértices + normais (v0x0C) | **CONCLUÍDO** — verificado em 400/400 amostrados: corpo completo sob o mesmo layout, normais unitárias 99,98% no deslocamento 0. Arrays são `f32`, não `f16` |
-| Triângulos, UV, nomes de textura | **NÃO DETERMINADO** — a cifra está quebrada, mas o layout destas seções não foi estabelecido contra os dados |
-| Ossos e animações | **NÃO INICIADO** |
+| Implementação histórica da transformação v0x0C (`mu::BmdV0CDecrypt`) | **Existe no código; validação/autorização BLOCKED** por `AGENTS.md` |
+| Vértices + normais (v0x0A) | **PARCIAL** — layout aceito nos dados e testes registrados |
+| Vértices + normais em arquivos v0x0C-labelled | **Observação do classificador** — 400/400 na amostra histórica; não é validação do cipher nem compatibilidade geral |
+| Triângulos, UV, nomes de textura | **PARCIAL / não semântico** — alguns registros são lidos; UV/material não estão verificados |
+| Ossos | **PARCIAL** — alguns registros são localizados, sem semântica de rig/weights validada |
+| Animações | **NÃO VALIDADO** — frames/chaves e ordem de transformação não identificados |
 
 ---
 
@@ -1592,30 +1653,30 @@ Levantamento do ciclo 2. A regra aqui é separar o que foi **medido nos arquivos
 do que só poderia ser conhecido decodificando seções ainda bloqueadas. Omitir a
 segunda coluna seria esconder o tamanho do que falta.
 
-## Limites CONHECIDOS — medidos nos 10.090 arquivos (consolidado ciclo12 C3)
+## Valores observados nos layouts aceitos pelo parser (inventário histórico ciclo 12; sem prova semântica)
 
 | Limite | Valor | Origem da medição ciclo12 |
 |---|---|---|
-| Precisão de coordenadas | **`f32`** (não `f16`) | Confirmado ciclo2: 400/400 v0x0C corpo completo layout f32 normais norma 1 99,98% |
+| Precisão de coordenadas | `f32` observados nos layouts aceitos pelo parser | A observação v0x0C vem da amostra do classificador legado; a cifra permanece **BLOCKED** e isso não é validação v0x0C |
 | Contagem de vértices por malha | campo `u16` → **teto teórico 65.535**, **máximo observado 22.987** (Custom/Monster/Ozarugold.bmd) — sem limite superior conhecido documentado além do campo u16, não há evidência de limite menor | `u16` offset 38, tool /tmp/find_max_vert, 8406 arquivos com geometria parseada |
-| Contagem de normais por malha | campo `u16` → teto 65.535, máximo observado 5.376 (antigo) / 22.987 vértices implica normais similar | payload offset 40 |
+| Contagem de normais por malha | campo `u16` → teto codificável 65.535; máximo observado no inventário citado: 5.376 | payload offset 40 nos layouts aceitos; a contagem de vértices de outro arquivo não é usada como proxy |
 | Contagem de UV por malha | campo `u16` → teto 65.535, máximo observado não determinado (UV não localizado) | payload offset 42 |
 | Contagem de triângulos por malha | campo `u16` → teto 65.535, máximo observado 39.193 (geral) / 15.390 (com ossos) | payload offset 44, tool /tmp/find_max_vert |
 | Registro de vértice | **16 bytes** (3×f32 posição + 1×u16? actually 16B) | Verificado 260 mil+ registros |
 | Registro de normal | **20 bytes** | Verificado 260.268 registros 99,91% norma 1 |
-| Registro de triângulo | **64 bytes** (3× u16 posição + 3× u16 normal? actually 64B) | Confirmado posição nome textura em 87,9% malha única |
-| Registro de osso | **59 B** intercalado (32B nome + u16 parent + 6×f32 + 1 pad exceto último) ou 58B último, total bc*59-1 | Confirmado ciclo8 3693 arquivos 7879 bones ratio per file 1846,28× definitivo |
+| Registro de triângulo | **64 bytes**; os primeiros 24 B são três registros de canto de 8 B (`u16` vertex, `u16` normal, `u16` raw/optional, `u8` flag, `u8` pad); os 40 B restantes não têm semântica confirmada | Parser lê os campos conhecidos em layouts aceitos; associação de material/UV continua não verificada |
+| Registro de osso | **59 B** nos layouts aceitos (32 B name + u16 parent + 6×f32 + pad exceto o último; total `bc*59-1`) | Parser localiza alguns registros; nomes, pesos, transforms e animação não foram validados semanticamente |
 | Contagem de malhas (meshCount) | campo `u16`, **máximo observado 30** (Object157/Object06.bmd) entre geometria parseada, **9** entre com ossos (Object74/Object40.bmd), mediana 1 | payload offset 32, tool /tmp/find_max_vert e /tmp/find_max_bones3 |
 | Contagem de ossos (boneCount) | campo `u16`, **máximo observado 63** (Item/Stick32.bmd) entre arquivos com has_bones true, **limite prático 64** (parser rejeita >64 por segurança, mas observado 63), total 7879 bones em 3693 arquivos | payload offset 34, tool /tmp/find_max_bones3, mutool bmdreport 3693 loose 1186 strict |
 | Nome do modelo de origem | **32 bytes**, ASCII NUL-pad, >=3 printable loose / NUL-padded strict | Campo inicial corpo |
-| Nome de textura / material | **1 por mesh observado** — campo texto 32B após array triângulos, cada mesh tem 1 nome textura (ex: sbow06_R.jpg, tex.jpg), não observado >1 por mesh | Observado 87,9% malha única, multi-mesh cada mesh tem 1 nome, evidência ciclo6_bmd_multimesh.log |
+| Nome de textura / material | Uma região de 32 B após cada array de triângulos é observada em layouts aceitos; a associação e o papel material não foram confirmados | Busca de nome em posições candidatas no parser; estatística do ciclo 6 é evidência de localização de texto, não semântica |
 
 **Consequência prática do teto `u16`.** Uma malha não pode exceder 65.535
 vértices nem 65.535 triângulos. Para conteúdo pesado isso é restritivo e é um
 argumento concreto a favor do caminho B (assets customizados em formato moderno)
 para modelos novos — ver `docs/ARCHITECTURE.md`.
 
-## Limites DESCONHECIDOS — bloqueados por parsing não concluído (atualizado ciclo12 C3)
+## Semânticas e limites ainda não estabelecidos (inventário ciclo12; cifra v0x0C/Enc* BLOCKED)
 
 | Limite | Por que não se sabe / Estado ciclo12 |
 |---|---|

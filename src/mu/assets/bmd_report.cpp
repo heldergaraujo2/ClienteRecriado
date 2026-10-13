@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include "mu/assets/bmd_report.hpp"
 
-#include <cstring>
 #include <vector>
 
-#include "mu/assets/bmd_body.hpp"
 #include "mu/assets/bmd_body.hpp"
 
 namespace mu {
@@ -123,8 +121,8 @@ BmdFileReport Classify(ByteView data, const std::string& label) {
       r.vertex_count = body.vertices.size();
       r.normal_count = body.normals.size();
       r.triangle_count = body.triangles.size();
-      r.bad_corner_refs =
-          body.out_of_range_vertices + body.out_of_range_normals;
+      r.out_of_range_vertex_refs = body.out_of_range_vertices;
+      r.out_of_range_normal_refs = body.out_of_range_normals;
       r.topology_skip = body.topology_skip;
       r.declared_mesh_count = body.declared_mesh_count;
       r.declared_triangle_count = body.declared_triangle_count;
@@ -204,7 +202,8 @@ void BmdAccumulate(const BmdFileReport& r, BmdSummary* s) {
   if (r.geometry_parsed && r.triangle_count > 0) {
     ++s->topology_parsed;
     s->triangles_total += r.triangle_count;
-    s->bad_corner_refs += r.bad_corner_refs;
+    s->out_of_range_vertex_refs += r.out_of_range_vertex_refs;
+    s->out_of_range_normal_refs += r.out_of_range_normal_refs;
   }
   // Level 5 - bones is a subset of level 3 as well.
   if (r.geometry_parsed && r.has_bones) {

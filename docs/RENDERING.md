@@ -5,6 +5,28 @@ headers, configuration files and shader sources. Nothing is inferred from what a
 MU Online client "usually" does. Where a claim cannot be established from the
 evidence available, it says so.
 
+## Cycle-17 audit correction — status and evidence boundary
+
+The reference import-table analysis below is static evidence about the original
+modules, not a runtime comparison. The implementation described in sections
+12.7–12.8 is a CPU-only diagnostic rasterizer and does **not** satisfy the
+product's first graphics milestone (Windows executable + real GPU device +
+correctly interpreted original model).
+
+Earlier cycle-14/15 descriptions such as “recognizable silhouette”, “correct
+proportions”, or “no visual artifacts” were subjective/self-consistency claims
+without an equivalent original-client render. They are withdrawn as claims of
+visual compatibility. The saved PPMs and mathematical checks remain evidence
+that the CPU code emits deterministic frames and handles its test geometry; they
+do not prove semantic geometry, texture association, UVs, or fidelity.
+
+Cycle 17 also corrected BMD index accounting: 1,030,785 out-of-range reference
+fields (4.666% of six fields per triangle) are distinct from 513,304 triangles
+dropped by mesh import (13.94%). See [`COMPATIBILITY.md`](COMPATIBILITY.md).
+A real OZT was loaded explicitly alongside a different BMD in a diagnostic run;
+no asset association or visual correctness was established. BMD UV/material
+semantics remain unresolved.
+
 ## 1. The API is fixed-function OpenGL 1.1
 
 `Main.exe` imports 51 functions from `OPENGL32.dll` and 2 from `GLU32.dll`.
@@ -389,9 +411,11 @@ Todo teste desta seção feito com geometria sintética deve ser rotulado
 **"teste sintético de pipeline"**, conforme `DECISIONS.md` (DEC-009). Nenhum
 deles conta como validação de asset pesado nem como progresso no bloqueio nº 1.
 
-### 12.6 Plano de otimização consistente com dados medidos (D4 — CONCLUÍDO ciclo12)
+### 12.6 Historical optimization plan (cycle 12; not a current runtime baseline)
 
-**Objetivo:** documentar plano de otimização com dados medidos (não estimativas), separando medido × estimativa × hipótese, conforme regra permanente.
+**Cycle-17 qualification:** numeric summaries in this section are historical asset/import experiments. In particular, the 4,071-mesh / 67.21 MiB figures are from the earlier snapshot and must not be read as the current whole-tree import totals or as measured per-frame cost. The current reference counters are in `COMPATIBILITY.md`. The existing tool labels 7,226 payloads as v0x0C-decryptable, but `AGENTS.md` still marks that cipher BLOCKED; this is not authorization or an official format-compatibility claim.
+
+**Original objective:** record measured inputs separately from estimates and hypotheses, not to claim runtime performance.
 
 #### (a) LOD — Level of Detail
 
@@ -413,15 +437,15 @@ deles conta como validação de asset pesado nem como progresso no bloqueio nº 
 
 **Dados medidos ciclo12:**
 - Texturas: inventário ciclo1 soma teórica `w*h*4` = 2.893,80 MB footprint máximo teórico — **estimativa teórica, não medição** (não havia GPU para medir VRAM real), serve como argumento ordem de grandeza para exigir orçamento explícito, não como número consumo
-- BMD: 10.090 arquivos, 8.406 com geometria, 3.693 com bones loose (43,93%), 1.186 strict (14,11%), payload 85% cifrado v0x0C (bloqueio #1)
-- Buffers: PackMeshForUpload transforma Mesh C1 em arrays flat VBO/VAO sem GL, valida size mismatch strict, conta skipped_vertices/bad_indices, bounds computada via ComputeBounds
+- Historical BMD counts: 10,090 files, 8,406 geometry accepted by the parser, 3,693 loose-bone records, 1,186 strict. The tool labels 7,226 payloads v0x0C-decryptable, but `AGENTS.md` keeps the cipher **BLOCKED**; do not treat this as authorized/official compatibility.
+- Buffers: `PackMeshForUpload` transforms the internal mesh to CPU-side arrays without GL, validates size mismatches, and keeps skipped vertices, dropped triangles, and invalid index references as separate metrics; bounds are computed by `ComputeBounds`.
 - Skinning: PackSkeletonForUpload valida parent range, self-loop, cycle detection visited[64], fail safe
 
 **Plano streaming consistente:**
 - Orçamento VRAM declarado e respeitado, política expulsão por frequência uso (LRU/LFU) não ordem chegada
 - Carregamento mip sob demanda, custo textura grande proporcional ao visível
 - Streaming de malhas: carregar bounds primeiro (32B nome + bounds), depois geometria sob demanda quando IsVisible true, usar frustum culling para priorizar carregamento do visível
-- Para assets originais: streaming bloqueado parcialmente por cifra BMD v0x0C (85%), payload cifrado impede leitura bounds sem decifra, decifra V0C validada 400/400 com normais norma 1 99,98%
+- For original assets, streaming depends on parsing supported payloads. The current tool's v0x0C label remains subject to the BLOCKED policy in `AGENTS.md`; do not describe that cipher as officially validated. Bounds are available only for models accepted by the current parser.
 - Implementação atual D1: buffers CPU-side prontos para upload, sem GL headers, packing verificado byte a byte TestPackMeshForUpload 21 checks
 
 #### (c) Redução de draw calls
@@ -431,7 +455,7 @@ deles conta como validação de asset pesado nem como progresso no bloqueio nº 
 - Per frame expandido sem `glDrawElements`: **67,21 MiB por draw** medido via `mutool meshimport` 1.792.108 vértices, 978.853 triângulos, 4.071 meshes
 - Corner sends: **2.936.559 por draw**, unique vertices se indexado 1.792.108, vertices reenviados desnecessariamente **63,9%**
 - Frustum culling: já implementado cull.hpp/cull.cpp, p-vertex test, conservative safe (kIntersect quando duvida), IsVisible true para invalid bounds fail safe, TestFrustumCull + TestFrustumCullRealBounds 13 checks, métrica objetos descartados por culling exposta
-- Buffers D1: PackMeshForUpload gera índices flat, dropa triângulos bad index, conta bad_indices, bounds real
+- Buffer-preparation code generates flat index arrays and separately counts dropped triangles and invalid references; this is CPU-side preparation, not a GPU upload.
 
 **Plano redução draw calls consistente:**
 - Substituir immediate mode e client-side arrays por VBO/IBO batching (DEC-008): PackMeshForUpload já prepara vertices flat e indices flat, pronto para `glBufferData` + `glDrawElements`
@@ -457,75 +481,104 @@ deles conta como validação de asset pesado nem como progresso no bloqueio nº 
 - Usa representação interna Mesh/Skeleton C1 ciclo12 como entrada, incluindo skinning D2 quando modelo tiver ossos (ApplySkinningLBS)
 - Aplica culling D3 antes rasterizar: FrustumFromViewProjection + CullBox p-vertex conservative safe invalid->kIntersect fail safe
 - Exporta framebuffer final como PPM binário P6 simples sem biblioteca externa
-- Ferramenta `mutool render <bmd-file> <out.ppm> [width height]`: carrega BMD real Cliente_ref que já esteja conjunto CONFIRMADO geometria completa nível4 topologia parseada (um dos 8405 válidos), rasteriza e salva PPM
+- CLI atual: `mutool render <bmd-file> <out.ppm> [width height] [--texture <file.ozt> | --checkerboard]`. It parses a supplied BMD and saves a CPU PPM; successful parsing/rasterization is not visual-compatibility validation.
 
 **Modelos renderizados ciclo14 — 4 evidências:**
 
-| Arquivo | Vertices | Tris total | Tris rasterizados | Pixels não-bg | Complexidade | Notas |
-|---|---|---|---|---|---|---|
-| `Object1/Beer01.bmd` | 48 | 30 | 6 | 33768 | simples, multi-mesh 2 meshes 19+29v, 5 declarados mas só 2 cabem, resto 0xCDCD padding | Beer mug simples, 6 tris não-degenerados de 30 (tri 0-23 degenerados v1,1,1 etc), silhueta cilíndrica reconhecível? |
-| `Object2/Object03.bmd` | 88 | 103 | 82 | 108154 | médio, multi-mesh 2 meshes, 82/103 não-degenerados 79% | Objeto 2, bounds -113..113 X 287 Z, 82 tris rasterizados 214k pixels 108k não-bg, silhueta reconhecível com z-buffer |
-| `Player/AmbitionShield.bmd` | 385 | 545 | 448 | 32945 | médio-complexo com ossos 3 bones, V0C decryptable 71% | Escudo Ambition, 545 tris 448 rasterizados 82% não-degenerados, 3 bones, silhueta escudo reconhecível |
-| `Player/Axe11.bmd` | 1364 | 2665 | 528 | 61696 | complexo com ossos 1 bone, 2665 tris | Machado, 1364 verts 2665 tris 528 rasterizados 19% não-degenerados (muitos degenerados por bad_indices 8,4%), 1 bone, silhueta machado reconhecível |
+| File | Parsed vertices | Body triangles | Rasterized triangles in the CPU run | Scope |
+|---|---:|---:|---:|---|
+| `Object1/Beer01.bmd` | 48 | 30 | 6 | Cycle-14 diagnostic output; no visual-compatibility claim |
+| `Object2/Object03.bmd` | 88 | 103 | 82 | Cycle-14 diagnostic output; no visual-compatibility claim |
+| `Player/AmbitionShield.bmd` | 385 | 545 | 448 | Cycle-14 diagnostic output; no visual-compatibility claim |
+| `Player/Axe11.bmd` | 1,364 | 2,665 | 528 | Cycle-14 diagnostic output; no visual-compatibility claim |
+
+These are parser/rasterizer counters only. In particular, a triangle not
+rasterized is not necessarily a format-level degenerate triangle; clipping,
+invalid references, or rasterizer conditions may contribute. The counts do not
+establish that the BMD body layout or apparent object identity is fully correct.
 
 Evidência: `docs/evidence/ciclo14_first_render_Beer01.ppm` 800x600 1,4MB P6, `ciclo14_first_render_Object03.ppm`, `ciclo14_first_render_AmbitionShield.ppm`, `ciclo14_first_render_Axe11.ppm`
 
-**Validação visual (descrição por escrito):**
-- Beer01: silhueta cilíndrica vertical com base e topo, proporções corretas ~1:2 altura/largura, z-buffer funcionando sem artefatos sobreposição errada? Pixels 33768 não-bg 7% tela, 6 tris apenas, mas forma básica visível como copo/cerveja. Limitação: sem textura (UV bloqueado), sem iluminação realista (lambert simples com luz fixa 0.3,0.5,1), sem animação (bloqueada)
-- Object03: silhueta retangular com altura 287 Z, 82 tris rasterizados 108k não-bg 22% tela, proporções corretas bounds -113..113 X, z-buffer funcionando, sem artefatos sobreposição errada, pixels cobrem centro tela
-- AmbitionShield: silhueta escudo reconhecível com curvatura, 448 tris rasterizados 32945 não-bg, proporções corretas bounds -34..37 X -28..2 Y -61..70 Z, z-buffer funcionando, sem textura real (UV bloqueado)
-- Axe11: silhueta machado com cabo longo 192 X -57..192, 528 tris rasterizados 61696 não-bg 12% tela, proporções corretas, z-buffer funcionando
+**Visual equivalence: NOT EXECUTED.** No equivalent reference-client render or
+independent image comparison was performed. Earlier written descriptions such as
+“recognizable”, “correct proportions”, and “no artifacts” are withdrawn as
+compatibility claims. The PPMs and bounding-box checks test the CPU pipeline's
+own output, not whether the parsed model matches the game.
 
-**Limitações conhecidas:**
-- Sem textura real ainda, já que UV está bloqueado nível6 0% 11 hipóteses descartadas platô 9-26× artefato floats pequenos, sem mapeamento UV não há textura
-- Sem iluminação realista, só lambert simples dot(normal, lightDir)*0.8+0.2 ambient, luz direcional fixa (0.3,0.5,1) normalizada, não PBR, não sombras
-- Sem animação, já que está bloqueada nível anim 62 plausíveis ratio 0,02× NÃO discriminativo, 53 plausíveis [-pi,pi] ratio 0,04× NÃO discriminativo
-- Muitos triângulos degenerados em arquivos BMD (ex.: Beer01 tri 0 v1,1,1 todos mesmos) — causa: parser triângulos 64B 3×8B v,n,opt,flag, mas arquivo contém triângulos degenerados intencionais ou layout ainda não totalmente decodificado, taxa bad_indices 8,4% geral, corner refs out of range 5,87% Player, 13,87% Object1, etc. Rasterizador dropa degenerados fabs(area)<1e-6, correto
-- Sem backface culling (desabilitado para primeira prova, pois winding BMD desconhecido), poderia habilitar depois com teste winding
-- Sem clipping avançado, só descarta triângulos com w<=0.001 (behind camera), sem Sutherland-Hodgman, mas suficiente para primeira prova
-- Performance: rasterização CPU 800x600 com 500 tris ~100k pixels ~ms, não otimizada, sem SIMD, sem multithread, mas funciona neste ambiente Linux sem GPU
+**Known implementation limits:**
+- No semantically verified BMD UVs or material/texture association.
+- Lighting is a simple Lambert-like diagnostic, not the original lighting.
+- Animation/skinning semantics are not established by the parsed bone records.
+- Out-of-range BMD reference fields and triangles dropped by import are separate
+  counters; current whole-tree values are in `COMPATIBILITY.md`.
+- Back-face culling is disabled because winding has not been validated.
+- Clipping is limited; triangles crossing the near plane are not fully clipped.
+- No runtime performance measurement was made; this section reports no FPS or
+  frame-time result.
 
-**Testes unitários:**
-- TestSoftwareRasterizerFramebuffer: Resize, Clear, SetPixel depth test, out of bounds, 5 checks
-- TestSoftwareRasterizerCamera: eye mapeia para origem view, target mapeia para (0,0,-dist), proj m[14]==-1, frustum IsVisible, 6 checks
-- TestSoftwareRasterizerTriangle: triângulo conhecido -1,-1,0 1,-1,0 0,1,0 com câmera 0,0,5 olhando origem fov45 aspect1 near0.1 far100, 100x100 framebuffer, center pixel 50,50 deve ser lit não bg, corner 0,0 bg, depth <1, 5 checks
-- TestSoftwareRasterizerZBuffer: dois triângulos sobrepostos z=0 e z=0.5, closer deve vencer, center pixel lit depth <1, 4 checks
-- Total 4 testes, 20 checks, parte de 500 checks 0 failures
+**Unit tests:** The current suite covers framebuffer bounds/depth, camera
+transforms, triangle rasterization, z-buffering, OZT pixel loading, and use of
+mesh UVs when explicitly populated. The complete cycle-17 suite is
+**539 checks, 0 failures**; see [`TEST_RESULTS.md`](TEST_RESULTS.md) for the
+reproducible commands and current result.
 
 **Status:**
-- Renderização: **IMPLEMENTADO (software, CPU-only) — PARCIAL: backend GPU real ainda BLOQUEADO por falta de ambiente Windows/GPU**
-- Isso NÃO é pipeline final produção (que continua sendo VBO/VAO/OpenGL conforme DEC-008) — é prova conceito ponta a ponta que valida pipeline dados (parser → malha → skinning → culling → projeção → rasterização)
-- Próxima tarefa: melhorar rasterizador com textura via OZT/OZJ, tentar UV como pista exploratória, ou avançar para mu/audio
+- CPU rendering is **IMPLEMENTED as a diagnostic tool**; production GPU backend
+  is **NOT IMPLEMENTED / NOT EXECUTED**.
+- The CPU path exercises parsing → mesh conversion → optional skinning/culling →
+  projection/rasterization, but does not validate original-client appearance.
+- The GPU API remains to be selected by an on-target Windows prototype; see
+  [`NEXT_TASK.md`](NEXT_TASK.md).
 
 
-### 12.8 Ciclo16 D — Textura placeholder no rasterizador (prova de conceito pipeline textura, NÃO UV real)
+### 12.8 Cycles 16–17 — texture diagnostics, not validated material rendering
 
-**Status:** IMPLEMENTADO (software, CPU-only, textura placeholder) — PARCIAL: UV real continua NÃO IMPLEMENTADO/BLOQUEADO 0% 11 hipóteses platô, backend GPU real BLOQUEADO falta Windows/GPU. Isso é prova de conceito pipeline textura, NÃO validação de UV real.
+**Status:** CPU-only texture sampling is implemented for diagnostics. BMD UVs and
+material association remain **unverified**, and a production GPU backend is
+**NOT IMPLEMENTED / NOT EXECUTED**. This does not validate original-texture
+rendering.
 
-**O que foi implementado ciclo16 D:**
-- `SoftwareTexture` struct em `software_rasterizer.hpp`: width, height, bgra vector BGRA 4*W*H ready for GL_BGRA (OPT-005), valid flag, `GenerateCheckerboard(w=256,h=256,checkerSize=32)` procedural, `LoadFromOZT(oztPath)` usa OztToBgra/OzjProbe já otimizados (OPT-004/OPT-005) via chamada caminho OZT real (prova pipeline usa OZT decoder otimizado), `Sample(u,v,outR,G,B)` clamp repeat wrapping fract, BGRA->RGB.
-- `SoftwareRasterizer` estendido: `SetTexture(tex)`, `ClearTexture()`, `HasTexture()`, `GetTexture()`, membro `texture_` e `hasTexture_`.
-- `VertexOut` estendido: `u,v` placeholder UV planar baseado em posição vértice, NÃO UV real, com comentário explícito PLACEHOLDER.
-- `RenderMeshes` modificado: precomputa bounds para placeholder UV planar mapping — ciclo16 D — `u = (pos.x - bmin.x)/dx *4`, `v = (pos.y - bmin.y)/dy *4`, se dy pequeno usa Z, repetir 4 vezes para padrão xadrez mais denso, marcado explicitamente PLACEHOLDER UV planar baseado em posição vértice, NÃO UV real decodificado (UV continua 0% BLOQUEADO). Interpolação UV perspective correct `u = (w0*u0/w0 + ...)/invW` etc, amostragem textura `texture_.Sample(u,v,tr,tg,tb)` e modulação com intensidade lambert `r=tr*intensity` etc.
-- `tools/mutool.cpp` `CmdRender` estendido: flag `--textured` ou `-t` ou outPath contém "textured" habilita textura placeholder, gera checkerboard 256x256 32px, tenta carregar OZT real `/tmp/cliente_ref/Data/Item/ArmorMale01.ozt` via `LoadFromOZT` para provar pipeline usa OZT decoder otimizado, log "PLACEHOLDER TEXTURE ENABLED — ciclo16 D — checkerboard 256x256 32px, UV planar baseado em posicao vertice, NAO e UV real decodificado (UV continua 0% BLOQUEADO)".
-- 2 renders novos com textura placeholder: `docs/evidence/ciclo16_first_render_Beer01_textured.ppm` 800x600 1,4MB e `ciclo16_first_render_Object03_textured.ppm` 800x600 1,4MB, 5º e 6º renders (4 anteriores ciclo14 + 2 novos ciclo16), silhueta reconhecível com padrão xadrez visível.
+**Implementation:**
+- `SoftwareTexture` stores BGRA8 pixels, supports a procedural checkerboard and
+  an explicit OZT file load via `OztRead` and OZT-to-BGRA conversion. It does not
+  use the OZJ decoder; OZJ pixels are not decoded by this path.
+- `SoftwareRasterizer` can receive/clear a texture and sample it. Mesh UVs are
+  used only when the mesh reports a verified mapping. Otherwise the renderer
+  emits a diagnostic status and uses planar position-based coordinates; those
+  coordinates are placeholders, not decoded BMD UVs.
+- The current CLI is
+  `mutool render <bmd-file> <out.ppm> [width height] [--texture <file.ozt> | --checkerboard]` (`--textured`/`-t` are legacy checkerboard aliases).
+  Texture selection is explicit; the output filename does not enable texturing.
+- A cycle-16 checkerboard test measured bright/dark pixel classes in a synthetic
+  diagnostic render. That demonstrates that the software sampler changes the
+  output as expected; it does not validate UVs, original texture association,
+  or appearance.
 
-**Validação objetiva (não subjetiva) textura placeholder — ciclo16 D:**
-- Ferramenta `/tmp/validate_tex.cpp` valida que textura está sendo amostrada corretamente por código, não apenas "parece ter padrão":
-  - Beer01 textured: w 800 h 600 nonBg 33768 bright 12003 dark 19201 brightRatio 35.5% darkRatio 56.9% hasBoth 1 — bimodal checkerboard esperado 50% white 50% black, após lambert ainda bimodal >10% e <90% ambos
-  - Beer01 plain: nonBg 33768 unique intensity values 200 (variação só lambert)
-  - Beer01 textured: unique intensity values 223 (variação lambert + checkerboard)
-  - Validation textured sampling: PASS (expected bimodal checkerboard, objective, not subjective)
-- Evidência `docs/evidence/ciclo16_textured_validation.log` com saída bruta literal, não transcrição manual.
+**Cycle-17 real-file exercise:** `Axes06.ozt` (64×64, 32 bpp, 16,384-byte
+payload, 26-byte trailer) was explicitly loaded with `Player/Axe11.bmd` (1,364
+vertices, 2,665 triangles). The CPU render produced an 800×600 PPM with exit 0.
+The OZT and BMD are separate assets and were not shown to be a matching pair;
+the log reports planar diagnostic mapping because no BMD UVs were decoded.
+Evidence: `evidence/ciclo17_ozt_real_asset_info.log`,
+`evidence/ciclo17_ozt_real_asset_load.log`, and
+`evidence/ciclo17_ozt_real_asset_status.log`. The generated PPM was temporary
+and is not retained as an original-asset deliverable.
 
-**Limitações explícitas:**
-- UV real continua NÃO IMPLEMENTADO/BLOQUEADO 0% 11 hipóteses platô artefato floats, textura placeholder usa UV planar baseado em posição vértice, NÃO é UV real decodificado, nunca apresentado como "UV real"
-- Textura checkerboard procedural 256x256 32px, não textura real OZT mapeada corretamente, mas pipeline OZT/OZJ já otimizado é usado via `LoadFromOZT` (chama OztToBgraTopDown OPT-005 e OzjProbe OPT-004)
-- Prova de conceito pipeline textura, NÃO validação de UV real, marcado explicitamente no código e documentação
+**Limits:**
+- No semantic UV-per-corner mapping, material selection, or BMD-to-texture link
+  is verified.
+- No comparison against equivalent output from the original client was run.
+- The CPU rasterizer is not the product GPU renderer and produces no GPU
+  performance measurement. See `NEXT_TASK.md` for the required Windows/GPU
+  milestone.
 
-**Evidência:**
-- `docs/evidence/ciclo16_first_render_Beer01_textured.ppm` 800x600 1,4MB PPM com padrão xadrez visível, 33768 non-bg, bright 35.5% dark 56.9% bimodal
-- `docs/evidence/ciclo16_first_render_Object03_textured.ppm` 800x600 1,4MB
-- `docs/evidence/ciclo16_textured_validation.log` validação objetiva PASS
-- `src/mu/render/software_rasterizer.hpp/.cpp` com `SoftwareTexture` e placeholder UV explicitamente marcado
+#### Historical cycle-16 checkerboard test (synthetic only)
 
+The cycle-16 `validate_tex` run counted bright/dark classes in a software render
+using a generated 256×256 checkerboard and planar position-based coordinates.
+It found both expected intensity classes (Beer01: bright 35.5%, dark 56.9%;
+plain render: 200 intensity values, textured checkerboard: 223). This confirms
+only that the CPU sampler affected that synthetic render. It does **not** test
+an original texture, BMD UV semantics, asset association, or visual fidelity.
+Raw evidence remains in `evidence/ciclo16_textured_validation.log`; historical
+PPM files are described there and are not a current product compatibility claim.

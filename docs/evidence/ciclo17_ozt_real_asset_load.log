@@ -1,0 +1,8 @@
+Loaded /tmp/cliente_ref/Data/Player/Axe11.bmd: 1364 vertices 2665 triangles bounds valid
+  bounds min (-57.69,-78.62,-21.49) max (192.22,79.75,16.04)
+Loaded OZT pixel data: /tmp/cliente_ref/Data/Item/Axes06.ozt (64 x 64, top-down BGRA8)
+UV status: no decoded mesh UVs; planar position-based diagnostic mapping is used. Texture association and visual compatibility are not verified.
+Render stats: total 2665 culled_frustum 0 rasterized 528 pixels 168870 ok 1 textured 1
+Saved /tmp/ciclo17_ozt_texture_test.ppm 800x600
+
+[exit code: 0]

@@ -87,7 +87,7 @@ bool MainLoop::PredictOverBudget() const {
   double avg = 0;
   size_t n = std::min(history_.size(), size_t(30));
   for (size_t i = history_.size() - n; i < history_.size(); ++i) avg += history_[i].total_ms;
-  avg /= n;
+  avg /= static_cast<double>(n);
   // Prediz estouro se média últimos 30 frames > 90% budget
   return avg > target_frame_ms_ * 0.9;
 }

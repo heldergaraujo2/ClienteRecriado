@@ -1,4 +1,12 @@
-# Ciclo 2 — relatório de fim de ciclo
+# Ciclo 2 — relatório histórico de fim de ciclo
+
+> **Qualificação do ciclo 17:** este relatório preserva as conclusões daquela
+> fase, não o status atual. Em particular, a frase "cifra v0x0C validada de forma
+> independente" não é uma conclusão aceita hoje: `AGENTS.md` mantém essa cifra
+> **BLOCKED**. Contagens e amostras são observações do classificador legado, não
+> prova, autorização ou compatibilidade. Não expanda esse trabalho sem fonte
+> legítima/autorização e atualização explícita do bloqueio. Estado atual:
+> `COMPATIBILITY.md`, `CURRENT_STATE.md` e `TEST_RESULTS.md`.
 
 Branch `arena/519f8fc9-clienterecriado`. Commit de referência `12aa5d1` (fim do
 ciclo 1). Lista canônica de commits: `git log --oneline 12aa5d1..HEAD`.

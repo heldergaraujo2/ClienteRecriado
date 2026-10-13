@@ -89,7 +89,7 @@ MeshImportResult MeshFromBmd(const BmdBody& body, const std::string& name) {
                                static_cast<std::size_t>(c.normal) < normal_count;
         if (!vertex_ok || !normal_ok) {
           good = false;
-          ++r.mesh.bad_indices;
+          ++r.mesh.dropped_triangles;
           break;
         }
       }

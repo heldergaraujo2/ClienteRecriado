@@ -29,7 +29,8 @@ struct PackedBuffers {
   bool has_bone_weights = false;
   Bounds bounds;
   size_t skipped_vertices = 0;
-  size_t bad_indices = 0;
+  size_t dropped_triangles = 0;
+  size_t invalid_index_references = 0;
   bool ok = false;
   std::string problem;
 };

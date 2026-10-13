@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "mu/assets/format.hpp"
 #include "mu/assets/mesh.hpp"
 #include "mu/render/skinning.hpp"
 #include "mu/render/cull.hpp"
@@ -65,26 +66,26 @@ struct RenderStats {
   std::string problem;
 };
 
-// PLACEHOLDER TEXTURE — ciclo16 D
-// Prova de conceito pipeline textura, NÃO é UV real decodificado (UV continua 0% BLOQUEADO)
-// Usa OztToBgra/OzjProbe já otimizados (OPT-004/OPT-005) para carregar textura real OZT/OZJ,
-// mas mapeamento UV é placeholder EXPLICITAMENTE marcado: planar baseado em posição vértice
-// ou checkerboard procedural, nunca apresentado como "UV real"
+// Decoded software texture storage. Texture coordinates are supplied separately
+// by a Mesh; BMD meshes currently lack a verified corner-to-UV mapping.
 struct SoftwareTexture {
   int width = 0;
   int height = 0;
-  // BGRA 8-bit per channel, 4*W*H, ready for GL_BGRA (OPT-005)
+  // Top-down BGRA8 pixels; the alpha channel is retained but not blended by the
+  // current RGB framebuffer.
   std::vector<uint8_t> bgra;
   bool valid = false;
 
-  // Gera checkerboard procedural 256x256 — PLACEHOLDER
-  void GenerateCheckerboard(int w=256, int h=256, int checkerSize=32);
+  // Generates an explicit procedural checkerboard diagnostic texture.
+  void GenerateCheckerboard(int w = 256, int h = 256, int checkerSize = 32);
 
-  // Carrega OZT real via OztToBgraTopDown — PLACEHOLDER UV ainda, mas textura real
-  // Usa OztProbe + OztToBgraTopDown já otimizados
-  bool LoadFromOZT(const std::string& oztPath);
+  // Reads and converts a standard OZT file or in-memory OZT bytes to top-down
+  // BGRA8. This does not establish which texture belongs to a BMD model or
+  // decode that model's UV mapping.
+  Status LoadFromOZT(const std::string& oztPath);
+  Status LoadFromOZT(ByteView file);
 
-  // Sample com UV placeholder (u,v 0..1), retorna RGB, clamp
+  // Samples with repeat wrapping and returns RGB. Alpha is currently ignored.
   void Sample(float u, float v, uint8_t& outR, uint8_t& outG, uint8_t& outB) const;
 };
 
@@ -110,7 +111,8 @@ public:
                            const Camera& cam,
                            const Vec3& lightDir);
 
-  // Textura placeholder — ciclo16 D
+  // Attach a decoded texture. Mesh UVs are used when present; otherwise the
+  // renderer's explicitly documented planar diagnostic fallback is used.
   void SetTexture(const SoftwareTexture& tex) { texture_ = tex; hasTexture_ = tex.valid; }
   void ClearTexture() { hasTexture_ = false; texture_.valid=false; }
   bool HasTexture() const { return hasTexture_; }

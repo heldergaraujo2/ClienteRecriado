@@ -296,8 +296,10 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
       const std::size_t nc = ReadU16LE(payload.data + offset + 2);
       const std::size_t ntc = ReadU16LE(payload.data + offset + 4);
       const std::size_t ntri = ReadU16LE(payload.data + offset + 6);
-      auto mul_overflows = [](std::size_t a, std::size_t b, std::size_t limit)->bool {
-        if (a==0||b==0) return false; return a > limit / b;
+      auto mul_overflows = [](std::size_t a, std::size_t b,
+                              std::size_t limit) -> bool {
+        if (a == 0 || b == 0) return false;
+        return a > limit / b;
       };
       if (mul_overflows(vc,kBmdVertexRecordSize,payload.size) ||
           mul_overflows(nc,kBmdNormalRecordSize,payload.size) ||
@@ -343,18 +345,45 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
       }
       if (tri_end > payload.size + 8) { out->topology_skip = BmdTopologySkip::kDoesNotFit; break; }
       std::size_t name_at=0; bool found_name=false;
-      for (int delta: {0,-4,4,-8,8}) {
-        std::size_t at;
-        if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
-        if (at+32>payload.size) continue;
-        if (IsTextureName(payload.data+at, payload.size-at)) { name_at=at; found_name=true; break; }
+      for (int delta : {0, -4, 4, -8, 8}) {
+        std::size_t at = tri_end;
+        if (delta < 0) {
+          // These candidate offsets are fixed small values, so negation is safe.
+          const std::size_t distance = static_cast<std::size_t>(-delta);
+          if (tri_end < distance) continue;
+          at = tri_end - distance;
+        } else {
+          const std::size_t distance = static_cast<std::size_t>(delta);
+          if (tri_end > payload.size || distance > payload.size - tri_end)
+            continue;
+          at = tri_end + distance;
+        }
+        if (at > payload.size || payload.size - at < 32) continue;
+        if (IsTextureName(payload.data + at, payload.size - at)) {
+          name_at = at;
+          found_name = true;
+          break;
+        }
       }
       if (!found_name) {
-        for (int delta: {0,-4,4,-8,8}) {
-          std::size_t at;
-          if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
-          if (at+32>payload.size) continue;
-          if (IsTextureNameWeak(payload.data+at, payload.size-at)) { name_at=at; found_name=true; break; }
+        for (int delta : {0, -4, 4, -8, 8}) {
+          std::size_t at = tri_end;
+          if (delta < 0) {
+            const std::size_t distance = static_cast<std::size_t>(-delta);
+            if (tri_end < distance) continue;
+            at = tri_end - distance;
+          } else {
+            const std::size_t distance = static_cast<std::size_t>(delta);
+            if (tri_end > payload.size || distance > payload.size - tri_end)
+              continue;
+            at = tri_end + distance;
+          }
+          if (at > payload.size || payload.size - at < 32) continue;
+          if (IsTextureNameWeak(payload.data + at, payload.size - at)) {
+            name_at = at;
+            found_name = true;
+            break;
+          }
         }
       }
       if (!found_name) {
@@ -387,11 +416,16 @@ Status BmdParseBodyV0A(ByteView payload, BmdBody* out) {
         for (std::size_t k=0;k<3;++k) {
           const uint8_t* p = payload.data + tri_off + k * kBmdCornerRecordSize;
           if (tri_off + k*kBmdCornerRecordSize + 8 > payload.size + 8) { tri_ok=false; break; }
-          int v_idx=ReadU16LE(p); int n_idx=ReadU16LE(p+2);
-          if (v_idx<0 || static_cast<std::size_t>(v_idx)>=vc) ++out->out_of_range_vertices;
-          if (n_idx<0 || static_cast<std::size_t>(n_idx)>=nc) ++out->out_of_range_normals;
-          t.corners[k].vertex = static_cast<int>(base_vertex + v_idx);
-          t.corners[k].normal = static_cast<int>(base_normal + n_idx);
+          const int v_idx = static_cast<int>(ReadU16LE(p));
+          const int n_idx = static_cast<int>(ReadU16LE(p + 2));
+          if (static_cast<std::size_t>(v_idx) >= vc)
+            ++out->out_of_range_vertices;
+          if (static_cast<std::size_t>(n_idx) >= nc)
+            ++out->out_of_range_normals;
+          t.corners[k].vertex =
+              static_cast<int>(base_vertex + static_cast<std::size_t>(v_idx));
+          t.corners[k].normal =
+              static_cast<int>(base_normal + static_cast<std::size_t>(n_idx));
           t.corners[k].optional = ReadU16LE(p+4);
           t.corners[k].flag = p[6];
         }

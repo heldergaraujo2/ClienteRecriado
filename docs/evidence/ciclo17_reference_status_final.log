@@ -1,0 +1,15 @@
+Read-only reference checkout status after validation
+
+$ git -C /tmp/cliente_ref rev-parse HEAD
+88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+
+$ git -C /tmp/cliente_ref status --short --branch
+## main...origin/main
+
+$ git -C /tmp/cliente_ref diff --quiet
+exit code: 0
+
+$ git -C /tmp/cliente_ref diff --cached --quiet
+exit code: 0
+
+No reference branch, tracked file, staged file, or history was changed by this audit.
