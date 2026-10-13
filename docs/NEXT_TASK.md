@@ -1,28 +1,37 @@
 # Next task — first verifiable Windows/GPU vertical slice
 
-## Immediate task — validate the BMD topology correction
+## Immediate task — validate the BMD triangle-offset follow-up
 
-Pull the latest `arena/1d9c1f53-clienterecriado` branch on the Windows PC,
-then run the C++ build/test sequence from the repository root:
+The latest parser fix is on `arena/1d9c1f53-clienterecriado` in commit
+`34e7207`. It removes an erroneous four-byte subtraction from the computed
+triangle-array start for both single- and multi-mesh BMD bodies. The owner's
+last forced build/test run was **before this fix** and reported 560 checks, 8
+failures; that result must not be presented as validation of the new commit.
+
+On the Windows PC, first inspect and preserve the active preview edits and
+backup, then fast-forward the branch. These commands do not discard local
+changes; do not use reset/clean or overwrite the preview file:
 
 ```powershell
 git status --short --branch
 git pull --ff-only origin arena/1d9c1f53-clienterecriado
-make clean
-make
-make test
-make test-san
-python3 tools/check_docs_consistency.py
+wsl -d Ubuntu -- bash -lc "cd /mnt/d/MU-REENGINEER && make -B test"
+wsl -d Ubuntu -- bash -lc "cd /mnt/d/MU-REENGINEER && make test-san"
 ```
 
-If `make` is unavailable on Windows, run the portable build/test commands in
-the Linux development environment or the documented equivalent; do not skip the
-Windows preview check. Preserve local edits to
-`platform/windows/d3d11_bmd_preview.cpp` and its `.backup` file. Rebuild the
-preview with `.\scripts\build_d3d11_bmd_preview.ps1`, then run it against the
-same local `agnecklace.bmd`. Record exact compiler output, parser counts,
-dropped-triangle count, visible result, exit status, and `git status`. Do not
-report success until the new tests pass and the model actually appears.
+If the tests still fail, capture the complete failing assertions and fix the
+parser/tests on the same session branch before proceeding. If they pass, run
+the documentation consistency checker when its read-only reference `Data/`
+tree is available. Do not use `make clean`; preserve the local D3D11 preview
+source and `.backup`.
+
+Then build the Windows preview with
+`.scripts\build_d3d11_bmd_preview.ps1` and run it against the same local
+`agnecklace.bmd`. Record exact compiler output, parser counts, dropped-triangle
+count, visible result, exit status, and final Git status. The green debug clear
+colour and other local preview diagnostics are not part of the parser fix and
+must remain local until reviewed separately. Do not report success until the
+new tests pass and the model actually appears.
 
 ## Product target
 
