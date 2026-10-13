@@ -95,3 +95,16 @@ graphics path exists, unless a concrete dependency blocks the slice. Do not
 continue scanning BMD offsets without a discriminating hypothesis and
 same-class control; do not label statistical scores as semantic discoveries.
 Do not modify or bypass the reference client.
+
+
+## New experimental step — untextured BMD geometry preview
+
+An experimental D3D11 preview source and build script now exist at
+`platform/windows/d3d11_bmd_preview.cpp` and
+`scripts/build_d3d11_bmd_preview.ps1`. This is source-only until compiled and
+run on Windows. It accepts plaintext BMD v0x0A only and deliberately renders
+validated geometry in one solid colour; it does not establish UVs, materials,
+textures, animation, skinning, or a playable client. Follow
+[`D3D11_BMD_PREVIEW.md`](D3D11_BMD_PREVIEW.md) for the target-PC validation
+steps. Do not advance the milestone until the actual build and visible model
+result are recorded.
