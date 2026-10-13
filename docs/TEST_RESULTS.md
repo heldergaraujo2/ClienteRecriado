@@ -21,6 +21,21 @@ Build flags include the repository warning set (`-Wall -Wextra -Wpedantic
 | `build/bench_assets` | **PASS (exit 0) as one CPU microbenchmark run only**; not FPS/frametime/GPU measurement | `evidence/ciclo17_bench_final.log` |
 | `python3 tools/check_docs_consistency.py /tmp/cliente_ref/Data` | **PASS (exit 0)** — 54 checks, 0 failures against reference HEAD `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` | `evidence/ciclo17_docs_consistency_final.log` |
 
+### Historical test-count reconciliation
+
+The published `arena/519f8fc9-clienterecriado` snapshot at
+`4c36befab01263bf95a509d1c8306c56a1e876c5` has conflicting historical counts:
+its `TEST_RESULTS.md` says 389 (Cycle 10, citing the older
+`ciclo9_item3_security_test.log`), while its README and CURRENT_STATE say 500
+and its Cycle-15 report also claims 500. Neither number describes this recovered
+Cycle-17 source state. In this audit, `make test` and `make test-san` were
+rerun on the source tree whose baseline was
+`f839757d7b0b56d0b0a8d542aae9c67df1628d37`; both exited 0 with **539 checks,
+0 failures**. The audit changes are documentation-only, so the tested C++
+sources are unchanged. The current count for this branch's tested source is
+539; 389 and 500 are historical, not current.
+This count is not a statement of 100% code coverage.
+
 The test executable covers CRC/format helpers, OZT probes/read/conversion
 (including 24-bit conversion), OZJ marker probes, BMD container/body/topology,
 mesh import/index validation, bounds/culling, skinning validation, terrain

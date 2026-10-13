@@ -165,8 +165,8 @@ playable. Some partial foundations exist; their acceptance limits are in
 |---|---|---|
 | `mu/assets` | Format readers and asset reports | Partial; probes exceed decoders; see compatibility matrix |
 | `mu/render` CPU | Diagnostic rasterizer, culling, CPU buffer packing/skinning helpers | Implemented for tests/PPM only; not a product renderer |
-| `mu/gfx` | GPU backend abstraction | Not implemented |
-| `mu/gfx/d3d12`, Vulkan, D3D11 | Candidate Windows GPU backends | Not implemented; API not selected by target-device prototype |
+| `mu/gfx` | GPU backend abstraction | Not implemented; API-policy conflict remains open under DEC-014 |
+| `mu/gfx/<backend>` | OpenGL VBO/VAO (formal DEC-008); D3D12/Vulkan/D3D11 (target-plan candidates) | No backend implemented or prototyped on Windows/GPU; see DEC-014 |
 | `mu/res` | Resource cache/lifetime/budgeting | Not implemented |
 | `mu/world` | Terrain/maps/objects | Partial parsers; no complete world renderer |
 | `mu/anim` | Skeletal animation | Not implemented as an animation system; bone records are partial and semantics remain unverified; cipher restrictions remain in force |

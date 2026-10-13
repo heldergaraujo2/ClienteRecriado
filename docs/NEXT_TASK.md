@@ -24,6 +24,13 @@ sandbox has no Windows, Windows cross-compiler, Wine, or GPU. Therefore:
 - if Windows/GPU hardware remains unavailable, limit work to safe parser and
   documentation tasks, leave the milestone blocked, and record why.
 
+**Renderer API policy is also unresolved.** DEC-008/DEC-008-A formally adopt
+OpenGL VBO/VAO and reject an API switch for older-hardware compatibility, while
+the newer target plan proposes evaluating D3D12/Vulkan and possibly D3D11. No
+formal superseding decision or Windows/GPU prototype exists. See DEC-014; do not
+write API-specific backend code until the product owner confirms whether
+DEC-008 remains binding or is superseded.
+
 The reference `heldergaraujo2/Cliente` remains read-only. Do not modify or
 redistribute protected executables/assets; do not unpack VMProtect, remove
 licensing/authentication, or bypass anticheat. The BMD v0x0C cipher and `Enc*`
@@ -51,11 +58,13 @@ animation, or appearance.
    document any ABI/data evidence that requires 32-bit compatibility. Do not
    assume the original 32-bit client forces the reconstruction to be 32-bit.
    Keep shared C++17 asset code isolated from platform/graphics headers.
-4. **Prove window, input, and GPU device creation.** Implement minimal prototypes
-   and draw one known test triangle. Compare D3D12 and Vulkan on target hardware
-   where practical; include D3D11 as a simpler fallback comparison. Record API,
-   adapter, driver/runtime, capabilities, and rationale in `DECISIONS.md`. Do
-   not select an API based only on imports from the old client.
+4. **Resolve the API policy, then prove window/input/device creation.** Follow
+   DEC-014 before writing API-specific code: if DEC-008 remains binding, prototype
+   OpenGL VBO/VAO; if the product owner formally supersedes it, compare D3D12 and
+   Vulkan on target hardware and include D3D11 if it is a useful simpler baseline.
+   Draw one known test triangle and record the API, adapter, driver/runtime,
+   capabilities, rationale, and evidence in `DECISIONS.md`. Do not select an API
+   based only on imports from the old client.
 5. **Load and render an original model.** Integrate supported BMD geometry,
    indexed buffers, and the correct material/texture with semantically verified
    UVs. Compare against a legitimate visual reference with controlled scene,

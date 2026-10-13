@@ -886,3 +886,39 @@ Justificativa formal:
 **Evidência:** comparação tabela acima, licenças MIT de tinygltf/cgltf, especificação glTF 2.0 skinning e PBR, status C1 representação interna única implementada `src/mu/assets/mesh.hpp` com `bone_weights`.
 
 **Status C2: CONCLUÍDO ciclo12** — formato concreto glTF 2.0 escolhido, 2+ alternativas comparadas (glTF vs FBX vs OBJ vs Collada), decisão documentada formalmente como DEC-013, Caminho B não substitui Caminho A explicitamente registrado.
+
+---
+
+## DEC-014 — Renderer API choice must be reconciled before implementation
+
+**Date:** 2026-10-12 · **Status:** OPEN — no target-device prototype or production GPU backend.
+
+This entry records a current documentation conflict. It does **not** silently
+supersede DEC-008 or select a new graphics API.
+
+- DEC-008/DEC-008-A formally adopt OpenGL VBO/VAO and reject switching to
+  Vulkan/D3D12, citing compatibility with older hardware that runs the original
+  client.
+- The newer `PERFORMANCE_TARGET.md` and `NEXT_TASK.md` call for a target-device
+  evaluation of D3D12/Vulkan and possibly D3D11; `ARCHITECTURE.md` and
+  `COMPATIBILITY.md` now list these as proposals and record that no Windows/GPU
+  prototype has resolved the conflict.
+- The performance target now emphasizes modern Windows PCs with dedicated GPUs.
+  The docs do not explicitly say whether compatibility with older hardware
+  remains a hard requirement.
+- No Windows/GPU prototype has run. This sandbox is Linux x86_64, with no
+  Windows cross-compiler, Wine, `/dev/dri`, `/dev/nvidia0`, or `nvidia-smi`;
+  there is no empirical evidence here to resolve the choice.
+
+**Interim status:** no production GPU backend or device path exists. The old
+OpenGL decision remains the latest formal decision, while its applicability to
+the newer product target is unresolved. Do not describe the D3D12/Vulkan list as
+an adopted API change or start API-specific implementation until the product
+owner confirms whether DEC-008 remains binding or is superseded.
+
+**Resolution required:** if older-hardware compatibility remains mandatory,
+retain DEC-008 and align `PERFORMANCE_TARGET.md`, `ARCHITECTURE.md`,
+`COMPATIBILITY.md`, `RENDERING.md`, `CURRENT_STATE.md`, and `NEXT_TASK.md`. If
+the target is modern-only, formally supersede DEC-008, define minimum
+hardware/API support, then compare candidate APIs on a Windows/GPU target and
+record the evidence.

@@ -527,8 +527,10 @@ reproducible commands and current result.
   is **NOT IMPLEMENTED / NOT EXECUTED**.
 - The CPU path exercises parsing → mesh conversion → optional skinning/culling →
   projection/rasterization, but does not validate original-client appearance.
-- The GPU API remains to be selected by an on-target Windows prototype; see
-  [`NEXT_TASK.md`](NEXT_TASK.md).
+- DEC-008/DEC-008-A formally adopt OpenGL VBO/VAO, while newer target documents
+  propose evaluating D3D12/Vulkan/D3D11. No Windows/GPU prototype exists, so this
+  documentation conflict remains open under DEC-014. No production API backend
+  is implemented or validated; see [`NEXT_TASK.md`](NEXT_TASK.md).
 
 
 ### 12.8 Cycles 16–17 — texture diagnostics, not validated material rendering

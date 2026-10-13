@@ -128,7 +128,7 @@ compared with output from the original client.
 | CPU rasterizer and PPM output | **PARTIAL — diagnostic tool**; not the product renderer or compatibility proof |
 | Functional Windows window, input, and loop | **NOT IMPLEMENTED / NOT EXECUTED**; only a platform skeleton exists |
 | GPU renderer and device creation | **NOT IMPLEMENTED / NOT EXECUTED** |
-| D3D12, Vulkan, D3D11 | **NOT EXECUTED**; backend not selected by an on-target prototype |
+| OpenGL VBO/VAO (DEC-008); D3D12/Vulkan/D3D11 (proposed alternatives) | **NOT IMPLEMENTED / NOT EXECUTED**; no target prototype; API-policy conflict is open under DEC-014 |
 | Original untextured model | **PARTIAL** — parser and CPU output exist; geometric/visual equivalence to reference is not validated |
 | Original textured model | **BLOCKED** — no semantic UV/material mapping or verifiable visual comparison |
 | Skinning/animation | **PARTIAL/BLOCKED** — some bone records are parsed; BMD weights, transform order, and keyframe semantics are unverified |

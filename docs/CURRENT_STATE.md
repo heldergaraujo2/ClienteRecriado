@@ -135,7 +135,8 @@ remains read-only.
 |---|---|
 | Runnable Windows client / startup / functioning window and input | **NOT IMPLEMENTED / NOT EXECUTED** |
 | Windows x86 and x64 | **NOT EXECUTED**; architecture choice still needs a validated target build |
-| GPU backend (D3D12, Vulkan, or D3D11) and device creation | **NOT IMPLEMENTED / NOT EXECUTED** |
+| Renderer API policy | **OPEN / BLOCKED** — DEC-008 adopts OpenGL VBO/VAO; the newer target plan proposes D3D12/Vulkan/D3D11 evaluation; see DEC-014 |
+| GPU backend and device creation | **NOT IMPLEMENTED / NOT EXECUTED** — no Windows/GPU prototype |
 | BMD model assets | **PARTIAL** — supported subset and counts above; 1,519 OPAQUE |
 | OZT textures | Pixel conversion implemented; one real OZT loaded, no visual association validated |
 | OZJ textures | JPEG probe only; pixel decoding **NOT IMPLEMENTED** |
@@ -174,33 +175,45 @@ progress in this environment. In parallel, advance BMD/UV/material semantics
 only with legitimate sources and controls capable of testing meaning, not just
 statistical plausibility.
 
-## Git state for this cycle
+## Recovery audit baseline and publication
 
-- Session-fixed branch: `arena/1d9c1f53-clienterecriado` (the session's remote
-  ref did not exist at recovery start; this branch name is fixed by the host).
-- Recovery-start local HEAD: `972fabcea1b0d4e80345f0f5abd287b46d819455`; the
-  working tree had one modified tracked README, no staged diff, and the rest of
-  the project as untracked files. Published `main` was also at `972fabc`.
-- Published branch `arena/519f8fc9-clienterecriado` was at
-  `4c36befab01263bf95a509d1c8306c56a1e876c5` (193 commits ahead of the local
-  base). A safe fast-forward moved this fixed session branch to that commit;
-  no branch checkout, destructive Git reset/clean, or force-push was used (the
-  project `make clean` target was run for validation). The 519 branch was not
-  modified.
-- Pre-integration comparison: 260 local files vs. 227 at published 519; 46
-  differing shared files, 33 local-only evidence/log files, and no remote-only
-  project paths. Six differing PPM variants were kept outside Git and are
-  recorded in `evidence/ciclo17_ppm_recovery_comparison.log`.
-- Recovery content commit: `be4f79ae5a3c003502e68a5cc245f8f0e6cdba5f`
-  (`recovery: reconcile cycle-17 asset audit`). `git push -u origin
-  arena/1d9c1f53-clienterecriado` succeeded (new remote branch). At the
-  verification point, `git rev-parse HEAD` and `git ls-remote` for the fixed
-  branch both returned this hash; `arena/519f8fc9-clienterecriado` remained at
-  `4c36befab01263bf95a509d1c8306c56a1e876c5` and `main` at
-  `972fabcea1b0d4e80345f0f5abd287b46d819455`.
-- The post-push worktree was clean:
+This read-only Git audit began on 2026-10-12, before the documentation-only
+reconciliation recorded in this snapshot. At audit start:
+
+- Fixed session branch: `arena/1d9c1f53-clienterecriado`; local `HEAD` and its
+  upstream both matched `f839757d7b0b56d0b0a8d542aae9c67df1628d37`.
+- `git status --short --branch`:
   `## arena/1d9c1f53-clienterecriado...origin/arena/1d9c1f53-clienterecriado`.
-  This Git-state update is committed as a follow-up; its final tip is reported
-  by the branch/commit link in the recovery summary. Full local/committed/
-  published reconciliation and push evidence:
+  Staged/unstaged diffs and untracked paths were empty;
+  `git rev-list --left-right --count @{upstream}...HEAD` returned `0 0`.
+- `git ls-remote` and GitHub REST branch queries agreed:
+  `arena/1d9c1f53-clienterecriado` =
+  `f839757d7b0b56d0b0a8d542aae9c67df1628d37`;
+  `arena/519f8fc9-clienterecriado` =
+  `4c36befab01263bf95a509d1c8306c56a1e876c5`;
+  `main` = `972fabcea1b0d4e80345f0f5abd287b46d819455`.
+  No checkout, push, or other write to branch 519 or `main` occurred.
+- The fixed branch was two commits beyond the published 519 snapshot at the
+  audit baseline: `be4f79ae5a3c003502e68a5cc245f8f0e6cdba5f`
+  (`recovery: reconcile cycle-17 asset audit`) and
+  `f839757d7b0b56d0b0a8d542aae9c67df1628d37`
+  (`docs: record cycle-17 recovery publication state`). Relative to 519, the
+  published diff was 78 files, 3,950 insertions and 1,684 deletions.
+- Recovery safety copies remain local and untouched: `stash@{0}`; the workspace
+  archive `/home/user/ClienteRecriado_cycle17_workspace_before_fastforward.tar.gz`
+  (SHA-256 `cbbe233b47f79c97f1d5a94241e6623f1f1da214304c6f20e88b4bb9e135bc1e`);
+  and `/home/user/ClienteRecriado_recovery_before_fastforward.tar.gz` (SHA-256
+  `4a9ca9872e55de44fde65d138e649da5aa9e884f9b5c88d66744092f1f6304f7`). The
+  six divergent CPU PPM variants remain outside Git at
+  `/home/user/ClienteRecriado_recovery_ppm/`; their hash/size-only comparison is
+  `evidence/ciclo17_ppm_recovery_comparison.log`. None is GPU-render evidence.
+- The reference clone remained read-only at
+  `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` with no tracked or staged diff.
+  The test-count and renderer-API documentation discrepancies found in this
+  audit are reconciled in `TEST_RESULTS.md` and DEC-014; no Windows/GPU
+  milestone was executed. Full recovery evidence:
   [`evidence/ciclo17_git_recovery.log`](evidence/ciclo17_git_recovery.log).
+
+The documentation-only reconciliation for this audit is committed on the fixed
+session branch; the final branch tip and clean post-push status are reported in
+the cycle summary.

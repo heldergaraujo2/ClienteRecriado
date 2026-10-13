@@ -97,6 +97,13 @@ the high-performance path; consider Direct3D 11 as a simpler baseline if it help
 separate renderer problems from API complexity. Record the decision and evidence
 in `DECISIONS.md` before committing to a long-lived backend.
 
+**Status clarification (DEC-014):** This is a proposed evaluation plan, not an
+adopted API change. DEC-008/DEC-008-A formally adopt OpenGL VBO/VAO and reject
+D3D12/Vulkan based on older-hardware compatibility, which conflicts with this
+plan's proposed evaluation. Resolve whether that compatibility requirement still
+applies before writing an API-specific backend. No choice has been validated by
+a Windows/GPU prototype.
+
 ## 5. Large-content strategy
 
 - Use 64-bit indices only where required; validate index ranges and choose compact

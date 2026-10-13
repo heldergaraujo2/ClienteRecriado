@@ -3,7 +3,7 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
-## 2026-10-12 — cycle-17 asset audit corrections
+## 2026-10-12 — cycle-17 audit and recovery reconciliation
 
 ### Changed
 
@@ -33,6 +33,19 @@ Performance changes with measurements are in
   compatibility was claimed.
 - No Windows/GPU build, FPS, frametime, VRAM, or authorized network test was run.
   The BMD v0x0C and `Enc*` terrain ciphers remain BLOCKED under `AGENTS.md`.
+
+### Recovery and continuity reconciliation
+
+- Re-verified the fixed branch and remote refs through both Git and GitHub API;
+  branch 519 remained unchanged. The recovery stash and archives remain local;
+  six alternate PPMs remain outside Git. The worktree and branch had no dirty or
+  unpushed Git changes at the audit baseline.
+- Recorded the historical test-count conflict in `TEST_RESULTS.md`: the 519
+  snapshot has 389 in `TEST_RESULTS.md` but 500 in other summaries; the current
+  recovered source was rerun at 539 checks in both normal and sanitizer modes.
+- Added DEC-014 to preserve, rather than silently choose between, the earlier
+  OpenGL VBO/VAO decision and the newer D3D12/Vulkan evaluation plan. No API was
+  selected or GPU milestone claimed.
 
 ## 2026-10-12 — performance target and renderer priority
 
