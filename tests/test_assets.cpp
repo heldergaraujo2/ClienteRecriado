@@ -1207,6 +1207,20 @@ void TestBmdTriangles() {
   CHECK(!parsed.has_texcoords);
   CHECK_EQ(counts_base, 52u + 4u * 16u + 4u * 20u);
 
+  // A four-corner polygon must become two indexed triangles: (0,1,2) and
+  // (0,2,3). The UV table is retained only as candidate raw indices.
+  body[tri_off] = 4;
+  PutU16LeAt(body, tri_off + 8, 3);
+  PutU16LeAt(body, tri_off + 16, 3);
+  PutU16LeAt(body, tri_off + 24, 3);
+  mu::BmdBody quad;
+  CHECK(mu::BmdParseBodyV0A(mu::ByteView(body.data(), body.size()), &quad).ok());
+  CHECK_EQ(2u, quad.triangles.size());
+  CHECK_EQ(0, quad.triangles[1].corners[0].vertex);
+  CHECK_EQ(2, quad.triangles[1].corners[1].vertex);
+  CHECK_EQ(3, quad.triangles[1].corners[2].vertex);
+  body[tri_off] = 3;
+
   // An out-of-range corner must be counted, not rejected and not silently
   // accepted: a caller that indexed with it would read out of bounds.
   PutU16LeAt(body, tri_off + 2, 999);
