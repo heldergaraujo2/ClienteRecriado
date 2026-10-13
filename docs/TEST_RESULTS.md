@@ -26,25 +26,39 @@ not test DirectX matrix packing, Win32 mouse capture, the D3D11 preview, BMD
 parsing, textures, or visual compatibility. Do not treat this isolated unit as
 completion of the model-preview milestone.
 
-## Post-cycle-17 parser correction — validation pending (2026-10-13)
+## BMD triangle-offset follow-up — validation pending (2026-10-13)
 
-The BMD v0x0A triangle cursor/index-layout correction has been committed after
-the cycle-17 test run. The results in the historical cycle-17 tables below do
-**not** validate the new source. Current status:
+The owner ran the following command in the WSL checkout before commit
+`34e7207`:
 
-| Check | Status | Required evidence |
+```text
+wsl -d Ubuntu -- bash -lc "cd /mnt/d/MU-REENGINEER && make -B test"
+560 checks, 8 failures
+```
+
+The eight failures were:
+- `bmd triangles`: expected the first triangle to be retained from the
+  multi-mesh fixture (2 assertions).
+- `topology is a strict subset of geometry`: triangle counts and skip reasons
+  for the single-/multi-mesh fixtures and the accumulated topology summary
+  (6 assertions).
+
+Source inspection found that both parser paths subtracted four bytes after
+computing the end of the vertex/normal/UV arrays, placing the triangle cursor
+before the intended record. Commit `34e7207` removes that subtraction in both
+paths. This is a source-level diagnosis, **not yet a passing test result**.
+
+| Check after commit `34e7207` | Status | Required evidence |
 |---|---|---|
-| `make clean && make` after parser correction | **NOT EXECUTED** | Fresh compiler output, no warnings |
-| `make test` after parser correction | **NOT EXECUTED** | Full test count and zero failures |
-| `make test-san` after parser correction | **NOT EXECUTED** | ASan/UBSan output, zero failures |
-| `python3 tools/check_docs_consistency.py` after metric refresh | **NOT EXECUTED** | Exit 0 and fresh whole-tree report |
-| Windows D3D11 preview after parser correction | **USER-REPORTED / INCOMPLETE** | The owner reports a local model preview; exact build/run output, parser counts, visible-result record and clean-exit log are not available in this checkout |
+| `make -B test` | **NOT EXECUTED** | Fresh build and full test output; target is zero failures |
+| `make test-san` | **NOT EXECUTED** | ASan/UBSan output; target is zero failures |
+| Documentation consistency checker | **NOT EXECUTED** | Exit 0 against an available read-only reference `Data/` tree |
+| Windows D3D11 preview build/run | **NOT EXECUTED after this fix** | Build output, parser counts, visible model, clean exit and Git status |
 
-The user-provided diagnostic for local `agnecklace.bmd` established a record
-start at file offset 1044 (payload offset 1040), polygon size 3, and vertex,
-normal, and candidate UV indices [0,1,2]. No original asset bytes are stored in
-Git. See `evidence/bmd_triangle_layout_20261013.md`. Do not reuse the previous
-cycle-17 full-tree metrics as post-fix measurements.
+The preceding 560-check/8-failure output must not be treated as a test of
+commit `34e7207`. No original asset bytes are stored in Git. BMD UV/material
+semantics remain unverified; BMD v0x0C and `Enc*` terrain cipher work remains
+BLOCKED under `AGENTS.md`.
 
 ## 1. Build and automated tests
 
