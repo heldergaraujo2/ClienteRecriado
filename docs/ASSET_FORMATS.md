@@ -971,7 +971,31 @@ layout citadas também não foram confirmadas aqui.
    hipótese de corpo organizado por malha permanece plausível, mas não foi
    demonstrada; foi inferida da mesma fonte cujo layout de registro falhou.
 
-### Topologia — RESOLVIDA e implementada em C++
+### Nova evidência de alinhamento (2026-10-13)
+
+A inspeção executada pelo usuário no arquivo local `agnecklace.bmd` revelou que
+o parser anterior começava o registro de triângulo quatro bytes tarde. O registro
+real começa no offset **1044 do arquivo** (offset **1040 do payload**) e seus
+campos decodificados são: tamanho de polígono 3; índices de vértices 0, 1, 2;
+índices de normais 0, 1, 2; índices candidatos de UV 0, 1, 2. Os registros têm
+64 bytes. No registro, o tamanho fica em +0, os índices de vértices em +2/+4/+6
+(+8 para o quarto canto), os índices de normais em +10/+12/+14 (+16), e os
+índices candidatos de UV em +18/+20/+22 (+24).
+
+A causa do deslocamento é que o parser usa cursores que começam nos valores
+float dos registros de vértice/normal, quatro bytes depois do início do registro.
+Ao calcular o array seguinte, o cursor deve ser corrigido por -4. O parser agora
+faz esse ajuste, lê os índices paralelos e divide quadriláteros em dois
+triângulos. A estrutura UV candidata ainda **não** está semanticamente validada.
+
+**Escopo da evidência:** um arquivo real inspecionado e fixtures sintéticas
+adicionadas ao teste; não é uma varredura completa da árvore. As contagens e
+percentuais do ciclo 17 abaixo são uma linha de base do parser anterior e precisam
+ser recalculados depois que `make`, `make test`, `make test-san` e
+`python3 tools/check_docs_consistency.py` forem executados na cópia atualizada.
+Até lá, os resultados novos de compilação/testes estão **NOT EXECUTED**.
+
+### Interpretação anterior do registro (histórica; supersedida pela evidência acima)
 
 > **Correção do ciclo 3.** Este título dizia "conteúdo interno NÃO DETERMINADO" e
 > o corpo dizia que a leitura era prova de conceito em Python. **Ambos estavam
