@@ -193,3 +193,33 @@ not otherwise inspected. See [`REFERENCE_AUDIT.md`](REFERENCE_AUDIT.md).
 | FPS / frametime / VRAM / speedup | **NOT MEASURED** | A triangle smoke test is not a benchmark |
 
 Do not mark this milestone passed until the Windows build and runtime logs are saved and reviewed.
+
+
+## 6. Latest owner-run BMD regression result — 2026-10-13
+
+After pulling through `794645f`, the owner ran:
+
+```text
+make -B test
+560 checks, 8 failures
+```
+
+Compilation succeeded. Failures remained in `bmd triangles` (2) and
+`topology is a strict subset of geometry` (6). Source inspection identified
+invalid synthetic fixtures: the overflow subtest set the polygon-size byte to
+zero and reused the record without restoring it, and the topology fixture
+appended a zero-filled record without setting polygon size to 3. Since the
+parser intentionally skips records with polygon sizes other than 3 or 4, those
+fixtures could not yield the asserted triangles. Commit `84dbdcc` corrects
+both fixture constructions.
+
+| Check after `84dbdcc` | Status |
+|---|---|
+| `make -B test` | **NOT YET RUN** |
+| `make test-san` | **NOT YET RUN** |
+| Documentation consistency checker | **NOT EXECUTED** |
+| Windows BMD D3D11 preview build/run | **NOT EXECUTED after latest parser/test changes** |
+
+Do not mark the parser correction accepted until the regular suite and ASan/UBSan
+suite both pass. A passing synthetic fixture does not replace validation against
+authorized real BMD assets.
