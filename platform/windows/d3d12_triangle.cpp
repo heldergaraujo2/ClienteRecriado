@@ -54,9 +54,9 @@ class Renderer {
                             IID_PPV_ARGS(&device_)), "D3D12CreateDevice");
     DXGI_ADAPTER_DESC1 ad{}; Check(adapter_->GetDesc1(&ad), "GetDesc1");
     std::wprintf(L"Adapter: %ls\n", ad.Description);
-    std::printf("Dedicated video memory reported by DXGI: %llu MiB\n",
+    std::wprintf(L"Dedicated video memory reported by DXGI: %llu MiB\n",
       static_cast<unsigned long long>(ad.DedicatedVideoMemory / (1024ULL * 1024ULL)));
-    std::printf("D3D12 debug layer: %s\n", debug_ ? "enabled" : "unavailable/disabled");
+    std::wprintf(L"D3D12 debug layer: %ls\n", debug_ ? L"enabled" : L"unavailable/disabled");
 
     D3D12_COMMAND_QUEUE_DESC q{}; q.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     Check(device_->CreateCommandQueue(&q, IID_PPV_ARGS(&queue_)), "CreateCommandQueue");
@@ -129,7 +129,7 @@ class Renderer {
   void Shutdown() {
     if (queue_ && fence_) WaitGpu();
     if (event_) { CloseHandle(event_); event_=nullptr; }
-    std::puts("D3D12 smoke test: clean shutdown.");
+    std::wprintf(L"D3D12 smoke test: clean shutdown.\n");
   }
   ~Renderer() { Shutdown(); }
 
@@ -186,6 +186,7 @@ class Renderer {
       {{0.55f,-0.45f,0.0f},{0.15f,0.95f,0.30f,1.0f}},
       {{-0.55f,-0.45f,0.0f},{0.15f,0.45f,1.0f,1.0f}}};
     D3D12_HEAP_PROPERTIES hp{}; hp.Type=D3D12_HEAP_TYPE_UPLOAD;
+    hp.CreationNodeMask=1; hp.VisibleNodeMask=1;
     D3D12_RESOURCE_DESC d{}; d.Dimension=D3D12_RESOURCE_DIMENSION_BUFFER; d.Width=sizeof(v);
     d.Height=1; d.DepthOrArraySize=1; d.MipLevels=1; d.SampleDesc.Count=1; d.Layout=D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     Check(device_->CreateCommittedResource(&hp,D3D12_HEAP_FLAG_NONE,&d,D3D12_RESOURCE_STATE_GENERIC_READ,nullptr,IID_PPV_ARGS(&vb_)),"Create vertex buffer");
@@ -219,7 +220,7 @@ int wmain() {
       CW_USEDEFAULT,CW_USEDEFAULT,r.right-r.left,r.bottom-r.top,nullptr,nullptr,inst,nullptr);
     if (!hwnd) throw std::runtime_error("CreateWindowExW failed");
     Renderer renderer; renderer.Init(hwnd); ShowWindow(hwnd,SW_SHOW); UpdateWindow(hwnd);
-    std::puts("Rendering GPU triangle. Close the window to exit.");
+    std::wprintf(L"Rendering GPU triangle. Close the window to exit.\n");
     MSG msg{}; bool running=true;
     while (running) {
       while (PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)) {

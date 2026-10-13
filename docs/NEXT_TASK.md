@@ -53,13 +53,7 @@ animation, or appearance.
    document any ABI/data evidence that requires 32-bit compatibility. Do not
    assume the original 32-bit client forces the reconstruction to be 32-bit.
    Keep shared C++17 asset code isolated from platform/graphics headers.
-4. **Resolve the API policy, then prove window/input/device creation.** Follow
-   DEC-014 before writing API-specific code: if DEC-008 remains binding, prototype
-   OpenGL VBO/VAO; if the product owner formally supersedes it, compare D3D12 and
-   Vulkan on target hardware and include D3D11 if it is a useful simpler baseline.
-   Draw one known test triangle and record the API, adapter, driver/runtime,
-   capabilities, rationale, and evidence in `DECISIONS.md`. Do not select an API
-   based only on imports from the old client.
+4. **Run the first Windows/GPU spike.** Build platform/windows/d3d12_triangle.cpp with scripts/build_d3d12_smoke.ps1 from a Visual Studio Developer PowerShell. Run it on the target PC, save console output and screenshots/logs under docs/evidence/, and record the actual adapter/driver/runtime and clean shutdown. This spike is isolated from the asset library and uses a deliberately serialized frame loop for correctness, not performance. If the build or runtime fails, preserve the exact error and fix it before adding asset integration. Then compare D3D11 on the same machine before locking the production API; Vulkan remains a conditional candidate.
 5. **Load and render an original model.** Integrate supported BMD geometry,
    indexed buffers, and the correct material/texture with semantically verified
    UVs. Compare against a legitimate visual reference with controlled scene,
