@@ -4,6 +4,26 @@ Results are classified as `PASS`, `FAIL`, `BLOCKED`, `NOT EXECUTED`, or
 `INCOMPLETE`. A probe, a parser acceptance, a sanitizer run, and a product
 compatibility test answer different questions and are reported separately.
 
+## Post-cycle-17 parser correction — validation pending (2026-10-13)
+
+The BMD v0x0A triangle cursor/index-layout correction has been committed after
+the cycle-17 test run. The results in the historical cycle-17 tables below do
+**not** validate the new source. Current status:
+
+| Check | Status | Required evidence |
+|---|---|---|
+| `make clean && make` after parser correction | **NOT EXECUTED** | Fresh compiler output, no warnings |
+| `make test` after parser correction | **NOT EXECUTED** | Full test count and zero failures |
+| `make test-san` after parser correction | **NOT EXECUTED** | ASan/UBSan output, zero failures |
+| `python3 tools/check_docs_consistency.py` after metric refresh | **NOT EXECUTED** | Exit 0 and fresh whole-tree report |
+| Windows D3D11 preview after parser correction | **NOT EXECUTED** | Build log, parser counts, visible model and clean exit |
+
+The user-provided diagnostic for local `agnecklace.bmd` established a record
+start at file offset 1044 (payload offset 1040), polygon size 3, and vertex,
+normal, and candidate UV indices [0,1,2]. No original asset bytes are stored in
+Git. See `evidence/bmd_triangle_layout_20261013.md`. Do not reuse the previous
+cycle-17 full-tree metrics as post-fix measurements.
+
 ## 1. Build and automated tests
 
 Environment: Linux x86_64, g++ 12.2.0, C++17, no third-party dependencies.
