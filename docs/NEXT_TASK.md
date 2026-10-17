@@ -2,14 +2,17 @@
 
 ## Immediate task — finish one verifiable BMD-to-GPU vertical slice
 
-The latest Linux validation is recorded in
-`docs/evidence/ciclo20_main_loop_validation_20261016.log`: an out-of-tree C++17
+The latest Linux regression is recorded in
+`docs/evidence/ciclo21_linux_validation_20261016.log`: an out-of-tree C++17
 build passed without warnings; `make test` and `make test-san` each passed 560
-asset checks plus 82 frame-loop checks. The frame-loop foundation now accepts
+asset checks plus 82 frame-loop checks. The frame-loop foundation accepts
 update/render/present callbacks, but no application, screen manager, window,
 renderer, or gameplay callback is connected. Its timings are callback durations,
 not full-frame, GPU, or FPS measurements. These Linux tests do not validate
-real-asset interpretation or Windows/GPU rendering.
+real-asset interpretation or Windows/GPU rendering. A Windows x64 CI workflow
+has now been added for the existing D3D11 geometry preview; its first artifact
+build is pending. Even a successful runner build will be compile-only and does
+not satisfy the real Windows/GPU or UV/material/texture gates below.
 
 **Muserver handoff:** read [`NETWORK.md`](NETWORK.md) before implementing server
 compatibility. No client networking module or verified wire protocol exists in
@@ -32,10 +35,12 @@ implementation.
    `mutool scan`/manifest verification, and keep asset bytes outside Git.
 3. **Build and run the actual Windows model preview.** After comparing/preserving
    local edits, run `.\scripts\build_d3d11_bmd_preview.ps1` from Developer
-   PowerShell, then run the resulting preview with the same authorized
-   plaintext `agnecklace.bmd`. Record compiler output, exact invocation,
-   parser counts, dropped triangles, visible result, exit status, and final
-   Git status. The D3D11 triangle smoke log is not a BMD preview result.
+   PowerShell, or download the `d3d11-bmd-preview-windows-x64` CI artifact. The
+   CI job proves compilation only. Run the EXE on the target Windows/GPU with
+   the same authorized plaintext `agnecklace.bmd`. Record compiler output, exact
+   invocation, parser counts, dropped triangles, visible result, exit status,
+   and final Git status. The D3D11 triangle smoke log and a CI compile do not
+   prove a BMD preview.
 4. **Integrate camera input only after that reconciliation.** Retain
    object-space positions; derive target/range from validated bounds; map drag
    and wheel input to `OrbitCamera`; add D3D11 view/projection, resize/aspect,

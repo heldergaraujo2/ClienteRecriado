@@ -2,8 +2,36 @@
 
 This snapshot separates **probe**, structural validation, decoding, semantics,
 and verified rendering. The repository contains a C++17 asset library,
-inspection tools, and a callback-driven frame-loop foundation; **it is not yet
-a playable Windows client**.
+inspection tools, a callback-driven frame-loop foundation, and an experimental
+Windows D3D11 geometry-preview toolchain; **it is not yet a playable Windows
+client**.
+
+## Cycle 21 — Windows preview executable artifact pipeline (2026-10-16)
+
+Added `.github/workflows/windows-d3d11-bmd-preview.yml` to compile the existing
+D3D11 preview with MSVC x64 on a hosted Windows runner and upload
+`d3d11-bmd-preview-windows-x64`. The initial Windows build is pending; its
+result will be recorded in the cycle-21 validation section of `TEST_RESULTS.md`
+and `evidence/ciclo21_windows_preview_build_20261016.log`.
+
+This is a compiler/artifact pipeline for the existing tool, not a new renderer
+or client. It does not include model assets and does not prove that a D3D11
+device/window was created or that a model rendered. The existing EXE accepts
+plaintext BMD v0x0A and draws geometry in a diagnostic solid color; BMD UV
+semantics, material association, and texture binding/decoding remain
+**UNVERIFIED / BLOCKED**. A real authorized model/texture pair and Windows/GPU
+execution are still required for the user's requested semantic and visual
+validation. The preview C++ source, parser and parser tests were not edited.
+
+A fresh out-of-tree Linux build produced no warnings; `make test` and
+`make test-san` each passed **560 asset checks + 82 frame-loop checks, 0
+failures**. Output is in
+[`evidence/ciclo21_linux_validation_20261016.log`](evidence/ciclo21_linux_validation_20261016.log).
+The documentation consistency checker remains BLOCKED (exit 2) because
+`/home/user/Cliente_ref/Data` is absent. Reference-clone status: absent; no
+reference HEAD could be recorded at cycle start or end. See the cycle-21
+`TEST_RESULTS.md` entry and `NEXT_TASK.md` for the exact boundary between the CI
+compile and the pending Windows/GPU/model tests.
 
 ## Cycle 20 — callback-driven frame-loop foundation (2026-10-16)
 

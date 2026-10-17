@@ -110,6 +110,7 @@ FPS or GPU benchmarks.
 | [docs/REFERENCE_AUDIT.md](docs/REFERENCE_AUDIT.md) | Inventory and binary analysis of the original client |
 | [docs/ASSET_FORMATS.md](docs/ASSET_FORMATS.md) | Asset formats and measurements |
 | [docs/RENDERING.md](docs/RENDERING.md) | Reference and reconstructed rendering pipeline |
+| [docs/D3D11_BMD_PREVIEW.md](docs/D3D11_BMD_PREVIEW.md) | Build/download the Windows D3D11 geometry-preview executable and its validation limits |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Software architecture |
 | [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BASELINE.md) | What has and has not been measured |
 | [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | Benchmark methodology and results |

@@ -1,0 +1,62 @@
+name: Windows D3D11 BMD preview executable
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/1d9c1f53-clienterecriado
+    paths:
+      - .github/workflows/windows-d3d11-bmd-preview.yml
+      - platform/windows/d3d11_bmd_preview.cpp
+      - scripts/build_d3d11_bmd_preview.ps1
+      - src/mu/assets/**
+
+permissions:
+  contents: read
+
+jobs:
+  build-preview:
+    name: Build Windows x64 diagnostic preview
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Configure MSVC x64 environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build the D3D11 preview executable
+        shell: pwsh
+        run: |
+          .\scripts\build_d3d11_bmd_preview.ps1
+          $exe = Join-Path $PWD 'build\d3d11_bmd_preview.exe'
+          if (-not (Test-Path $exe -PathType Leaf)) {
+            throw "Expected executable was not created: $exe"
+          }
+          $item = Get-Item $exe
+          if ($item.Length -le 0) {
+            throw "The preview executable is empty: $exe"
+          }
+          $headers = & dumpbin.exe /headers $exe
+          if ($LASTEXITCODE -ne 0) {
+            throw 'dumpbin could not inspect the preview executable.'
+          }
+          $machine = $headers |
+            Select-String -SimpleMatch '8664 machine (x64)' |
+            Select-Object -First 1
+          if ($null -eq $machine) {
+            throw 'The output is not a PE x64 executable.'
+          }
+          Write-Host $machine.Line
+          Get-FileHash $exe -Algorithm SHA256
+          Write-Host 'Build-only check: this runner does not validate D3D11 rendering or real assets.'
+
+      - name: Upload the Windows x64 executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: d3d11-bmd-preview-windows-x64
+          path: build/d3d11_bmd_preview.exe
+          if-no-files-found: error
+          retention-days: 30

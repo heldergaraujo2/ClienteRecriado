@@ -51,6 +51,25 @@ Keep the full compiler output and console output. Record the exact asset path
 visible result, and exit status. Do not call it a pass if compilation failed,
 the window never displayed the geometry, or the process did not close cleanly.
 
+## Downloadable Windows executable artifact
+
+The workflow
+[`.github/workflows/windows-d3d11-bmd-preview.yml`](../.github/workflows/windows-d3d11-bmd-preview.yml)
+builds the existing preview with MSVC x64 on a Windows runner and uploads the
+artifact `d3d11-bmd-preview-windows-x64`. It runs when the preview sources/build
+script change on the session branch. A manual dispatch is available after the
+workflow is present on the repository's default branch. Download the artifact
+from a successful workflow run, then invoke the EXE with a local authorized
+plaintext BMD path as shown above. The executable contains no model or texture
+assets; keep those on the user's machine.
+
+This workflow validates compilation and checks that the output is a non-empty
+PE x64 executable. The hosted runner does not display a window, create a real
+D3D11 device, or validate a model. The executable remains an **untextured geometry diagnostic**:
+it does not decode BMD UV semantics, bind materials, load textures, or prove
+visual compatibility. UV/material/texture validation still requires legitimate
+semantic evidence and a real Windows/GPU test.
+
 ## Next decision
 
 If the build and geometry preview pass, inspect the model silhouette and parser

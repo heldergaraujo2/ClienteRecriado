@@ -3,6 +3,20 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
+## 2026-10-16 — Windows D3D11 preview executable artifact pipeline
+
+- Added a Windows x64 GitHub Actions workflow that invokes the existing MSVC
+  build script and uploads the resulting EXE as
+  `d3d11-bmd-preview-windows-x64`; added README and preview/continuity guidance.
+- This does not add model assets or alter the D3D11 preview, BMD parser, or
+  parser tests. The executable is still a plaintext-v0x0A, untextured geometry
+  diagnostic; UV/material/texture semantics and real GPU rendering remain
+  unverified. Initial CI compilation is pending; see the cycle-21 test result
+  entry before using the artifact.
+- Linux regression checks after the workflow/docs edits passed: warning-free
+  `make`; `make test` and `make test-san` each passed 560 asset plus 82
+  frame-loop checks. Log: `docs/evidence/ciclo21_linux_validation_20261016.log`.
+
 ## 2026-10-16 — callback-driven frame-loop foundation
 
 - Replaced hard-coded frame-work counts and elapsed-time placeholders in

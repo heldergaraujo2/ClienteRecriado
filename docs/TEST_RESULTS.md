@@ -1,8 +1,30 @@
-# Test results — latest status as of cycle 20 (2026-10-16)
+# Test results — latest status as of cycle 21 (2026-10-16)
 
 Results are classified as `PASS`, `FAIL`, `BLOCKED`, `NOT EXECUTED`, or
 `INCOMPLETE`. A probe, a parser acceptance, a sanitizer run, and a product
 compatibility test answer different questions and are reported separately.
+
+## Cycle 21 — Windows D3D11 preview executable artifact pipeline (2026-10-16)
+
+This change adds a Windows x64 CI build/artifact workflow for the existing
+preview plus documentation. It does not edit C++ source, the parser, tests, or
+assets. The workflow was added on top of the cycle-20 branch; the first remote
+Windows run is pending.
+
+| Check | Result | Evidence / limitation |
+|---|---|---|
+| Linux `make` build with repository warning flags | **PASS** — exit 0, no warnings | `evidence/ciclo21_linux_validation_20261016.log`; output under `/tmp` |
+| Linux `make test` | **PASS** — 560 asset checks + 82 frame-loop checks, 0 failures | Same log; generated/unit fixtures only |
+| Linux `make test-san` | **PASS** — 560 asset checks + 82 frame-loop checks, 0 failures; no sanitizer report | Same log |
+| Windows x64 MSVC preview build and artifact upload | **NOT YET RUN** | Workflow: `.github/workflows/windows-d3d11-bmd-preview.yml`; artifact name `d3d11-bmd-preview-windows-x64`; pending push/run |
+| `python3 tools/check_docs_consistency.py` | **BLOCKED (exit 2)** | `/home/user/Cliente_ref/Data` is absent |
+| D3D11 device/window, real BMD geometry on GPU | **NOT EXECUTED** | A hosted compile job cannot prove device creation, window display, or real-asset rendering |
+| BMD UV/material semantics, associated texture decode/render | **BLOCKED / NOT IMPLEMENTED** | Existing preview is untextured; UV semantics and material/texture association are unverified |
+| End-user Windows/GPU validation with an authorized real model and its texture | **NOT EXECUTED** | Requires the user's Windows/GPU and verified model/texture pair; the CI artifact contains no assets |
+
+A successful CI build means only that MSVC produced a non-empty PE x64
+executable. It must not be described as validation of a D3D11 device/window,
+UVs, materials, texture binding, or rendering compatibility.
 
 ## Cycle 20 — callback-driven frame-loop foundation (2026-10-16)
 
