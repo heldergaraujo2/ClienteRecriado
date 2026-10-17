@@ -1,0 +1,197 @@
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tests/test_assets.cpp -o build/tests/test_assets.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/format.cpp -o build/src/mu/assets/format.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozt.cpp -o build/src/mu/assets/ozt.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozj.cpp -o build/src/mu/assets/ozj.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd.cpp -o build/src/mu/assets/bmd.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_body.cpp -o build/src/mu/assets/bmd_body.o
+src/mu/assets/bmd_body.cpp: In lambda function:
+src/mu/assets/bmd_body.cpp:300:9: warning: this 'if' clause does not guard... [-Wmisleading-indentation]
+  300 |         if (a==0||b==0) return false; return a > limit / b;
+      |         ^~
+src/mu/assets/bmd_body.cpp:300:39: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'if'
+  300 |         if (a==0||b==0) return false; return a > limit / b;
+      |                                       ^~~~~~
+src/mu/assets/bmd_body.cpp: In function 'mu::Status mu::BmdParseBodyV0A(ByteView, BmdBody*)':
+src/mu/assets/bmd_body.cpp:348:97: warning: conversion to 'std::size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+  348 |         if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
+      |                                                                                                 ^~~~~
+src/mu/assets/bmd_body.cpp:348:126: warning: conversion to 'std::size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+  348 |         if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
+      |                                                                                                                              ^~~~~
+src/mu/assets/bmd_body.cpp:355:99: warning: conversion to 'std::size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+  355 |           if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
+      |                                                                                                   ^~~~~
+src/mu/assets/bmd_body.cpp:355:128: warning: conversion to 'std::size_t' {aka 'long unsigned int'} from 'int' may change the sign of the result [-Wsign-conversion]
+  355 |           if (delta<0) { if (tri_end < static_cast<std::size_t>(-delta)) continue; at = tri_end + delta; } else at = tri_end + delta;
+      |                                                                                                                                ^~~~~
+src/mu/assets/bmd_body.cpp:393:64: warning: conversion to 'long unsigned int' from 'int' may change the sign of the result [-Wsign-conversion]
+  393 |           t.corners[k].vertex = static_cast<int>(base_vertex + v_idx);
+      |                                                                ^~~~~
+src/mu/assets/bmd_body.cpp:394:64: warning: conversion to 'long unsigned int' from 'int' may change the sign of the result [-Wsign-conversion]
+  394 |           t.corners[k].normal = static_cast<int>(base_normal + n_idx);
+      |                                                                ^~~~~
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/mesh.cpp -o build/src/mu/assets/mesh.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/cull.cpp -o build/src/mu/render/cull.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_report.cpp -o build/src/mu/assets/bmd_report.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/terrain.cpp -o build/src/mu/assets/terrain.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/tga.cpp -o build/src/mu/assets/tga.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/manifest.cpp -o build/src/mu/assets/manifest.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/fs.cpp -o build/src/mu/fs.o
+ar rcs build/libmuassets.a build/src/mu/assets/format.o build/src/mu/assets/ozt.o build/src/mu/assets/ozj.o build/src/mu/assets/bmd.o build/src/mu/assets/bmd_body.o build/src/mu/assets/mesh.o build/src/mu/render/cull.o build/src/mu/assets/bmd_report.o build/src/mu/assets/terrain.o build/src/mu/assets/tga.o build/src/mu/assets/manifest.o build/src/mu/fs.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc build/tests/test_assets.o -Lbuild -lmuassets -o build/test_assets 
+build/test_assets
+ClienteRecriado asset library tests
+[ RUN  ] crc32 known vectors
+[  OK  ] crc32 known vectors
+[ RUN  ] ozt round trip
+[  OK  ] ozt round trip
+[ RUN  ] ozt variant with extra prefix
+[  OK  ] ozt variant with extra prefix
+[ RUN  ] ozt rejects bad input
+[  OK  ] ozt rejects bad input
+[ RUN  ] ozj probe
+[  OK  ] ozj probe
+[ RUN  ] ozj duplicated header prefix
+[  OK  ] ozj duplicated header prefix
+[ RUN  ] bux cipher is self inverse
+[  OK  ] bux cipher is self inverse
+[ RUN  ] bmd probe
+[  OK  ] bmd probe
+[ RUN  ] entropy separates plaintext from ciphertext
+[  OK  ] entropy separates plaintext from ciphertext
+[ RUN  ] terrain probe
+[  OK  ] terrain probe
+[ RUN  ] manifest parse
+[  OK  ] manifest parse
+[ RUN  ] manifest verify
+[  OK  ] manifest verify
+[ RUN  ] extension helpers
+[  OK  ] extension helpers
+[ RUN  ] bmd v0x0c cipher
+[  OK  ] bmd v0x0c cipher
+[ RUN  ] bmd triangles
+[  OK  ] bmd triangles
+[ RUN  ] topology is a strict subset of geometry
+[  OK  ] topology is a strict subset of geometry
+[ RUN  ] mesh from bmd
+[  OK  ] mesh from bmd
+[ RUN  ] compute bounds
+[  OK  ] compute bounds
+[ RUN  ] frustum cull
+[  OK  ] frustum cull
+[ RUN  ] frustum from view projection
+[  OK  ] frustum from view projection
+[ RUN  ] terrain height
+[  OK  ] terrain height
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
+[ RUN  ] bmd report levels are separate
+[  OK  ] bmd report levels are separate
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
+[ RUN  ] bmd percent helper
+[  OK  ] bmd percent helper
+[ RUN  ] bmd report accumulates kinds
+[  OK  ] bmd report accumulates kinds
+[ RUN  ] bmd multi-mesh large counts (regression 8406)
+[  OK  ] bmd multi-mesh large counts (regression 8406)
+[ RUN  ] bmd multi-mesh extreme meshCount 0xFFFF
+[  OK  ] bmd multi-mesh extreme meshCount 0xFFFF
+[ RUN  ] bmd multi-mesh truncated payload
+[  OK  ] bmd multi-mesh truncated payload
+[ RUN  ] bmd multi-mesh overflow check
+[  OK  ] bmd multi-mesh overflow check
+[ RUN  ] bmd bones circular parent (cycle detection)
+[  OK  ] bmd bones circular parent (cycle detection)
+[ RUN  ] bmd bones extreme boneCount
+[  OK  ] bmd bones extreme boneCount
+[ RUN  ] bmd bones truncated payload
+[  OK  ] bmd bones truncated payload
+[ RUN  ] bmd bones overflow check
+[  OK  ] bmd bones overflow check
+
+389 checks, 0 failures
+g++ -std=c++17 -Wall -Wextra -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc tests/test_assets.cpp src/mu/assets/format.cpp src/mu/assets/ozt.cpp src/mu/assets/ozj.cpp src/mu/assets/bmd.cpp src/mu/assets/bmd_body.cpp src/mu/assets/mesh.cpp src/mu/render/cull.cpp src/mu/assets/bmd_report.cpp src/mu/assets/terrain.cpp src/mu/assets/tga.cpp src/mu/assets/manifest.cpp src/mu/fs.cpp -o build-san/test_assets
+src/mu/assets/bmd_body.cpp: In lambda function:
+src/mu/assets/bmd_body.cpp:300:9: warning: this 'if' clause does not guard... [-Wmisleading-indentation]
+  300 |         if (a==0||b==0) return false; return a > limit / b;
+      |         ^~
+src/mu/assets/bmd_body.cpp:300:39: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'if'
+  300 |         if (a==0||b==0) return false; return a > limit / b;
+      |                                       ^~~~~~
+build-san/test_assets
+ClienteRecriado asset library tests
+[ RUN  ] crc32 known vectors
+[  OK  ] crc32 known vectors
+[ RUN  ] ozt round trip
+[  OK  ] ozt round trip
+[ RUN  ] ozt variant with extra prefix
+[  OK  ] ozt variant with extra prefix
+[ RUN  ] ozt rejects bad input
+[  OK  ] ozt rejects bad input
+[ RUN  ] ozj probe
+[  OK  ] ozj probe
+[ RUN  ] ozj duplicated header prefix
+[  OK  ] ozj duplicated header prefix
+[ RUN  ] bux cipher is self inverse
+[  OK  ] bux cipher is self inverse
+[ RUN  ] bmd probe
+[  OK  ] bmd probe
+[ RUN  ] entropy separates plaintext from ciphertext
+[  OK  ] entropy separates plaintext from ciphertext
+[ RUN  ] terrain probe
+[  OK  ] terrain probe
+[ RUN  ] manifest parse
+[  OK  ] manifest parse
+[ RUN  ] manifest verify
+[  OK  ] manifest verify
+[ RUN  ] extension helpers
+[  OK  ] extension helpers
+[ RUN  ] bmd v0x0c cipher
+[  OK  ] bmd v0x0c cipher
+[ RUN  ] bmd triangles
+[  OK  ] bmd triangles
+[ RUN  ] topology is a strict subset of geometry
+[  OK  ] topology is a strict subset of geometry
+[ RUN  ] mesh from bmd
+[  OK  ] mesh from bmd
+[ RUN  ] compute bounds
+[  OK  ] compute bounds
+[ RUN  ] frustum cull
+[  OK  ] frustum cull
+[ RUN  ] frustum from view projection
+[  OK  ] frustum from view projection
+[ RUN  ] terrain height
+[  OK  ] terrain height
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
+[ RUN  ] bmd report levels are separate
+[  OK  ] bmd report levels are separate
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
+[ RUN  ] bmd percent helper
+[  OK  ] bmd percent helper
+[ RUN  ] bmd report accumulates kinds
+[  OK  ] bmd report accumulates kinds
+[ RUN  ] bmd multi-mesh large counts (regression 8406)
+[  OK  ] bmd multi-mesh large counts (regression 8406)
+[ RUN  ] bmd multi-mesh extreme meshCount 0xFFFF
+[  OK  ] bmd multi-mesh extreme meshCount 0xFFFF
+[ RUN  ] bmd multi-mesh truncated payload
+[  OK  ] bmd multi-mesh truncated payload
+[ RUN  ] bmd multi-mesh overflow check
+[  OK  ] bmd multi-mesh overflow check
+[ RUN  ] bmd bones circular parent (cycle detection)
+[  OK  ] bmd bones circular parent (cycle detection)
+[ RUN  ] bmd bones extreme boneCount
+[  OK  ] bmd bones extreme boneCount
+[ RUN  ] bmd bones truncated payload
+[  OK  ] bmd bones truncated payload
+[ RUN  ] bmd bones overflow check
+[  OK  ] bmd bones overflow check
+
+389 checks, 0 failures

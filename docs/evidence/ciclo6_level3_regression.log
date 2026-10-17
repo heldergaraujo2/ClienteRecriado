@@ -1,0 +1,42 @@
+=== EVIDENCIA CICLO 6: regressao nivel 3 (8.406 -> 8.401) ===
+
+Comando para reproduzir:
+  g++ old vs new list_bmd tool
+
+Arquivos que deixaram de passar no nivel 3 apos extensao multi-mesh (5 arquivos):
+/home/user/Cliente_ref/Data/Custom/Monster/Monster865.bmd
+/home/user/Cliente_ref/Data/Custom/Monster/Ozarugold.bmd
+/home/user/Cliente_ref/Data/Custom/Monster/Ozaruplata.bmd
+/home/user/Cliente_ref/Data/Custom/Skin/FreddyKrueger.bmd
+/home/user/Cliente_ref/Data/Custom/Skin/bann.bmd
+
+Causa raiz:
+  Limite fixo vc>10000 || nc>10000 || ntc>10000 || ntri>10000 no parser multi-mesh.
+  Esses 5 arquivos tem ntri entre 11771 e 17694 (ex: Monster865 ntri=15576, Ozarugold 12616, bann 11771),
+  que excedem 10000 mas cabem no payload (ex: 15576*64=997k). Parser antigo (single-mesh) lia apenas primeira
+  malha para nivel 3 e passava; novo parser tentava todas as malhas e rejeitava por limite fixo.
+
+Correcao:
+  Removido limite fixo 10k; substituido por verificacao de overflow (mul_overflows) e limite de seguranca
+  meshCount max 64 (observado max 18) + checagem de que arrays cabem no payload.
+  Ver src/mu/assets/bmd_body.cpp linhas 210-280.
+
+Resultado apos correcao:
+  nivel 3: 8406 (83,31%) - volta ao valor pre-regressao
+  nivel 4: 8405 (83,30%) - +5 vs 8400, triangulos 3681664
+
+Teste de regressao:
+  TestBmdMultiMeshLargeCounts - verifica que ntri=12000 e 15576 parseiam
+  TestBmdMultiMeshExtremeMeshCount - meshCount 0xFFFF falha graciosamente
+  TestBmdMultiMeshTruncated - payload truncado nao le fora dos limites
+  TestBmdMultiMeshOverflow - counts que nao cabem rejeitados
+
+Evidencia de comparacao old vs new:
+/home/user/Cliente_ref/Data/Custom/Monster/Monster865.bmd
+/home/user/Cliente_ref/Data/Custom/Monster/Ozarugold.bmd
+/home/user/Cliente_ref/Data/Custom/Monster/Ozaruplata.bmd
+/home/user/Cliente_ref/Data/Custom/Skin/FreddyKrueger.bmd
+/home/user/Cliente_ref/Data/Custom/Skin/bann.bmd
+
+Apos fix:
+8406

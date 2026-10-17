@@ -1,0 +1,5 @@
+Beer01 textured: w 800 h 600 nonBg 33768 bright 12003 dark 19201
+brightRatio 35.5% darkRatio 56.9% hasBoth 1
+Beer01 plain: nonBg 33768 unique intensity values 200
+Beer01 textured: unique intensity values 223
+Validation textured sampling: PASS (expected bimodal checkerboard, objective, not subjective)

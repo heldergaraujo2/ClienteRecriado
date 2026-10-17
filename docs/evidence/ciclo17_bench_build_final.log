@@ -1,0 +1,4 @@
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c bench/bench_assets.cpp -o build/bench/bench_assets.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc build/bench/bench_assets.o -Lbuild -lmuassets -o build/bench_assets
+
+[exit code: 0]

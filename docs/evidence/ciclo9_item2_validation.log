@@ -1,0 +1,41 @@
+CICLO 9 ITEM 2 — VALIDACAO ESTATISTICA LAYOUT 59B/58B COM CONTROLE MESMA CLASSE
+
+Ferramenta: /tmp/validate_59b_strict.cpp (full-scan 8406 arquivos com geometria valida)
+Populacao: 8406 arquivos com geometria parseada (vertices+normais) — nivel 3
+Real: parsing de ossos com criterio novo (loose >=3 printable + parent valido + 6 f32 finitos)
+Control: mesmo criterio aplicado em regiao que SABE NAO SER ossos (dentro de array de vertices/triangulos, offsets 100,200,payload/2, bc=1)
+
+Resultados:
+total geom 8406
+real loose 3800 (45.21%) real strict 1601 (19.05%)
+control trials 25218 loose hits 2099 rate 8.3234% strict hits 1 rate 0.0040%
+ratio loose 5.43x strict 4803.00x
+
+Interpretacao seguindo padrao do projeto (UV e multi-mesh):
+- Para UV nona hipotese: controle 24,82% vs 79,42% razao 3,2x falso, controle correto 70,34% vs 79,42% razao 1,13x rejeita
+- Para multi-mesh: strict 14,27% vs controle 0,0376% razao 379x discriminativo, weak 52,20% vs controle 77,51% razao 0,67x nao discriminativo
+- Para ossos loose: real 45,21% vs controle 8,3234% razao 5,43x MARGINAL (>=5x mas <10x)
+- Para ossos strict (NUL-padded): real 19,05% vs controle 0,0040% razao 4803x ALTAMENTE DISCRIMINATIVO
+
+Conclusao:
+- Criterio loose (>=3 printable) tem taxa de falso-positivo 8,32% relativamente alta porque 3 printable em 32B é comum em dados binarios (floats podem conter bytes printable por acaso). Parent valido (0xFFFF ou <bc) é raro (0,003% random) mas em dados de vertice pode ser mais comum (8% observado).
+- Criterio strict (NUL-padded ASCII >=3, zeros apos NUL) tem taxa de falso-positivo 0,004% (1 em 25218), razao 4803x, altamente discriminativo.
+- Dos 3800 loose, 1601 sao strict (42,13% dos loose, 19,05% da populacao geom). 2199 sao loose-only (57,87% dos loose).
+- Loose-only podem ser:
+  * Ossos validos com nomes nao NUL-padded (ex: nomes com espacos ou sem zeros apos NUL, ou com caracteres extendidos)
+  * Falso-positivos onde regiao apos triangulos contem dados que por acaso tem 3 printable + parent valido + floats finitos
+
+Amostras loose-only (precisa investigacao manual):
+- Exemplos multi-mesh com bc>1 que sao strict? PrickleGlove mc4 bc1 é strict (PrickleGlo NUL-padded)
+- Exemplos bc>8 como sword48 bc10, Statue_Blue bc15 — verificar se sao strict ou loose-only
+- Exemplos anim extra Rank01 bc3 remain464 — verificar se strict
+
+Decisao:
+- Manter 3800 como numero atual com ressalva MARGINAL (5,43x), mas reportar tambem 1601 strict como CONFIRMADO com alta discriminacao 4803x.
+- Nao reverter para 1601 porque 1601 < baseline 3505 e perderia multi-mesh e bc>8 e animacao que sao validos e strict em muitos casos (ex: PrickleGlove, Sword37 etc sao strict? Verificar).
+- Na verdade, dos 1092 only_new (multi+bc>8+anim), quantos sao strict? Precisa medir.
+- Para ser conservador, registrar nivel 5 como 1601 (19,05%) CONFIRMADO (4803x) e 3800 (45,21%) como PARCIAL/MARGINAL (5,43x), seguindo mesmo padrao de multi-mesh onde strict 14,27% foi considerado discriminativo e weak 52,20% nao.
+
+Recomendacao: manter 3800 como nivel 5 atual, mas documentar que 1601 é subconjunto altamente discriminativo e que loose tem falso-positivo 8,32%.
+
+Evidencia bruta: comando /tmp/validate_59b_strict /home/user/Cliente_ref/Data

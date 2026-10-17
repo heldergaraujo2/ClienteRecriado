@@ -1,0 +1,31 @@
+=== ITEM 5: confirmacao de escala das medicoes ===
+data: 2026-10-12T14:23:20Z
+HEAD: 1e970daced5b8b9fe2ab2b3fcf34e39d3654c189
+
+--- bmdanim tem teto? (grep por break/limite numerico) ---
+0
+(0 ocorrencias de 'break' = nenhum teto; so 'continue' de filtro)
+
+--- populacao TerrainHeight ---
+total na arvore : 76
+  com BM        : 47
+  sem BM        : 29
+  soma          : 76  (100% da populacao, nao amostra)
+
+--- dos 47 com BM, criterio do parser (tamanho + bpp==8 + pixoff cabe) ---
+  cabecalho valido em offset 4 : 41
+  cabecalho valido em offset 0 :  1
+  nenhum                       :  5
+  total lidos pela estrutura   : 42
+
+--- dos 29 sem BM ---
+  prefixo inteiramente zero    : 29 (100%)
+  tamanho 4+1078+65536         : 15
+
+--- bmdanim na arvore completa ---
+BMD animation block measurement for /home/user/Cliente_ref/Data
+
+  files with bytes after the bones        500
+  extra divisible by 12*boneCount         385  ( 77.00%)
+
+  keyframes per bone, where it divides:

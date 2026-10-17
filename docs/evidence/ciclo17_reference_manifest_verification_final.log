@@ -1,0 +1,76 @@
+manifest /tmp/cliente_ref/ListaPatch.txt: 188 entries, 0 skipped
+
+verified against /tmp/cliente_ref
+  total          188
+  match          116
+  size mismatch  8
+  crc mismatch   11
+  missing        53
+  unreadable     0
+    CRC_MISMATCH  3D.Premium
+    SIZE_MISMATCH  License.hinet
+    SIZE_MISMATCH  main.premium
+    CRC_MISMATCH  Data/gate.bmd
+    SIZE_MISMATCH  Data/InGameShopScript/512.2011.006/IBSCategory.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2011.006/IBSPackage.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2011.006/IBSProduct.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2025.005/IBSCategory.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2025.005/IBSPackage.txt
+    SIZE_MISMATCH  Data/InGameShopScript/512.2025.005/IBSProduct.txt
+    MISSING  Data/Item/ArmorMale232.bmd
+    MISSING  Data/Item/ArmorMale233.bmd
+    MISSING  Data/Item/axe10.ozj
+    MISSING  Data/Item/Axe12.bmd
+    MISSING  Data/Item/BootMale232.bmd
+    MISSING  Data/Item/BootMale233.bmd
+    MISSING  Data/Item/bUYDmBaXdvBQMtx.ozj
+    MISSING  Data/Item/DarkHammer.bmd
+    MISSING  Data/Item/DarkSpear.bmd
+    MISSING  Data/Item/DcMakerFragPetCustom04.ozj
+    MISSING  Data/Item/DcMakerFragPetCustom04x.ozj
+    MISSING  Data/Item/DcMakerFragPetCustom04y.ozj
+    MISSING  Data/Item/ddsinflag1.bmd
+    MISSING  Data/Item/flag_Twitch.bmd
+    MISSING  Data/Item/flag_Youtube.bmd
+    MISSING  Data/Item/Foice.ozj
+    MISSING  Data/Item/Frag01sDcMaker.ozj
+    MISSING  Data/Item/Frag09DcMaker.ozj
+    MISSING  Data/Item/Frag10DcMaker.ozj
+    MISSING  Data/Item/FragDemonDcMaker.ozj
+    MISSING  Data/Item/Frags01DcMaker.ozj
+    MISSING  Data/Item/GloveMale232.bmd
+    MISSING  Data/Item/GloveMale233.bmd
+    MISSING  Data/Item/HelmMale232.bmd
+    MISSING  Data/Item/HelmMale233.bmd
+    MISSING  Data/Item/PantMale233.bmd
+    MISSING  Data/Item/PantMale322.bmd
+    MISSING  Data/Item/RongDoX2.bmd
+    MISSING  Data/Item/RongHongX2.bmd
+    MISSING  Data/Item/RongTrangX2.bmd
+    MISSING  Data/Item/Screen(07_25-14-50)-0000.jpg
+    MISSING  Data/Item/Wing327.bmd
+    MISSING  Data/Item/WingSaffe.ozj
+    CRC_MISMATCH  Data/Local/Eng/ItemTooltip_eng.bmd
+    CRC_MISMATCH  Data/Local/Eng/Item_eng.bmd
+    CRC_MISMATCH  Data/Local/Eng/movereq_eng.bmd
+    CRC_MISMATCH  Data/Local/Por/ItemTooltip_por.bmd
+    CRC_MISMATCH  Data/Local/Por/Item_por.bmd
+    CRC_MISMATCH  Data/Local/Por/movereq_por.bmd
+    CRC_MISMATCH  Data/Local/Spn/ItemTooltip_spn.bmd
+    CRC_MISMATCH  Data/Local/Spn/Item_spn.bmd
+    CRC_MISMATCH  Data/Local/Spn/movereq_spn.bmd
+    MISSING  Data/Player/ArmorMale232.bmd
+    MISSING  Data/Player/ArmorMale233.bmd
+    MISSING  Data/Player/axe10.ozj
+    MISSING  Data/Player/Axe12.bmd
+    MISSING  Data/Player/BootMale232.bmd
+    MISSING  Data/Player/BootMale233.bmd
+    MISSING  Data/Player/DarkHammer.bmd
+    MISSING  Data/Player/DarkSpear.bmd
+    MISSING  Data/Player/Foice.ozj
+    MISSING  Data/Player/GloveMale232.bmd
+    MISSING  Data/Player/GloveMale233.bmd
+    MISSING  Data/Player/HelmMale232.bmd
+    ... (8 more)
+
+[exit code: 2]

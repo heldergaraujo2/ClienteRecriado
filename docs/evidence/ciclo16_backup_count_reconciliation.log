@@ -1,0 +1,50 @@
+# Reconciliação contagem arquivos backup — ciclo16 Parte C item3
+# Data: 2026-10-12
+# Branch: arena/519f8fc9-clienterecriado
+
+Pergunta: por que git show --stat do commit de backup mostra 21 arquivos enquanto tools/investigation/ tem 19 (18+README)?
+
+Resposta: diferença são os 2 arquivos docs/evidence/ incluídos no mesmo commit.
+
+Evidência:
+
+git show --stat 59d0c31
+ docs/evidence/ciclo15_workspace_inventory.log  |  70 +++++++++++++
+ docs/evidence/ciclo15_workspace_manifest.md    |  85 ++++++++++++++++
+ tools/investigation/README.md                  |  17 ++++
+ tools/investigation/add_skinning_nontrivial.py |  21 ++++
+ tools/investigation/bench_ozt.cpp              |  92 +++++++++++++++++
+ tools/investigation/bench_ozt2.cpp             |  66 ++++++++++++
+ tools/investigation/cull_scale.cpp             |  63 ++++++++++++
+ tools/investigation/cull_scale2.cpp            |  52 ++++++++++
+ tools/investigation/debug_beer.cpp             |  37 +++++++
+ tools/investigation/debug_bonfire.cpp          |  68 +++++++++++++
+ tools/investigation/debug_bonfire2.cpp         |  85 ++++++++++++++++
+ tools/investigation/find_bones.cpp             |  41 ++++++++
+ tools/investigation/fix_makefile.py            |  67 ++++++++++++
+ tools/investigation/fix_makefile2.py           |  67 ++++++++++++
+ tools/investigation/graph.txt                  |  30 ++++++
+ tools/investigation/reflog.txt                 |   6 ++
+ tools/investigation/run_bux10.sh               |  14 +++
+ tools/investigation/test.log                   | 135 +++++++++++++++++++++++++
+ tools/investigation/test_frustum.cpp           |  48 +++++++++
+ tools/investigation/update_bench.py            |  15 +++
+ tools/investigation/update_ozt.py              |  83 +++++++++++++++
+ 21 files changed, 1162 insertions(+)
+
+ls tools/investigation/ | wc -l = 19 na época do commit 59d0c31 (18 scripts + README)
+git ls-files | grep investigation | wc -l = 19 na época
+
+21 = 19 (tools/investigation/) + 2 (docs/evidence/ciclo15_workspace_inventory.log + docs/evidence/ciclo15_workspace_manifest.md)
+
+Atualmente (após ciclo15 B) tools/investigation/ tem 20 arquivos porque foi adicionado ciclo15_render_validation.cpp no commit 9bb961e.
+
+git ls-files | grep investigation atualmente = 20 (19 anteriores + ciclo15_render_validation.cpp)
+ls tools/investigation/ atualmente = 20
+
+Portanto reconciliação: 21 arquivos no commit backup = 19 em tools/investigation/ + 2 em docs/evidence/, declarado por escrito conforme exigido.
+
+Comandos verificação:
+git show --stat 59d0c31 | head -25
+ls tools/investigation/ | wc -l
+git ls-files | grep investigation | wc -l

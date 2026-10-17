@@ -1,0 +1,9 @@
+file: /tmp/cliente_ref/Data/Item/Axes06.ozt (16432 bytes)
+  crc32: 8c9ef2dc
+  entropy: 6.3671 bits/byte
+  format: OZT (uncompressed true-colour)
+    64x64  32 bpp  footer=yes  trailer=26 bytes
+    pixel payload declared: 16384 bytes
+    validation stage: OZT probe only; pixels not read or converted
+
+[exit code: 0]

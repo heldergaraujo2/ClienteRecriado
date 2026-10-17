@@ -1,0 +1,35 @@
+/home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank02.bmd
+  mc=1 bc=1 ac=1 vc=430 ntri=752 payload=66894 base=66836 remain=58 expected_bc*59-1=58 expected_4+bc*59-1=62
+  bone 0: name='Box01' parent_raw=65535 parent=-1 floats=[0.0, 9.999999974752427e-07, 0.0, 1.570796012878418, -0.0, 0.0] pad=None rec_size=58
+
+/home/user/Cliente_ref/Data/Effect/Sapiatttres2.bmd
+  mc=1 bc=2 ac=1 vc=5 ntri=6 payload=869 base=752 remain=117 expected_bc*59-1=117 expected_4+bc*59-1=121
+  bone 0: name='zx01' parent_raw=65535 parent=-1 floats=[0.0, 0.0, 0.0, 0.0, 0.0, 1.6484179496765137] pad=0 rec_size=59
+  bone 1: name='Object04' parent_raw=0 parent=0 floats=[-13.206260681152344, 0.6579869985580444, -0.33241599798202515, 0.0, 0.0, -1.6484179496765137] pad=None rec_size=58
+
+/home/user/Cliente_ref/Data/Custom/Item/PrickleGlove.bmd
+  mc=4 bc=1 ac=1 vc=332 ntri=546 payload=78732 base=49316 remain=29416 expected_bc*59-1=58 expected_4+bc*59-1=62
+  multi-mesh: checking extra at base
+    u32 at base = 16515117 (ac=1, bc=1)
+    bone 0 at base+4: name='' parent_raw=49448 parent=49448 floats=[0.0, -22.549589157104492, -22.782312393188477, -4.86428689956665, 0.0, -25.753690719604492] pad=None
+  bone 0: name='' parent_raw=49448 parent=49448 floats=[0.0, -22.549589157104492, -22.782312393188477, -4.86428689956665, 0.0, -25.753690719604492] pad=None rec_size=58
+
+/home/user/Cliente_ref/Data/Item/PrickleGlove.bmd
+  mc=4 bc=1 ac=1 vc=332 ntri=546 payload=78732 base=49316 remain=29416 expected_bc*59-1=58 expected_4+bc*59-1=62
+  multi-mesh: checking extra at base
+    u32 at base = 16515117 (ac=1, bc=1)
+    bone 0 at base+4: name='' parent_raw=49448 parent=49448 floats=[0.0, -22.549589157104492, -22.782312393188477, -4.86428689956665, 0.0, -25.753690719604492] pad=None
+  bone 0: name='' parent_raw=49448 parent=49448 floats=[0.0, -22.549589157104492, -22.782312393188477, -4.86428689956665, 0.0, -25.753690719604492] pad=None rec_size=58
+
+/home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank02.bmd
+  mc=1 bc=1 ac=1 vc=430 ntri=752 payload=66894 base=66836 remain=58 expected_bc*59-1=58 expected_4+bc*59-1=62
+  bone 0: name='Box01' parent_raw=65535 parent=-1 floats=[0.0, 9.999999974752427e-07, 0.0, 1.570796012878418, -0.0, 0.0] pad=None rec_size=58
+
+/home/user/Cliente_ref/Data/Custom/Item/BloodangelClo.bmd
+  mc=1 bc=1 ac=1 vc=326 ntri=502 payload=46514 base=46456 remain=58 expected_bc*59-1=58 expected_4+bc*59-1=62
+  bone 0: name='objhand02' parent_raw=65535 parent=-1 floats=[0.0, 0.0, 0.0, -0.0, -0.0, -1.570796012878418] pad=None rec_size=58
+
+/home/user/Cliente_ref/Data/Custom/Item/Sword34.bmd
+  mc=1 bc=1 ac=1 vc=1764 ntri=2656 payload=252534 base=252476 remain=58 expected_bc*59-1=58 expected_4+bc*59-1=62
+  bone 0: name='Object18' parent_raw=65535 parent=-1 floats=[0.0, 2.300000051036477e-05, 0.0, -1.570796012878418, 1.570796012878418, 0.0] pad=None rec_size=58
+

@@ -1,0 +1,88 @@
+=== COMANDO USADO PARA RE-CLONE (se necessario) ===
+rm -rf /tmp/bmdref && git clone https://github.com/xulek/muonline-bmd-viewer /tmp/bmdref
+
+=== git -C /tmp/bmdref log -1 --format=fuller 3f11bf89f3702261174d8efa1436d56a15c7d97a ===
+commit 3f11bf89f3702261174d8efa1436d56a15c7d97a
+Author:     xulek <xulek121@gmail.com>
+AuthorDate: Fri Jul 24 21:10:59 2026 +0200
+Commit:     xulek <xulek121@gmail.com>
+CommitDate: Fri Jul 24 21:10:59 2026 +0200
+
+    refactor: update Logger tests to use console.debug and console.info instead of console.log
+
+=== git -C /tmp/bmdref show <hash> --format="%an <%ae>%n%ad%n%cd" --date=iso ===
+xulek <xulek121@gmail.com>
+2026-07-24 21:10:59 +0200
+2026-07-24 21:10:59 +0200
+
+diff --git a/electron/data-root-resolver.js b/electron/data-root-resolver.js
+index 579892c..926f78e 100644
+--- a/electron/data-root-resolver.js
++++ b/electron/data-root-resolver.js
+@@ -158,17 +158,6 @@ async function resolveDataFilePath(dataRootPath, relativePath) {
+     return null;
+   }
+ 
+-  try {
+-    const directStats = await fs.stat(directPath);
+-    if (directStats.isFile()) {
+-      return directPath;
+-    }
+-  } catch (error) {
+-    if (!isMissingPathError(error) && error?.code !== 'EACCES' && error?.code !== 'EPERM') {
+-      throw error;
+
+=== package.json author field ===
+    "3d"
+  ],
+  "author": "xulek <xulek@example.com>",
+  "license": "ISC",
+  "description": "BMD Viewer for MU Online 3D models",
+
+=== git log --all --format="%H %ad %ae" --date=iso | head -20 ===
+573eff12893cd773fc3eed8e04b082bb105d03a6 2026-07-24 19:11:57 +0000 xulek@users.noreply.github.com
+3f11bf89f3702261174d8efa1436d56a15c7d97a 2026-07-24 21:10:59 +0200 xulek121@gmail.com
+0510d02c23ff63579c3386f62650de2cec8c592a 2026-07-24 20:51:52 +0200 xulek121@gmail.com
+c54e848f31750d3dd38cb9e7b2778dfa6daf3a8c 2026-07-23 19:43:40 +0200 xulek121@gmail.com
+d860e8c91c7234a1a74493e5af594051be1973b3 2026-04-19 12:33:21 +0200 xulek121@gmail.com
+6d6592e4afaa51ac34867de5023c11c2a3aa0f07 2026-04-18 11:05:01 +0000 xulek@users.noreply.github.com
+d4493ecf186f74decd10d6b6df503bf412de79b8 2026-04-18 13:03:56 +0200 xulek121@gmail.com
+78ca02fdec0f5dd166663b712acf8fb35f66ea40 2026-04-18 06:43:45 +0000 xulek@users.noreply.github.com
+fedc053602c8b8e74dc2585e5db7a412b05252f9 2026-04-17 22:35:10 +0200 xulek121@gmail.com
+1468666c0ef85bedac15af4b4ce8f2a43ee2cb85 2026-04-17 21:51:52 +0200 xulek121@gmail.com
+a214bc69ddd78c707854a2ddd218735363c7d777 2026-04-17 21:36:41 +0200 xulek121@gmail.com
+2a903c5cea33f8177dbc654a80f9a19dd766bcd4 2026-04-16 13:37:04 +0200 xulek121@gmail.com
+fe513e448684419303e5694690511fe6c6b6416a 2026-04-16 12:49:19 +0200 xulek121@gmail.com
+bab6183b7cc1075424450819b06eace1d6f45f49 2026-04-15 21:01:20 +0000 xulek@users.noreply.github.com
+d70e2027e9a89ba82ffc89eca2b6852146c0243f 2026-04-15 23:00:34 +0200 xulek@users.noreply.github.com
+1b9fe92953b253087b23be5f5f224ef7e822862b 2026-04-15 22:58:36 +0200 xulek121@gmail.com
+240f345fdc03528e63664e7640fcc60431a7f1cc 2026-04-15 22:44:17 +0200 xulek121@gmail.com
+f37fd3b77a44517e37dd11301bb8f47c2106418b 2026-04-12 22:50:46 +0200 xulek121@gmail.com
+7da6ad8d975c2ab8d919aa7ecbb331915e52f6b8 2026-04-12 22:48:17 +0200 xulek121@gmail.com
+b1856ba54c7bbc644f7090bab7d7994d088f3f72 2026-04-12 22:09:09 +0200 xulek121@gmail.com
+
+=== git log --reverse | head ===
+2025-07-02 16:58:48 +0200 6e7fbfc4feed688c9fe9fea2e95234b573c5472d xulek121@gmail.com
+2025-07-02 17:39:42 +0200 140a5fa37c116532b3c02144d00017c91a17e2cf xulek121@gmail.com
+2025-07-03 17:13:46 +0200 58a7d826372648efac6516b03a15a3fb16403dcd xulek121@gmail.com
+2025-07-03 17:29:54 +0200 96bd35844e1a82b16ef813c1d74cd03e0c71378b xulek121@gmail.com
+2025-07-03 17:38:10 +0200 ce4c9b78b2afa7311424996fa2e34c11df70b479 xulek121@gmail.com
+2025-07-03 17:51:03 +0200 ab690251820da89d4ee41111429017129003ec1b xulek121@gmail.com
+2025-07-03 18:11:11 +0200 64c6fd99595cf064679ad133f94ec637e5d09c01 xulek121@gmail.com
+2025-07-03 18:27:37 +0200 dd5311eb5d6a1c647b365956f124d4a0e0d88028 xulek121@gmail.com
+2025-07-03 21:08:25 +0200 44e5d1a6a44ea518b019d796d1aecb3330e0e51a xulek121@gmail.com
+2025-07-03 22:00:35 +0200 714ae1b9e8736247127d3d290e5eb79bf399d60c xulek121@gmail.com
+2025-07-03 22:01:38 +0200 7bf6bade1d8614c6ef142a2f1c2feab2a215a1b4 xulek121@gmail.com
+2025-07-03 22:13:06 +0200 37a4d0e06903c33afb05b1ac5ad3e173c2754c0e xulek121@gmail.com
+2025-07-05 17:44:47 +0200 8e4f19af6f063937d0866b686850bf087debc1a6 xulek121@gmail.com
+2025-07-05 17:54:42 +0200 c6dae029d1e154a28440901876dae2bb0cd70ceb xulek121@gmail.com
+2025-07-05 20:43:04 +0200 74f089a891f2a9f86ed1a3c179b8745ec326f6ec xulek121@gmail.com
+2025-07-05 23:37:10 +0200 39ede0dc39627e56f6a3c7a769129a6eb03612ef xulek121@gmail.com
+2025-11-09 16:22:02 +0000 9a8f966e854f1214d468c0bce5524d6a09403202 noreply@anthropic.com
+2025-11-09 18:40:58 +0100 3f7350a1ba32b8a0181357cffb4a4059b101d7a5 xulek@users.noreply.github.com
+2025-11-15 13:59:57 +0100 42f334f3a9101eb5e15e50944138be340e3b8b60 xulek121@gmail.com
+2025-11-18 22:00:32 +0100 382b3429c752bb15f57842e2e07d0c8407c24991 xulek121@gmail.com
+
+=== date atual do sistema ===
+Mon Oct 12 17:02:14 UTC 2026
+Mon Oct 12 17:02:14 UTC 2026

@@ -1,0 +1,123 @@
+=== EVIDENCIA DE DEC-008: custo do caminho de submissao (CPU) ===
+data: 2026-10-12T16:32:45Z
+HEAD ClienteRecriado: 4a50d5aa3c345784f6f3706f5ce2c2e79021c111
+HEAD Cliente_ref    : 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+hardware: 2 nucleos, Intel(R) Xeon(R) Processor @ 2.60GHz
+memoria : 3.8 GiB
+compilador: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+flags: 
+comando: python3 tools/gen_dec008_evidence.py 5
+
+
+Gerado por tools/gen_dec008_evidence.py. Nenhum numero deste arquivo
+e digitado: todos sao derivados da saida do benchmark, que esta
+transcrita mais abaixo. Isso existe porque a versao anterior deste
+arquivo tinha uma secao de contas derivada de valores hardcoded de
+outra execucao, e as duas secoes discordavam entre si.
+
+execucoes completas do binario : 5
+
+---------------------------------------------------------------------------
+POR QUE ESTA EVIDENCIA MUDOU DE FORMA (correcao do ciclo 5)
+---------------------------------------------------------------------------
+
+A versao anterior media UM gather e o comparava com o orcamento de UM
+QUADRO a 60 FPS, chamando-o de custo por quadro. NAO E. A auditoria do
+ciclo 4 apontou isso e estava certa.
+
+Os dois custos pertencem a orcamentos diferentes:
+
+  (1) EXPANSAO, indice -> array flat. Custo de CARREGAMENTO. No caminho
+      glDrawArrays do cliente existe um array flat client-side, e a
+      implementacao natural o constroi UMA VEZ ao carregar o modelo,
+      nao a cada quadro. Comparar com orcamento de quadro era o erro.
+
+  (2) VOLUME DE SUBMISSAO POR QUADRO. E o que realmente se repete. Sem
+      glGenBuffers no binario (docs/RENDERING.md secao 3) o vertice mora
+      em memoria de cliente e o driver o re-marshals a cada draw. Sem
+      glDrawElements, vertice compartilhado e REENVIADO em vez de
+      referenciado, entao o volume por quadro e o tamanho EXPANDIDO.
+      Isso e uma quantidade exata. O CUSTO dela nao pode ser medido
+      aqui, porque e marshalling de driver, barramento e overhead de
+      chamada por vertice - e nao ha contexto GL neste ambiente.
+
+---------------------------------------------------------------------------
+MEDICOES, COM DISPERSAO ENTRE EXECUCOES
+---------------------------------------------------------------------------
+
+O benchmark ja reporta desvio padrao INTERNO (entre as repeticoes de
+uma execucao). Isso nao e o mesmo que a dispersao ENTRE execucoes,
+que e a que importa para citar um numero. As duas sao reportadas.
+
+CARREGAMENTO: expansao indice -> flat
+  medianas por execucao : 19190.9, 21943.7, 17760.9, 19163.7, 25260.8 us
+  mediana das medianas  : 19190.9 us
+  min / max             : 17760.9 / 25260.8 us
+  amplitude             : 7499.9 us (39.08% da mediana)
+  media reportada       : 19603.7 us (entre execucoes: 18068.2 a 25107.7)
+
+CARREGAMENTO: upload do vertex buffer (unicos)
+  medianas por execucao : 3464.9, 4271.2, 3428.8, 3493.1, 4491.3 us
+  mediana das medianas  : 3493.1 us
+  min / max             : 3428.8 / 4491.3 us
+  amplitude             : 1062.5 us (30.42% da mediana)
+  media reportada       : 3599.2 us (entre execucoes: 3464.3 a 4405.9)
+
+---------------------------------------------------------------------------
+CONTAS DE FECHAMENTO - derivadas das medianas acima, nao digitadas
+---------------------------------------------------------------------------
+
+ORCAMENTO DE CARREGAMENTO (o correto para a expansao):
+  expansao de TODA a arvore           :   19190.9 us =   0.02 s
+  upload VBO de TODA a arvore         :    3493.1 us =   0.00 s
+  razao expansao/upload               :      5.49x  (entre execucoes: 5.14x a 5.62x)
+
+  Referencia: carregar TODOS os 10.090 modelos de uma vez nao e o que
+  um jogo faz. Uma cena carrega um subconjunto. O numero acima e o
+  teto para a arvore inteira, e a razao e o que se preserva em
+  qualquer subconjunto, porque ambos os custos sao lineares na
+  contagem de vertice.
+
+ORCAMENTO DE QUADRO (nao se aplica a expansao, e por isso nao ha
+comparacao aqui - a versao anterior fazia essa comparacao e estava
+errada):
+  orcamento de 1 quadro a  60 FPS     :   16666.7 us
+  orcamento de 1 quadro a 144 FPS     :    6944.4 us
+
+---------------------------------------------------------------------------
+SAIDA BRUTA DO BENCHMARK
+---------------------------------------------------------------------------
+SAIDA BRUTA DO BENCHMARK, EXECUCAO 1 DE 5
+---------------------------------------------------------------------------
+
+    reps=300  mean=27.7 us  stddev=2.8 us (9.98% of mean)  min=27.0  max=48.8
+    reps=300  mean=441.7 us  stddev=26.4 us (5.98% of mean)  min=400.9  max=558.6
+    reps=20  mean=7179.5 us  stddev=248.4 us (3.46% of mean)  min=6985.3  max=8092.9
+LOAD-TIME expand indexed -> flat    19190.9  20900.1  20900.1  19216.5      67.21    3502.3
+    reps=20  mean=19216.5 us  stddev=998.3 us (5.20% of mean)  min=17924.1  max=21359.0
+LOAD-TIME vertex buffer upload       3464.9   3532.5   3549.0   3464.3      41.02   11838.2
+    reps=50  mean=3464.3 us  stddev=37.8 us (1.09% of mean)  min=3375.4  max=3556.4
+
+---------------------------------------------------------------------------
+LIMITE DA CONCLUSAO
+---------------------------------------------------------------------------
+
+O que SUSTENTA:
+  - CARREGAMENTO: expandir custa 5.49x mais que subir o buffer
+    indexado (19190.9 us contra 3493.1 us para a arvore inteira).
+    E trabalho de carregamento; orcamento relevante e o de carga, nao
+    o de quadro. A razao se preserva em qualquer subconjunto porque
+    ambos os custos sao lineares na contagem de vertice.
+  - VOLUME POR QUADRO: quantidade exata, nao custo. Sem glDrawElements,
+    o volume por draw e o tamanho expandido. O CUSTO desse volume e
+    driver/barramento/overhead de chamada e esta BLOCKED, sem contexto.
+
+O que NAO SUSTENTA: nenhum numero de FPS, nenhum ganho de desempenho,
+nenhuma comparacao de draw call em tempo real. A validacao final de
+DEC-008 (Parte B) exige contexto grafico e esta BLOQUEADA. Uma versao
+anterior desta secao comparava a expansao com orcamento de quadro e
+estava errada - corrigido no ciclo 5, item 1 da auditoria.
+
+Ressalvas: buffers RESIDENTES entre repeticoes, que e o caso FAVORAVEL
+ao caminho expandido. Contagens da arvore inteira, nao do subconjunto
+visivel de um quadro. Amostra pequena (N=5), indicativa, nao definitiva.

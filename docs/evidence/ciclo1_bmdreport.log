@@ -1,0 +1,72 @@
+# mutool bmdreport - relatorio de usabilidade BMD em 3 niveis
+# Gerado em: 2026-10-11T23:11:36Z
+# Regenerado apos a implementacao do parser do corpo v0x0A: o nivel 3
+# deixou de ser zero por construcao e passou a ser medido.
+#=====================================================================
+BMD usability report for /home/user/Cliente_ref/Data
+
+Three separate questions, three separate answers. A container
+header that classifies cleanly says nothing about whether a
+vertex can be extracted from it.
+
+  total .bmd files                            10090
+
+LEVEL 1 - container structure valid
+  magic + version recognised, and for v0x0C the declared
+  payload length agrees with the file length.
+    valid                                     10023  ( 99.34%)
+    invalid                                      67  (  0.66%)
+
+LEVEL 2 - payload obtainable in the clear
+    plaintext                                  1396  ( 13.84%)
+    bux-decryptable                             100  (  0.99%)
+    OPAQUE (cipher not recovered)              8594  ( 85.17%)
+
+LEVEL 3 - geometry actually parsed (vertices/faces/bones)
+    parsed                                     1191  ( 11.80%)
+    Counts vertex positions and normals only. Face indices,
+    texture coordinates and bones are NOT decoded, so a file
+    counted here is not a renderable model.
+    v0x0C is excluded: its payload is encrypted, so parsing it
+    would yield noise rather than vertices.
+
+container kinds
+    BMD v0x0C                                  8741  ( 86.63%)
+    BMD v0x0A (legacy)                         1194  ( 11.83%)
+    BMD other version                            31  (  0.31%)
+    bux-encrypted container                     100  (  0.99%)
+    unrecognised                                 24  (  0.24%)
+
+payload entropy: max 7.9980 bits/byte, 8570 above 7.5
+
+sample files with a payload in the clear:
+    /home/user/Cliente_ref/Data/Custom/Item/PrickleGlove_left.bmd entropy 5.183  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/PrickleGlove_right.bmd entropy 5.640  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/Sword40.bmd  entropy 5.348  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/Sword40_L.bmd entropy 5.732  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/Sword40_R.bmd entropy 5.441  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Item/sword50.bmd  entropy 5.669  kind BMD_OTHER_VERSION
+    /home/user/Cliente_ref/Data/Custom/Item/sword50_L.bmd entropy 5.619  kind BMD_OTHER_VERSION
+    /home/user/Cliente_ref/Data/Custom/Item/sword50_R.bmd entropy 5.627  kind BMD_OTHER_VERSION
+    /home/user/Cliente_ref/Data/Custom/Monster/Monster263.bmd entropy 7.020  kind BMD_V0A
+    /home/user/Cliente_ref/Data/Custom/Monster/Monster277.bmd entropy 7.033  kind BMD_V0A
+
+sample OPAQUE files (cipher not recovered):
+    /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank01.bmd entropy 7.997  kind BMD_V0C
+    /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank02.bmd entropy 7.997  kind BMD_V0C
+    /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank03.bmd entropy 7.997  kind BMD_V0C
+    /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank04.bmd entropy 7.996  kind BMD_V0C
+    /home/user/Cliente_ref/Data/Custom/Bmd/RankUser/Rank05.bmd entropy 7.997  kind BMD_V0C
+
+sample structurally invalid files:
+    /home/user/Cliente_ref/Data/Custom/Item/sword50.bmd  declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Custom/Item/sword50_L.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Custom/Item/sword50_R.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Custom/Monster/NHMine1.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Custom/ScriptImages/cassanic1.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/ElixirNH.bmd        declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/ElixirPieceNH.bmd   declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/TempleGuard_Material.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/TempleGuard_anvil.bmd declared payload length does not match file length
+    /home/user/Cliente_ref/Data/Item/TempleGuard_bow.bmd declared payload length does not match file length
+exit code: 2

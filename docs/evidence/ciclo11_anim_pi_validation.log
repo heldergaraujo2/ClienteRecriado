@@ -1,0 +1,5 @@
+total with bones 3693 with_extra 764 divisible 231 plausible_pi (all floats in [-pi,pi]) 53
+control vertex array 12B chunks in [-pi,pi]: trials 55985 hits 2079 rate 3.7135%
+control per file: files 231 files_hit 78 rate 33.7662%
+real pi rate per file 1.4351%
+ratio per trial 0.39x per file 0.04x

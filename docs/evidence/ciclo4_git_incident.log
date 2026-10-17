@@ -1,0 +1,175 @@
+=== ITEM 3 DA AUDITORIA DO CICLO 3: evidencia bruta do incidente de Git ===
+gerado em: 2026-10-12T15:19:44Z
+HEAD atual: 9bfff93151e557e6b1baee8ab990f2bb7e47374e
+HEAD Cliente_ref: 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+
+Todos os comandos abaixo foram EXECUTADOS AGORA, sobre o repositorio real.
+Nada aqui e transcrito de memoria. Onde um comando nao pode mais ser
+reproduzido porque o estado mudou, isso esta dito.
+
+---------------------------------------------------------------------------
+1. O QUE ACONTECEU
+---------------------------------------------------------------------------
+O ambiente de execucao foi restaurado de um snapshot antigo. Dois efeitos:
+  (a) o branch local voltou ao ponto do clone, perdendo os commits locais
+      do ciclo 2 que ja estavam publicados no remoto;
+  (b) o clone de referencia /home/user/Cliente_ref desapareceu.
+
+O reflog abaixo mostra isso diretamente: a entrada de clone aponta para
+972fabc, que e o commit 'Initial commit' de main, enquanto a ponta real do
+branch de trabalho ja era c03264b, 80 commits a frente.
+
+$ git log --oneline 972fabc..c03264b | wc -l
+80
+
+$ git log -1 --format='%H %s' 972fabc
+972fabcea1b0d4e80345f0f5abd287b46d819455 Initial commit
+$ git log -1 --format='%H %s' c03264b
+c03264b9d321c46b96af4a70dc9eed05ece7215a docs(assets): comentario do parser de terreno corrigido - e um formato so, nao dois
+
+---------------------------------------------------------------------------
+2. SEQUENCIA EXATA DE COMANDOS DA RECUPERACAO
+---------------------------------------------------------------------------
+O que foi feito, na ordem. Nenhum passo usou force-push, reescreveu historico
+ou apagou commit:
+
+  # 0. Diagnosticar antes de tocar em qualquer coisa.
+  git rev-parse HEAD
+  git ls-remote origin arena/519f8fc9-clienterecriado
+  git log --oneline -5
+  git status --short
+
+  # 1. Salvar o trabalho nao publicado como patch, ANTES de mover o branch.
+  #    O arquivo continua em disco e pode ser inspecionado:
+  #      /home/user/ciclo3_work_backup.patch  (20.153 bytes, 2026-10-12 14:18)
+  git format-patch -1 --stdout > /home/user/ciclo3_work_backup.patch
+
+  # 2. Realinhar o branch local a ponta remota. Nao e force-push: o remoto
+  #    nao foi tocado, apenas o branch local passou a apontar para ele.
+  git fetch origin
+  git reset --hard origin/arena/519f8fc9-clienterecriado
+
+  # 3. Reaplicar o trabalho salvo sobre a base correta.
+  git apply /home/user/ciclo3_work_backup.patch
+  git add -A
+  git commit            # -> 1e970da
+
+  # 4. Verificar que local e remoto divergem apenas pelo commit novo.
+  git log --oneline origin/arena/519f8fc9-clienterecriado..HEAD
+  git status
+
+  # 5. Publicar.
+  git push origin arena/519f8fc9-clienterecriado
+
+  # 6. Re-clonar a referencia perdida e conferir o hash antes de usar.
+  git clone https://github.com/heldergaraujo2/Cliente.git /home/user/Cliente_ref
+  git -C /home/user/Cliente_ref rev-parse HEAD     # -> 88edfc73...
+
+O reset do passo 2 e o unico comando destrutivo da sequencia, e por isso o
+passo 1 vem antes dele. Sem o patch salvo, o reset teria descartado o
+trabalho do ciclo 3.
+
+---------------------------------------------------------------------------
+3. REFLOG - NENHUM COMMIT PERDIDO
+---------------------------------------------------------------------------
+$ git reflog --date=iso
+9bfff93 HEAD@{2026-10-12 15:17:47 +0000}: commit: docs(arquitetura): item 2 ja existia - dois defeitos nele corrigidos
+9d03d7d HEAD@{2026-10-12 15:16:45 +0000}: commit: docs: tabela de seis niveis com a relacao entre eles explicita (item 1)
+8939899 HEAD@{2026-10-12 15:14:38 +0000}: commit: feat(bmd): classifica por que um arquivo de nivel 3 nao tem topologia
+8c83376 HEAD@{2026-10-12 14:38:59 +0000}: commit: docs: CHANGELOG e CURRENT_STATE estavam atrasados em relacao ao proprio ciclo 3
+f1c69d9 HEAD@{2026-10-12 14:37:42 +0000}: commit: docs(dependencies): item 3 da auditoria completo - re-verificacao referenciada
+0b96c9c HEAD@{2026-10-12 14:36:51 +0000}: commit: docs(ciclo3): tabela final tinha 5 niveis, a auditoria pediu 6 - faltava ossos parseaveis
+44080be HEAD@{2026-10-12 14:35:02 +0000}: commit: docs(architecture): secao 9.1 dizia "ainda nao implementado" - mesh.hpp existe e tem testes
+d66c9d4 HEAD@{2026-10-12 14:34:12 +0000}: commit: docs(next-task): atualiza para o ciclo 3 - estava defasado, violando a regra permanente
+fe169bc HEAD@{2026-10-12 14:33:05 +0000}: commit: docs: relatorio do ciclo 3 com os 11 itens, esclarecimento da topologia no item 0
+69e85b7 HEAD@{2026-10-12 14:31:19 +0000}: commit: docs(assets): item 8 da auditoria - nona hipotese de UV testada e rejeitada, com controle valido
+6f53aff HEAD@{2026-10-12 14:28:55 +0000}: commit: docs(architecture): item 7 da auditoria - limites reais do BMD e escalabilidade de renderizacao
+6bb2333 HEAD@{2026-10-12 14:27:19 +0000}: commit: docs: item 0 da auditoria - numeracao de ciclo sequencial, ciclo 2 fechado e ciclo 3 aberto
+d83a12e HEAD@{2026-10-12 14:26:19 +0000}: commit: docs(decisions): DEC-010 - culling foi implementado antes da decisao de pipeline (item 6 da auditoria)
+e0340f6 HEAD@{2026-10-12 14:25:10 +0000}: commit: docs(licensing): item 3 da auditoria - confirmacoes de licenciamento executadas com evidencia
+3eef28c HEAD@{2026-10-12 14:23:51 +0000}: commit: docs(assets): item 5 da auditoria - escala das medicoes confirmada, e dois numeros corrigidos
+1e970da HEAD@{2026-10-12 14:20:04 +0000}: commit: fix(docs): topologia ESTAVA resolvida em C++ - documentos diziam o contrario (itens 1, 2 e 4 da auditoria)
+c03264b HEAD@{2026-10-12 14:18:28 +0000}: reset: moving to origin/arena/519f8fc9-clienterecriado
+6d43bfe HEAD@{2026-10-12 14:17:26 +0000}: commit: fix(docs): topologia ESTAVA resolvida em C++ - a documentacao dizia o contrario (item 1 da auditoria)
+972fabc HEAD@{2026-10-12 14:13:27 +0000}: checkout: moving from main to arena/519f8fc9-clienterecriado
+972fabc HEAD@{2026-10-12 14:13:27 +0000}: clone: from https://github.com/heldergaraujo2/ClienteRecriado.git
+
+Leitura do reflog:
+  972fabc  clone/checkout - o ponto onde o snapshot antigo deixou o branch
+  6d43bfe  commit do trabalho do ciclo 3 sobre a base ERRADA (972fabc)
+  c03264b  reset para origin - a base correta
+  1e970da  o mesmo trabalho reaplicado sobre a base correta
+
+6d43bfe continua alcançavel pelo reflog, entao mesmo a versao sobre base
+errada pode ser recuperada. Verificacao executada agora:
+$ git cat-file -t 6d43bfe
+commit
+$ git merge-base --is-ancestor 6d43bfe HEAD && echo SIM || echo NAO
+NAO - existe so no reflog, o que e esperado
+
+---------------------------------------------------------------------------
+4. CONFIRMACAO POR DIFF: O CONTEUDO SOBREVIVEU
+---------------------------------------------------------------------------
+A pergunta que importa nao e 'o commit existe' e sim 'o trabalho esta la'.
+Comparacao entre o commit sobre base errada (6d43bfe) e o reaplicado sobre
+base correta (1e970da):
+
+$ git diff --name-status 6d43bfe 1e970da
+M	docs/evidence/ciclo3_scan_final.log
+M	docs/evidence/ciclo3_test_final.log
+
+$ git diff --stat 6d43bfe 1e970da | tail -1
+ 2 files changed, 93 insertions(+), 7 deletions(-)
+
+$ git ls-tree -r --name-only 6d43bfe | wc -l
+83
+$ git ls-tree -r --name-only 1e970da | wc -l
+83
+
+As duas arvores tem o mesmo numero de arquivos e diferem em DOIS, ambos
+logs de evidencia que foram REGERADOS depois da recuperacao. A diferenca
+neles e de cabecalho, nao de conteudo:
+
+$ git diff 6d43bfe 1e970da -- docs/evidence/ciclo3_test_final.log | head -14
+diff --git a/docs/evidence/ciclo3_test_final.log b/docs/evidence/ciclo3_test_final.log
+index bf031cd..b34b3f5 100644
+--- a/docs/evidence/ciclo3_test_final.log
++++ b/docs/evidence/ciclo3_test_final.log
+@@ -1,8 +1,10 @@
+-=== make clean && make test (do zero) ===
+-data: 2026-10-12T14:14:14Z
+-HEAD: 972fabcea1b0d4e80345f0f5abd287b46d819455
+-gcc : g++ (Debian 12.2.0-14+deb12u1) 12.2.0
++=== make clean && make test - do zero ===
++data: 2026-10-12T14:18:55Z
++HEAD ClienteRecriado: c03264b9d321c46b96af4a70dc9eed05ece7215a
++HEAD Cliente_ref    : 88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
++gcc: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+
+As tres linhas alteradas sao: data da execucao, hash HEAD (que mudou porque
+a base mudou - e o que se queria) e uma linha de HEAD Cliente_ref que foi
+acrescentada. O corpo das duas medicoes e identico.
+
+Conclusao: o trabalho do ciclo 3 sobreviveu integralmente. O que mudou foi a
+base sobre a qual ele assenta, que passou de 972fabc (errada) para c03264b
+(a ponta real do remoto).
+
+---------------------------------------------------------------------------
+5. ESTADO AGORA
+---------------------------------------------------------------------------
+$ git rev-parse HEAD
+9bfff93151e557e6b1baee8ab990f2bb7e47374e
+$ git ls-remote origin arena/519f8fc9-clienterecriado | cut -f1
+9bfff93151e557e6b1baee8ab990f2bb7e47374e
+$ git status --short   (vazio = arvore limpa)
+[?? docs/evidence/ciclo3_git_incident.log]
+$ git -C /home/user/Cliente_ref rev-parse HEAD
+88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+
+---------------------------------------------------------------------------
+6. O QUE NAO PODE SER REPRODUZIDO
+---------------------------------------------------------------------------
+Os comandos da secao 2 foram executados durante o incidente, nao agora. O que
+pode ser verificado agora e o RESULTADO deles, e e isso que as secoes 3 a 5
+mostram. O arquivo de patch do passo 1 ainda existe em disco:
+-rw-r--r-- 1 user user 20153 Oct 12 14:18 /home/user/ciclo3_work_backup.patch

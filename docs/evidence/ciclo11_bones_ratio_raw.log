@@ -1,0 +1,45 @@
+total_geom 8406
+real_loose_old 3194 (38.00%) real_strict_old 1186 (14.11%) [tool simplificado, parsing base simples]
+real_loose_new 2966 (35.28%) real_strict_new 1186 (14.11%) [tool simplificado]
+
+CONTROL OLD (sem ciclo detection):
+ trials 21627 loose hits 1853 rate per trial 8.5680% strict hits 0 rate 0.0000%
+ files 7209 loose_files 1765 rate per file 24.4833% strict_files 0 rate per file 0.0000%
+ ratio per trial OLD loose 4.43x strict 0.00x
+ ratio per file OLD loose 1.55x strict 0.00x
+
+CONTROL NEW (com ciclo detection):
+ trials 21627 loose hits 2 rate per trial 0.0092% strict hits 0 rate 0.0000%
+ files 7209 loose_files 2 rate per file 0.0277% strict_files 0 rate per file 0.0000%
+ ratio per trial NEW loose 3815.47x strict 0.00x
+ ratio per file NEW loose 1271.82x strict 0.00x
+
+=== HISTORICO CICLO 9 (ANTES CORRECAO UNIDADE E ANTES CICLO DETECTION) ===
+População: 8406 arquivos com geometria válida (nível 3)
+Real loose: 3800 (45,21% de 8406, 37,66% de 10090) — critério bc 1..64, mc 1..64, remain>=bc*59-1, loose>=3 printable + parent válido + floats finitos, SEM detecção ciclo
+Real strict: 1601 (19,05% de 8406) — NUL-padded
+Controle: 3 offsets por arquivo (100,200,payload/2) bc=1, SEM ciclo detection, trials 25218, loose hits 2099 rate 8,3234%, strict hits 1 rate 0,0040% (evidência ciclo9_item2_validation.log)
+Ratio per trial (unidades diferentes, inválido): loose 45,21%/8,3234% = 5,43x MARGINAL, strict 19,05%/0,0040% = 4803x
+
+=== CORRECAO UNIDADE APENAS (SEM CICLO) — DEVERIA DIMINUIR RATIO ===
+Se mantiver SEM ciclo detection mas corrigir unidade para per file (mesma unidade):
+- Controle per file: arquivos com pelo menos 1 hit entre 3 tentativas. Medido com tool ciclo11_item1_ratio_raw (old): files 7209, loose_files 1765 rate 24,4833% (maior que 8,56% per trial, pois 3 oportunidades vs 1)
+- Ratio per file OLD: real 38,00% (3194/8406 com parsing simplificado) / 24,4833% = 1,55x — MENOR que 4,43x per trial OLD
+- Conclusão matemática: testar MAIS oportunidades no controle (3 por arquivo vs 1 por tentativa) AUMENTA chance acerto controle, portanto DIMINUI razão real/controle. Correção unidade sozinha explica queda de 5,43x para ~1,5-2x, NÃO aumento para 1846x.
+
+=== DEPOIS CICLO DETECTION (COM CORRECAO UNIDADE) ===
+População: 8406 geom
+Real loose NEW: 3693 (43,93% geom, 36,60% total) — com ciclo detection A->B->A e self-loop parent==0 rejeitado, -107 vs 3800 (mutool bmdreport)
+Real strict NEW: 1186 (14,11% geom, 11,75% total) — com ciclo detection, -415 vs 1601
+Controle NEW com ciclo detection: trials 25218, loose hits 2 rate 0,0079%, per file 2 arquivos rate 0,0238% (2/8406) (tool simplificado 0,0277% 2/7209)
+Ratio per file NEW: 43,93% / 0,0238% = 1846,5x (tool simplificado 35,28%/0,0277% = 1271,82x, diferença devido parsing simplificado vs mutool bmdreport completo 3693)
+Fator redução controle por ciclo detection: 8,3234% -> 0,0079% fator ~1052x, ou 24,4833% -> 0,0277% fator 882x
+
+=== EXPLICACAO COMPLETA SALTO 5,43x -> 1846x ===
+1. Correção unidade (per trial -> per file) sozinha DIMINUI ratio: 5,43x (per trial, unidades diferentes) -> ~1,55-1,96x (per file, mesma unidade, sem ciclo)
+2. Detecção ciclo (parent 0 self-loop rejeitado) reduz falso-positivo controle de 8,32% para 0,0079% (fator ~1052x), aumentando ratio de ~1,55x para 1271-1846x
+3. Portanto salto total 5,43x->1846x é composto por: -3,5x devido correção unidade (queda) + ~1052x devido ciclo detection (aumento) = ~340x aumento líquido (5,43*1052/3,5 ≈ 1632x, próximo de 1846x, diferença devido contagens exatas 3800 vs 3693 e 2099 vs 2)
+
+Correção aplicada: substituir menção "ratio infinito" por limite superior 1/N, e usar headline conservador strict 1186 com taxa falso-positivo 0/25218 => limite superior ~0,004% (1/25218) e ratio > 14,11%/0,004% = >3527x.
+
+Evidência bruta: tool /tmp/ciclo11_item1_ratio_raw.cpp compilada e executada, saída acima, mais mutool bmdreport 8406 geom 3693 loose 1186 strict, mais ciclo9_item2_validation.log e ciclo9_item2_validation_fixed.log.

@@ -1,0 +1,56 @@
+# Evidencia - deteccao de array de normais no corpo BMD (ciclo 1, tarefa 1a)
+# Gerado em: 2026-10-11T22:55:26Z
+#
+METODO: varredura do arquivo inteiro procurando a maior regiao em que
+triplos consecutivos de float32 tem norma euclidiana 1 (tolerancia 1e-3),
+com passo de 20 bytes (5 floats) e qualquer fase de alinhamento.
+Um array de normais de malha 3D e unitario por construcao, entao essa
+propriedade e um teste decisivo - e falsificavel - para localizar a secao.
+
+======================================================================
+TAXA DE FALSO POSITIVO DO TESTE (medida, 2.000.000 amostras)
+======================================================================
+  |x^2+y^2+z^2-1| < 1e-3 para x,y,z uniformes em [-1.5,1.5]: 4.480e-04
+  probabilidade de 250 acertos consecutivos por acaso: ~0 (underflow)
+  -> 250/250 NAO e acaso.
+
+======================================================================
+RESULTADO - 41 arquivos v0A nomeados analisados
+======================================================================
+  com regiao de norma==1 acima de 90%: 16 de 41 (39,0%)
+  dos quais 10 arquivos com 250/250 = 100,0%:
+     taxa    amostras  byte_absoluto  fase  arquivo
+     1.000   250       358808         8     Monster302.bmd
+     1.000   250       255256        16     Monster290.bmd
+     1.000   250        29708         8     Monster277.bmd
+     1.000   250        28700         0     Monster299.bmd
+     1.000   250        26500         0     Monster327.bmd
+     1.000   250        26092        12     Monster324.bmd
+     1.000   250        25880         0     Monster301.bmd
+     1.000   250        23700         0     Monster263.bmd
+     1.000   250        13408         8     Arma.bmd
+     1.000   250        12528         8     Monster323.bmd
+     0.992   250            4         4     PrickleGlove_left.bmd
+     0.992   250            4         4     PrickleGlove_right.bmd
+
+======================================================================
+QUALIFICACAO OBRIGATORIA - o que isto NAO estabelece
+======================================================================
+1. O offset absoluto varia de 4 a 358.808 bytes entre arquivos, e a fase
+   de alinhamento varia entre 0, 4, 8, 12 e 16. Isso e consistente com um
+   formato em secoes de comprimento variavel, mas NAO determina onde a
+   secao de normais comeca em um arquivo arbitrario. Um parser precisa
+   dos contadores do cabecalho para chegar la, e esses contadores ainda
+   nao foram decodificados.
+
+2. 25 de 41 arquivos (61,0%) NAO apresentam a regiao acima de 90%. Nao se
+   sabe se isso significa outro layout, normais quantizadas, ou secao
+   ausente. Nao foi resolvido.
+
+3. O passo de 20 bytes (5 floats) e inferido do teste de norma, que so
+   cobre os 3 primeiros floats do registro. O conteudo dos 2 floats
+   restantes NAO foi identificado - a hipotese natural e coordenada de
+   textura (u,v), mas isso nao foi verificado e nao deve ser assumido.
+
+CLASSIFICACAO: hipotese com evidencia forte para 39,0% dos arquivos
+nomeados. NAO e um layout determinado. NAO habilita um parser ainda.

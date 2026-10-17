@@ -1,0 +1,60 @@
+scan of /tmp/cliente_ref/Data
+  files: 29060   total: 2372.04 MiB
+  junk (Thumbs.db): 12 files, 0.65 MiB
+  header-derived image-byte total: 2893.80 MiB
+  This is not decoded/allocated memory or a VRAM measurement. OZJ uses
+  an RGBA8-equivalent estimate; OZT/TGA use declared pixel payload bytes.
+
+ext           count        bytes probe ok probe no   header img B
+(none)            2         2170        0        0              0
+.att            105     11338139      105        0              0
+                    note: ATTR_1B (37)
+                    note: ATTR_2B (68)
+                    note: encrypted (97)
+                    note: plaintext (8)
+.att1             1       131076        0        0              0
+.bmd          10090    585498433    10066       24              0
+                    note: BMD_OTHER_VERSION (31)
+                    note: BMD_V0A (1194)
+                    note: BMD_V0C (8741)
+                    note: BUX_CONTAINER (100)
+                    note: neither a BMD magic nor a bux-encrypted container (24)
+                    note: payload entropy > 7.5 (8570)
+.bmp              2       263276        0        0              0
+.cg               6         3523        0        0              0
+.cws              1           92        0        0              0
+.dat              2          108        0        0              0
+.db              12       677376        0        0              0
+.ini              1           70        0        0              0
+.jpg             22      1197326        0        0              0
+.lua             22       105587        0        0              0
+.map             79     15532188       79        0              0
+                    note: MAP_3B (79)
+                    note: encrypted (77)
+                    note: plaintext (2)
+.mp3             61    193839791        0        0              0
+.obj             81      7223002       81        0              0
+                    note: OBJECT (81)
+                    note: encrypted (79)
+                    note: plaintext (2)
+.ogg              3      4525237        0        0              0
+.ozb            100     10303260        0        0              0
+.ozj          13928    971675492    13832       96     2602283596
+                    note: larger than 256x256 (561)
+                    note: missing JPEG SOI (FF D8) (96)
+.ozp              1        28325        0        0              0
+.ozt           3470    442040921     3404       66      424237332
+                    note: OZT image type != 2 (only uncompressed truecolour is implemented) (11)
+                    note: OZT signature not present (6)
+                    note: OZT trailer is larger than any observed variant (6)
+                    note: OZT variant with a 00 4B 6D 4B marker: layout not resolved (43)
+.png              1        46397        0        0              0
+.rar              1      1212900        0        0              0
+.sfk              1       185192        0        0              0
+.smd             10      6922357        0        0              0
+.tga             15      7848380       15        0        7847772
+.txt             22      1674610        0        0              0
+.wav           1020    211923657        0        0              0
+.zip              1     13064827        0        0              0
+
+[exit code: 0]

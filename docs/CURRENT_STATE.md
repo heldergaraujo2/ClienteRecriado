@@ -1,0 +1,420 @@
+# Current state — audit and handoff updated 2026-10-16
+
+This snapshot separates **probe**, structural validation, decoding, semantics,
+and verified rendering. The repository contains a C++17 asset library,
+inspection tools, a callback-driven frame-loop foundation, and an experimental
+Windows D3D11 geometry-preview toolchain; **it is not yet a playable Windows
+client**.
+
+## Cycle 21 — Windows preview executable artifact pipeline (2026-10-16)
+
+Added `.github/workflows/windows-d3d11-bmd-preview.yml` to compile the existing
+D3D11 preview with MSVC x64 on a hosted Windows runner and upload
+`d3d11-bmd-preview-windows-x64`. The first Windows x64 build and artifact upload
+**PASS** in Actions run `38996411696` on commit `b3cc50401f4129730fba81f1f2c1321da8c59946`.
+The artifact is available at
+[the workflow run](https://github.com/heldergaraujo2/ClienteRecriado/actions/runs/38996411696)
+through 2026-11-16 UTC. Its metadata and validation limits are recorded in the
+cycle-21 `TEST_RESULTS.md` section and
+[`evidence/ciclo21_windows_preview_build_20261016.log`](evidence/ciclo21_windows_preview_build_20261016.log).
+
+This is a compiler/artifact pipeline for the existing tool, not a new renderer
+or client. It does not include model assets and does not prove that a D3D11
+device/window was created or that a model rendered. The existing EXE accepts
+plaintext BMD v0x0A and draws geometry in a diagnostic solid color; BMD UV
+semantics, material association, and texture binding/decoding remain
+**UNVERIFIED / BLOCKED**. A real authorized model/texture pair and Windows/GPU
+execution are still required for the user's requested semantic and visual
+validation. The preview C++ source, parser and parser tests were not edited.
+
+A fresh out-of-tree Linux build produced no warnings; `make test` and
+`make test-san` each passed **560 asset checks + 82 frame-loop checks, 0
+failures**. Output is in
+[`evidence/ciclo21_linux_validation_20261016.log`](evidence/ciclo21_linux_validation_20261016.log).
+The documentation consistency checker remains BLOCKED (exit 2) because
+`/home/user/Cliente_ref/Data` is absent. Reference-clone status: absent; no
+reference HEAD could be recorded at cycle start or end. See the cycle-21
+`TEST_RESULTS.md` entry and `NEXT_TASK.md` for the exact boundary between the CI
+compile and the pending Windows/GPU/model tests.
+
+## Cycle 20 — callback-driven frame-loop foundation (2026-10-16)
+
+Replaced the synthetic `MainLoop` workload with optional update/render/present
+callbacks. Callback durations use `std::chrono::steady_clock`; no callback means
+zero work and zero reported workload time, and `timing_valid` is set only when
+the full three-hook pipeline is present. Returned scene/draw counts are carried
+into the frame snapshot. Budget prediction ignores incomplete or stale-target
+samples, and replacing callbacks or changing the effective target FPS clears
+history. These are callback-duration diagnostics—not end-to-end frame time,
+GPU timings, FPS, or an optimization result. No screen manager, Win32 event integration, renderer,
+network, or game system is connected yet.
+
+Added `tests/test_main_loop_standalone.cpp` and wired it into `make`, `make test`,
+and `make test-san` without editing `tests/test_assets.cpp` or BMD parser tests.
+An out-of-tree warning-free build passed; `make test` and `make test-san` each
+passed **560 asset checks and 82 frame-loop checks**, with no failures or
+sanitizer reports. Build outputs stayed under `/tmp`; repository `build/` was
+absent. Exact commands/output are in
+[`evidence/ciclo20_main_loop_validation_20261016.log`](evidence/ciclo20_main_loop_validation_20261016.log).
+
+The reference clone `../Cliente_ref` was absent at cycle start and end, so its
+HEAD could not be recorded; no reference files were read or changed. The docs
+consistency checker remains BLOCKED (exit 2) because
+`/home/user/Cliente_ref/Data` is absent. Windows/GPU rendering, model semantics,
+network compatibility, and client performance remain **NOT EXECUTED/BLOCKED**.
+
+## Cycle 19 — Muserver interoperability handoff (2026-10-16)
+
+Added `docs/NETWORK.md` as the discoverable handoff for the separate Muserver
+recreation. It separates prior import-table/file observations from protocol
+hypotheses and unknowns, states that this repository has no `src/mu/net` code,
+and defines a safe joint-specification and loopback-test sequence. It does not
+invent opcodes, framing, transport, encryption, or authentication fields and
+makes no compatibility claim. No C++ or server code changed.
+
+The reference clone `../Cliente_ref` was absent at the start of this cycle, so
+its HEAD could not be recorded and no reference file was read or modified. The
+documentation consistency check was rerun after edits and remains BLOCKED
+because `/home/user/Cliente_ref/Data` is unavailable. No Muserver endpoint or
+network test was available; see `docs/evidence/ciclo19_muserver_handoff_20261016.log`.
+
+## Cycle 18 — workspace reconciliation and Linux validation (2026-10-16)
+
+At the start of this task the fixed session branch was at the initial `972fab`
+commit while the published branch had advanced to `ce8d3bd`. The full project
+worktree was present as 284 files (a modified README plus untracked project
+files). Before
+synchronizing, the workspace was archived to
+`/home/user/ClienteRecriado_workspace_before_reconcile_20261016.tar.gz`
+(SHA-256 `cb2af481fc8dcc51c342c1067f49d1f24b1b0cd076846d37baf372871f17b26d`)
+and preserved in local `stash@{0}` (`9cce6144a061ecffbe57e129ff01ad90f35a31ed`).
+The stash has not been applied or dropped; do not apply it wholesale. The same
+fixed branch was then fast-forwarded to `ce8d3bd` and now tracks its origin.
+
+The pre-sync worktree differed from that remote in 12 files, including parser
+comments, parser-test fixtures, four continuity documents, and six PPM outputs.
+Those versions remain in the archive and stash; they were not copied over the
+updated branch. The preview source present in the pre-sync workspace matched
+the remote version, and no `.backup` file was present. This says nothing about
+any separate external Windows/WSL working copy; do not infer that it was lost.
+
+On the current source commit `ce8d3bd`, an out-of-tree C++17 clean build passed
+without warnings; `make test` and `make test-san` each passed **560 checks, 0
+failures**. The standalone orbit-camera test passed **57 checks, 0 failures**
+with strict warnings and again with ASan/UBSan. All build outputs were redirected
+to `/tmp`; repository `build/` was absent and untouched. Exact output is in
+[`evidence/ciclo18_linux_validation_20261016.log`](evidence/ciclo18_linux_validation_20261016.log).
+
+The documentation consistency checker was invoked and stopped with exit 2
+because `/home/user/Cliente_ref/Data` is unavailable; the reference clone is
+absent, so no reference HEAD or real-tree scan could be checked. Windows/MSVC,
+D3D11 BMD preview, camera input, and GPU performance were **NOT EXECUTED** in
+this task; UV/material semantics remain **BLOCKED**. The logged D3D11 smoke is
+still for a triangle, not a model preview. These Linux passes validate the
+synthetic suite, not real-asset or visual compatibility.
+
+## Parallel viewer work — isolated orbit-camera helper (2026-10-13)
+
+- Added a platform-independent `mu::render::OrbitCamera` state helper and
+  standalone tests in new files. Direct C++17 compilation to `/tmp` passed 57
+  checks; the same checks passed with AddressSanitizer and UndefinedBehaviorSanitizer.
+- The helper provides yaw/pitch/distance and an eye/target/up pose. It is **not
+  integrated** into D3D11 and does not create a view-projection matrix or process
+  window input. The preview source was not edited.
+- In the pre-sync workspace, `platform/windows/d3d11_bmd_preview.cpp` matched
+  the published version and no `.backup` existed. Any separate external
+  Windows/WSL working copy remains unknown; do not infer it was lost or
+  overwrite it before comparison.
+- The existing committed `d3d11_smoke_20261013.log` reports an isolated triangle
+  smoke run. The task owner reports a separate local `agnecklace.bmd` preview,
+  but that exact build/run output was not available in this environment; do not
+  treat the triangle log as BMD-model evidence.
+- `Mesh::has_texcoords` remains false for BMD. Raw candidate corner indices are
+  not verified UV semantics; the importer still has no proven material/texture
+  association. OZT decoding is available for supported uncompressed formats;
+  OZJ pixel decoding is not implemented.
+- The orbit-camera change itself adds no parser, existing-test, Makefile, or
+  preview-source edits. The cycle-18 validation on `ce8d3bd` ran the full suite
+  with temporary output directories and passed 560 checks in both normal and
+  sanitizer builds; see the current update above for evidence and limitations.
+- `tools/check_docs_consistency.py` was invoked but stopped before data checks
+  with exit 2 because the expected `/home/user/Cliente_ref` clone (and its
+  `Data/` tree) is absent. The reference HEAD start/end hash could not be checked;
+  no reference files were available to modify. No real-tree metrics were
+  rechecked by this parallel task.
+
+## Executive summary
+
+- Reference `heldergaraujo2/Cliente` is read-only. Its observed HEAD at the start
+  and end of this audit is `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9`. No reference
+  branch, file, or history was changed. The temporary clone contains `Data/`;
+  the Git-tree search found no client C/C++ source.
+- `mutool scan` inventories the whole tree but performs **format probes**; it does
+  not establish that pixels, UVs, materials, or images were decoded.
+- There is a BMD parser for layouts accepted by the current implementation, an
+  internal mesh representation, CPU-side buffer preparation, and a **CPU-only**
+  rasterizer. PPM output is not the product's graphics milestone and does not
+  prove visual compatibility.
+- A real OZT was converted to BGRA pixels and explicitly passed to the render
+  CLI. The BMD used in that run is a different file; no association between the
+  two or visual correctness was demonstrated. BMD UVs still lack a verified
+  semantic mapping.
+- Two isolated Windows GPU smoke tests have now run on the target PC: D3D12 and
+  D3D11 each displayed a triangle on the AMD Radeon RX 6600 and reported clean
+  shutdown. Their logs are in `evidence/d3d12_smoke_20261012.log` and
+  `evidence/d3d11_smoke_20261013.log`. These tests do not constitute a playable
+  client, original-asset rendering, or performance benchmark. FPS, frametime,
+  runtime VRAM, game startup, audio, UI, and network remain unvalidated.
+
+## Implemented capability and measured results
+
+### BMD and meshes
+
+`mutool bmdreport` measured 10,090 BMD files. Full output:
+[`evidence/ciclo17_bmdreport_final.log`](evidence/ciclo17_bmdreport_final.log).
+
+| Stage / metric | Result | Interpretation |
+|---|---:|---|
+| Structurally valid containers | **10.023 (99,34%)** | Signature/version and declared v0x0C size consistency |
+| Payload access classified by current tool | **8.571 (84,95%)** | 1.245 plaintext + 100 BUX + 7.226 v0x0C-labelled (classifier only) |
+| OPAQUE | **1.519 (15,05%)** | Not recovered by the current classifier |
+| Geometry extracted by current parser | **8.406 (83,31%)** | Vertices/normals read for accepted body layouts |
+| Files with triangle records | **8.405 (83,30%)** | 3.681.664 triangle records read |
+| Files with loose bone records | **3.693 (36,60%)** | 7.879 bones; discoverability is not animation semantics |
+| Out-of-range vertex references | **523,717** | Reference fields, not triangles |
+| Out-of-range normal references | **507,068** | Reference fields, not triangles |
+| Combined invalid references | **1,030,785 / 22,089,984 (4.666%)** | Six index fields per triangle |
+
+**Policy caveat:** `AGENTS.md` still classifies the BMD v0x0C cipher as
+**BLOCKED**. The counts labelled v0x0C-decryptable by the existing tool are an
+observed implementation/classifier result, not permission to further reverse,
+claim an officially validated cipher, or redistribute results as an authorized
+format. Do not expand that work unless a legitimate source/authorization changes
+the documented blocker. The remaining `Enc*` terrain cipher is also BLOCKED.
+
+The stages use the same denominator of 10,090 and are not a fully cumulative
+hierarchy. Positive topology is a subset of parsed geometry, verified by test.
+`bmdreport` exits with code 2 because OPAQUE payloads remain; this is not reported
+as an entirely successful decode.
+
+`mutool meshimport` read 8,406 meshes, 8,327 with triangles. Of 3,681,664 body
+triangles, **3,168,360** were emitted and **513,304 (13.94%)** were dropped due
+to at least one invalid vertex/normal reference. Zero meshes were rejected for
+another reason in that stage. A triangle counts once as dropped even if it has
+multiple invalid references. This differs from 4.666%, which counts individual
+references.
+
+The UV-per-corner index and complete mesh/material/texture association are not
+known. Statistical float/offset candidates documented in
+[`ASSET_FORMATS.md`](ASSET_FORMATS.md) are not semantic validation; the importer
+does not expose usable BMD UVs (`has_texcoords` remains false when mapping is
+unknown).
+
+### Textures and diagnostic rendering
+
+- `mutool scan`: 29,060 files, 2,372.04 MiB. Probes accepted 13,832/13,928 OZJ
+  and 3,404/3,470 OZT. The BMD scan counter is container recognition, not
+  geometry extraction. Header/payload-derived image-byte totals are **estimates**,
+  not measured RAM/VRAM. See
+  [`evidence/ciclo17_scan_final.log`](evidence/ciclo17_scan_final.log).
+- The standard OZT conversion path supports uncompressed 24-bit BGR and 32-bit
+  BGRA input to BGRA8; unit tests use synthetic fixtures. Real file
+  `Axes06.ozt` was loaded as 64×64 BGRA8 (declared payload 16,384 bytes, 26-byte
+  trailer).
+- A real `mutool render` call explicitly loaded that OZT alongside
+  `Player/Axe11.bmd` (1,364 vertices, 2,665 triangles), output 800×600, exit 0.
+  The OZT was provided explicitly and was **not associated** with the model by
+  evidence. Without decoded BMD UVs, the rasterizer reports a planar diagnostic
+  mapping. Loaded/rendered pixels do not prove a faithful appearance. Logs:
+  [`ciclo17_ozt_real_asset_info.log`](evidence/ciclo17_ozt_real_asset_info.log),
+  [`ciclo17_ozt_real_asset_load.log`](evidence/ciclo17_ozt_real_asset_load.log),
+  and [`ciclo17_ozt_real_asset_status.log`](evidence/ciclo17_ozt_real_asset_status.log).
+- OZJ: the code probes JPEG structure/markers; it **does not decode pixels**.
+  TGA: probe and uncompressed type-2 read are implemented; RLE type 10 is not
+  decoded. Recognition is not decoding.
+- `--checkerboard` and planar mapping are CPU diagnostic tools, not UVs or
+  correctly textured original rendering.
+
+### Other measurements that are not product metrics
+
+- `mutool terrain`: 76/76 complete grids; 72/76 are below the 30.00 smoothness
+  heuristic. Exit code 2 is due to four values at/above the heuristic threshold.
+  This does not prove those files invalid or validate terrain units/scale.
+  Evidence: [`ciclo17_terrain_after_audit.log`](evidence/ciclo17_terrain_after_audit.log).
+- `mutool bmdanim`: 500 files have bytes after bones; 385 are divisible by
+  `boneCount × 12`. This is a **size test**, not animation decoding or
+  identification of the three floats.
+- `mutool culltest`: synthetic scene; 8,086/8,406 bounds were classified as
+  culled under artificial camera/placement parameters. It counts avoided draws
+  in that scenario, **not FPS or frametime**.
+- `build/bench_assets`: CPU microbenchmarks for parsing/conversion/preparation.
+  They do not measure GPU, full-client loading, FPS, or latency. Latest single-run output:
+  [`ciclo17_bench_final.log`](evidence/ciclo17_bench_final.log).
+
+## Build and tests — cycle17 historical snapshot
+
+The table below records the earlier cycle17 audit; the latest Linux build/test
+results are in the cycle18 update above.
+
+| Check | State in that audit |
+|---|---|
+| `make clean && make` | **PASS** — full build, no warnings |
+| `make test` | **PASS** — **539 checks, 0 failures** |
+| `make test-san` | **PASS** — **539 checks, 0 failures**, no ASan/UBSan report |
+| `python3 tools/check_docs_consistency.py /tmp/cliente_ref/Data` | **PASS (exit 0)** — 54 checks, 0 failures against reference HEAD `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` |
+| Full available patch-manifest check | **INCOMPLETE / exit 2**: 188 entries, 116 match, 8 size mismatches, 11 CRC mismatches, 53 missing in the available tree; not 188/188 coverage |
+| Isolated Windows GPU smoke tests | **PASS** — D3D12 and D3D11 triangle/window/device/present/clean shutdown on target PC; see evidence logs |
+| Equivalent visual comparison with reference client | **NOT EXECUTED** |
+| FPS, frametime, VRAM, runtime RAM, and latency | **NOT EXECUTED** |
+| Authorized server/network compatibility | **NOT EXECUTED** — no authorized test server |
+
+Manifest output:
+[`evidence/ciclo17_reference_manifest_verification_final.log`](evidence/ciclo17_reference_manifest_verification_final.log).
+Manifest verification read asset bytes to compare sizes/CRCs; protected/licensing
+files were not otherwise inspected. No such file was changed. The reference tree
+remains read-only.
+
+## Product compatibility matrix
+
+| System | Actual status |
+|---|---|
+| Runnable Windows client / startup / functioning window and input | **NOT IMPLEMENTED / NOT EXECUTED** |
+| Windows x86 and x64 | **NOT EXECUTED**; architecture choice still needs a validated target build |
+| Renderer API policy | **OPEN** — DEC-014 reopened the choice; D3D11/D3D12 triangle smoke results are not a comparative benchmark or final production-API selection |
+| GPU backend and device creation | **PARTIAL** — isolated D3D11/D3D12 smoke programs present triangles; no production backend. The BMD preview remains untextured, and this session did not validate its Windows run |
+| BMD model assets | **PARTIAL** — supported subset and counts above; 1,519 OPAQUE |
+| OZT textures | Pixel conversion implemented; one real OZT loaded, no visual association validated |
+| OZJ textures | JPEG probe only; pixel decoding **NOT IMPLEMENTED** |
+| BMD UV/material/texture association | **BLOCKED** — no semantic mapping or verifiable visual comparison |
+| Terrain | Partial parsing; `Enc*` cipher, vertical scale, and appearance unresolved |
+| Bones/skinning/animation | Partial bone-record parsing; no verified BMD weights, transform order, or keyframe semantics |
+| UI, HUD, fonts, effects, particles | **NOT IMPLEMENTED** |
+| Audio | **NOT IMPLEMENTED** |
+| Network, authentication, game session | **NOT IMPLEMENTED / NOT EXECUTED**; no bypass or unauthorized-server testing |
+| Client performance and long-session stability | **NOT EXECUTED** |
+
+The first graphics milestone remains: **a real Windows executable, a created GPU
+device, and at least one original model rendered with correctly interpreted
+geometry and texture association, verified**. CPU rasterization, PPM output,
+checkerboard, or planar UV do not satisfy it.
+
+## Key evidence
+
+- Final whole-tree scan, BMD report, and mesh import:
+  `ciclo17_scan_final.log`, `ciclo17_bmdreport_final.log`,
+  `ciclo17_meshimport_final.log`.
+- Real OZT diagnostic run: `ciclo17_ozt_real_asset_*.log` (explicitly not a
+  verified model/texture pair or GPU render).
+- Six differing local PPM variants were kept outside Git; hash/size comparison
+  only: `ciclo17_ppm_recovery_comparison.log`; neither set proves GPU rendering.
+- 188-entry patch-manifest comparison:
+  `ciclo17_reference_manifest_verification_final.log`.
+- Clean build, normal/sanitizer tests, benchmark build/run, and documentation
+  check: corresponding `ciclo17_*_final.log` files under [`evidence/`](evidence/).
+
+## Next task
+
+Follow [`NEXT_TASK.md`](NEXT_TASK.md): prepare the first verifiable Windows/GPU
+vertical slice on an appropriate machine/toolchain, without claiming runtime
+progress in this environment. In parallel, advance BMD/UV/material semantics
+only with legitimate sources and controls capable of testing meaning, not just
+statistical plausibility.
+
+## Recovery audit baseline and publication
+
+This read-only Git audit began on 2026-10-12, before the documentation-only
+reconciliation recorded in this snapshot. At audit start:
+
+- Fixed session branch: `arena/1d9c1f53-clienterecriado`; local `HEAD` and its
+  upstream both matched `f839757d7b0b56d0b0a8d542aae9c67df1628d37`.
+- `git status --short --branch`:
+  `## arena/1d9c1f53-clienterecriado...origin/arena/1d9c1f53-clienterecriado`.
+  Staged/unstaged diffs and untracked paths were empty;
+  `git rev-list --left-right --count @{upstream}...HEAD` returned `0 0`.
+- `git ls-remote` and GitHub REST branch queries agreed:
+  `arena/1d9c1f53-clienterecriado` =
+  `f839757d7b0b56d0b0a8d542aae9c67df1628d37`;
+  `arena/519f8fc9-clienterecriado` =
+  `4c36befab01263bf95a509d1c8306c56a1e876c5`;
+  `main` = `972fabcea1b0d4e80345f0f5abd287b46d819455`.
+  No checkout, push, or other write to branch 519 or `main` occurred.
+- The fixed branch was two commits beyond the published 519 snapshot at the
+  audit baseline: `be4f79ae5a3c003502e68a5cc245f8f0e6cdba5f`
+  (`recovery: reconcile cycle-17 asset audit`) and
+  `f839757d7b0b56d0b0a8d542aae9c67df1628d37`
+  (`docs: record cycle-17 recovery publication state`). Relative to 519, the
+  published diff was 78 files, 3,950 insertions and 1,684 deletions.
+- Recovery safety copies remain local and untouched: `stash@{0}`; the workspace
+  archive `/home/user/ClienteRecriado_cycle17_workspace_before_fastforward.tar.gz`
+  (SHA-256 `cbbe233b47f79c97f1d5a94241e6623f1f1da214304c6f20e88b4bb9e135bc1e`);
+  and `/home/user/ClienteRecriado_recovery_before_fastforward.tar.gz` (SHA-256
+  `4a9ca9872e55de44fde65d138e649da5aa9e884f9b5c88d66744092f1f6304f7`). The
+  six divergent CPU PPM variants remain outside Git at
+  `/home/user/ClienteRecriado_recovery_ppm/`; their hash/size-only comparison is
+  `evidence/ciclo17_ppm_recovery_comparison.log`. None is GPU-render evidence.
+- The reference clone remained read-only at
+  `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` with no tracked or staged diff.
+  The test-count and renderer-API documentation discrepancies found in this
+  audit are reconciled in `TEST_RESULTS.md` and DEC-014; no Windows/GPU
+  milestone was executed. Full recovery evidence:
+  [`evidence/ciclo17_git_recovery.log`](evidence/ciclo17_git_recovery.log).
+
+The documentation-only reconciliation for this audit is committed on the fixed
+session branch; the final branch tip and clean post-push status are reported in
+the cycle summary.
+
+
+## Renderer API decision update — 2026-10-12
+
+The product owner confirmed the primary target is **high practical performance on modern Windows PCs with dedicated GPUs**; older-hardware compatibility is not a hard requirement. DEC-014 is reopened and formally supersedes the scope assumption behind DEC-008/DEC-008-A, while preserving their historical record.
+
+- First isolated spike: **Direct3D 12** window/device/triangle.
+- Comparison after a successful target-PC run: **Direct3D 11** as a simpler baseline on the same hardware; Vulkan remains conditional on portability needs or evidence.
+- The spike is intentionally not linked into the asset library or production renderer.
+- Target-PC D3D12 smoke test **PASS** (2026-10-13 user-run): AMD Radeon RX 6600; triangle visually confirmed; normal close printed `D3D12 smoke test: clean shutdown.` The reported 8147 MiB is DXGI dedicated-memory metadata, not observed VRAM usage.
+- Added isolated D3D11 triangle source and build script as the comparison baseline.
+- Target-PC D3D11 smoke test **PASS** (2026-10-13 user-run): AMD Radeon RX 6600; feature level 0xB100; triangle visibly rendered; normal close printed `D3D11 smoke test: clean shutdown.` DXGI reported 8147 MiB dedicated-memory metadata, not measured runtime VRAM.
+- D3D12 and D3D11 smoke logs were committed in `fe70970` under `docs/evidence/`.
+- No FPS, frame-time distribution, original-asset rendering, or speedup is claimed. The production API decision remains open.
+- Next action: audit the existing BMD/texture importer and identify one model/texture association that can be verified without crossing the documented cipher blockers; then plan the first integrated GPU model render.
+
+
+## Source audit — asset-to-GPU slice (2026-10-13)
+
+- Added [`ASSET_GPU_SLICE_AUDIT.md`](ASSET_GPU_SLICE_AUDIT.md) after source-level inspection of the BMD body parser, mesh importer, OZT/OZJ handling, and cycle-17 evidence.
+- Confirmed the mesh importer intentionally leaves UVs unavailable; texture-name recognition does not by itself prove association. The prior Axe11/Axes06 CPU diagnostic remains an unverified pairing with planar mapping.
+- No C++ implementation change or semantic UV/material discovery is claimed. This audit did not run local builds/tests or execute anything on the target Windows PC. Those checks remain required in the corresponding environments.
+- Next work: find a discriminating, legitimate control for UV/material semantics; if none is available without crossing the documented cipher blockers, preserve the blocker rather than guessing.
+
+
+## Experimental BMD-to-D3D11 preview source (2026-10-13)
+
+The isolated preview and PowerShell build script accept plaintext BMD v0x0A,
+reuse the parser/importer, and upload validated triangle indices for a solid-
+colour diagnostic draw. The task owner reports a local `agnecklace.bmd` run and
+GPU geometry submission; this session did not reproduce that run, and no exact
+preview build/run log is committed. The separate `d3d11_smoke_20261013.log`
+records a triangle-only smoke test, not a BMD preview result. The preview still
+does not decode verified UV/material mapping, sample textures, animate or skin.
+The new `OrbitCamera` math helper is not connected to it. See
+[D3D11_BMD_PREVIEW.md](D3D11_BMD_PREVIEW.md) for the run record required before
+claiming a validated model preview.
+
+
+## BMD topology fixture follow-up — 2026-10-13
+
+The owner pulled through `794645f` and reran `make -B test`. The build
+succeeded, but the suite reported **560 checks, 8 failures**. Inspection found
+two distinct fixture defects: the single-mesh topology fixture placed the
+triangle four bytes after the parser's accepted cursor-adjusted start, and the
+multi-mesh case changed only the global `meshCount` field on a single-mesh
+body instead of constructing a multi-mesh layout.
+
+Commit `84dbdcc` fixed the polygon-size byte but did not fully correct those
+layout errors. Commit `49b2be3` now places the single-mesh triangle at the
+accepted cursor offset and uses the existing `MakeMultiMeshBody` builder for
+the multi-mesh report case. The owner then reran `make -B test` at
+`751d9b6` and got **560 checks, 6 failures**, all in the topology test.
+The newest fixture correction is committed as `49b2be3` but has **not yet
+been run by the owner**. Preserve local preview edits and backup; rerun regular
+tests before sanitizer or Windows preview validation.

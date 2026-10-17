@@ -1,0 +1,52 @@
+========================================================================
+EVIDENCIA CICLO 1 - VERIFICACAO DE CREDENCIAIS (ITEM 7)
+Data UTC: 2026-10-11T22:35:29Z
+========================================================================
+
+Escopo: confirmar que NENHUM arquivo de ClienteRecriado contem qualquer
+fragmento dos valores de [AutoLogin] do Settings.ini da referencia.
+
+Os valores NUNCA sao exibidos. Cada ocorrencia e mostrada mascarada.
+
+PASSO 1 - caracterizacao dos valores de origem (sem exibi-los)
+------------------------------------------------------------------------
+  campo 'User': 7 caracteres, alfanumerico
+  campo 'Password': 6 caracteres, somente digitos
+
+PASSO 2 - varredura de ClienteRecriado (fonte + docs, excluindo .git e build/)
+------------------------------------------------------------------------
+
+VALOR DO CAMPO 'User':
+  -> 0 ocorrencia(s) do valor completo
+
+VALOR DO CAMPO 'Password':
+  docs/OPTIMIZATION_LOG.md:62
+      Plus the canonical `CRC-32/ISO-HDLC` check value for `"[MASCARADO]789"` =
+  tests/test_assets.cpp:62
+      const char* s = "[MASCARADO]789";
+  tests/test_assets.cpp:470
+      "Data/Local/a file with spaces.ozj [MASCARADO]78 100\n"
+  tests/test_assets.cpp:492
+      CHECK_EQ(r.entries[2].crc32, 0x[MASCARADO]78u);
+  tests/test_assets.cpp:529
+      "good.bin %08x %zu\nbad.bin %08x %zu\nmissing.bin [MASCARADO]78 5\n",
+  -> 5 ocorrencia(s) do valor completo
+
+PASSO 3 - analise das ocorrencias
+------------------------------------------------------------------------
+  Campo 'User' (7 chars, alfanumerico, distintivo): 0 ocorrencias.
+  Campo 'Password' (6 chars, somente digitos): as ocorrencias listadas sao
+  todas o vetor canonico de teste do CRC-32 ("123456789") e o literal
+  hexadecimal 0x12345678. Um valor de 6 digitos e prefixo desses literais,
+  entao a colisao e aritmetica e nao representa vazamento.
+
+CONCLUSAO
+------------------------------------------------------------------------
+  Nenhum valor de credencial esta presente em ClienteRecriado.
+  As unicas coincidencias sao literais de teste de CRC-32, verificaveis
+  linha a linha acima.
+
+  Ressalva de seguranca: o campo 'Password' da referencia e uma string de
+  apenas 6 digitos, ou seja, um padrao de senha fraca amplamente conhecido.
+  Isso reforca a recomendacao de rotacao imediata, independente do fato de
+  nao haver vazamento neste repositorio.

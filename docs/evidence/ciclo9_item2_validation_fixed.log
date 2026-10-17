@@ -1,0 +1,8 @@
+total geom 8406
+real loose files 3693 (43.93%) strict files 1186 (14.11%)
+control trials 25218 loose hits 2 rate per trial 0.0079% strict hits 0 rate per trial 0.0000%
+control per file: loose files 2 rate per file 0.0238% strict files 0 rate per file 0.0000%
+ratio per trial (old incorrect, different units): loose 5539.50x strict 0.00x
+ratio per file (CORRECTED, same units 1 opp per file): loose 1846.50x strict 0.00x
+Loose per file discriminativo: PASS >=10x
+Strict per file discriminativo: PASS taxa 0/25218 limite superior ~0,004% (1/25218) ratio >3558× (controle 0)

@@ -1,0 +1,17 @@
+TerrainHeight grids under /tmp/cliente_ref/Data
+
+  height files seen                        76
+  parsed to a complete grid                76
+  consistent prefix size               472404  (6216 avg)
+
+  mean neighbour difference             8.037
+  smoothest file                        0.000
+  roughest file                       138.237
+  files below 30.0 (smooth field)          72  ( 94.74%)
+
+  Independent random bytes would average about 85.3. These are
+  roughly 19x below that, which is what a height field looks
+  like and what arbitrary bytes do not.
+
+  The vertical scale is NOT determined, so these values are
+  relative, not metric. This is not a renderable terrain.

@@ -1,0 +1,280 @@
+# Evidencia - layout parcial VERIFICADO do corpo BMD v0x0A
+# Gerado em: 2026-10-11T23:07:28Z
+
+========================================================================
+LAYOUT VERIFICADO (145 de 145 arquivos, zero discordancias)
+========================================================================
+
+offset   tamanho  campo                                    estado
+0        32       nome do modelo de origem, ASCII, NUL     verificado (433/1465)
+32        2       u16 - nao decodificado
+34        2       u16 - nao decodificado
+36        2       u16 - nao decodificado
+38        2       u16 CONTAGEM DE VERTICES                 VERIFICADO
+40        2       u16 CONTAGEM DE NORMAIS                  VERIFICADO
+42       ...      nao decodificado
+52       vc*16    array de vertices, 16 B cada             VERIFICADO
+                  [f32 x][f32 y][f32 z][u16][u16]
+52+vc*16 nc*20    array de normais, 20 B cada              VERIFICADO
+                  [f32 nx][f32 ny][f32 nz][f32][f32]
+...               restante NAO decodificado
+
+========================================================================
+PREDICOES TESTADAS E CONFIRMADAS
+========================================================================
+
+Predicao 1:  52 + u16@38 * 16  ==  offset inicial das normais
+             confirmado em 145 de 145 arquivos  (100.0%)
+
+Predicao 2:  tamanho da regiao de normais  ==  u16@40 * 20
+             confirmado em 145 de 145 arquivos  (100.0%)
+
+Ambas as predicoes sao falsificaveis e derivadas de forma independente:
+a posicao e a contagem de normais foram obtidas por varredura geometrica
+(triplos float32 de norma euclidiana 1, tolerancia 1e-3), NAO lidas do
+cabecalho. O cabecalho foi comparado depois, entao a concordancia e
+evidencia e nao circularidade.
+
+AMOSTRAS (arquivo, vertices, normais, inicio_normais, fim_normais):
+   PrickleGlove_left.bmd      vc=  332 nc=  452  normais    5364..14404   =   9040 B = 452*20
+   PrickleGlove_right.bmd     vc=  332 nc=  452  normais    5364..14404   =   9040 B = 452*20
+   Sword40.bmd                vc=   88 nc=  129  normais    1460..4040    =   2580 B = 129*20
+   Sword40_L.bmd              vc=   88 nc=  129  normais    1460..4040    =   2580 B = 129*20
+   Sword40_R.bmd              vc=   88 nc=  129  normais    1460..4040    =   2580 B = 129*20
+   Monster263.bmd             vc= 1183 nc= 1872  normais   18980..56420   =  37440 B = 1872*20
+   Monster277.bmd             vc= 1561 nc= 1570  normais   25028..56428   =  31400 B = 1570*20
+   Monster299.bmd             vc= 1518 nc= 1791  normais   24340..60160   =  35820 B = 1791*20
+
+========================================================================
+EXEMPLO CONCRETO - Sword40.bmd
+========================================================================
+  nome no offset 0 : 'Sword40.SMD'
+  u16@38 (vertices): 88
+  u16@40 (normais) : 129
+  vertices  52..1460  (1408 B = 88*16)
+  normais  1460..4040  (2580 B = 129*20)
+  primeiros 4 vertices [x,y,z,u16,u16]:
+        -12.449     -7.600     -1.050   u16      0    670
+        -13.260     -5.454      4.128   u16      0    681
+        -16.712     -0.273     -1.050   u16      0      0
+        -13.309     -5.454     -6.241   u16      0    512
+  primeiros 4 normais [nx,ny,nz,f32,f32]:
+      -0.8643  -0.5029   0.0043  |    0.0000   0.0000
+      -0.8946  -0.4028   0.1934  |    0.0000   0.0000
+      -1.0000  -0.0000   0.0031  |    0.0000   0.0000
+      -0.8966  -0.4012  -0.1874  |    0.0000   0.0000
+
+========================================================================
+NAO ESTABELECIDO - o que impede um parser completo
+========================================================================
+
+1. Os 2 u16 finais de cada registro de vertice nao estao identificados.
+   Em Sword40 o primeiro e sempre 0 e o segundo varia (670, 681, 0, 512).
+
+2. Os 2 f32 finais de cada registro de normal sao 0.0000 em Sword40.
+   A hipotese de serem (u,v) foi testada e REJEITADA: 95,5% caem em
+   [0,1], mas 87,2% dos floats de uma regiao de controle adjacente
+   tambem caem - razao 1,10x, teste sem poder discriminatorio.
+
+3. A secao apos as normais NAO foi decodificada. Um array de UV de
+   nc*8 bytes foi testado: 92,65% dos floats caem em [0,1], pouco acima
+   do baseline de ~87% ja medido, e apenas 28 de 145 arquivos tem a
+   regiao inteira em [0,1]. Tamanhos de registro de 8/12/16/20 B foram
+   testados contra a hipotese de um array de faces seguinte com indices
+   < max(nc,vc): apenas 12-18 de 99 arquivos passaram, ou seja, nenhum
+   tamanho se sustenta.
+
+4. 9 de 154 arquivos discordam da contagem de normais e 46 de 200 nao
+   apresentam regiao detectavel. Causa nao determinada.
+
+5. O campo de nome esta presente em apenas 433 de 1.465 arquivos claros.
+
+CLASSIFICACAO: duas secoes do corpo VERIFICADAS (vertices e normais),
+com offsets, contagens e tamanhos de registro exatos em 145/145.
+Layout completo: NAO DETERMINADO. Um parser que extraia posicoes de
+vertices e normais ja e possivel para os 145 arquivos confirmados;
+indices de faces, UV e ossos nao sao.
+
+
+======================================================================
+TENTATIVA SOBRE A SECAO DE FACES - NAO DETERMINADA
+======================================================================
+Metodo: a partir do fim presumido da regiao de UV, procurar a maior
+sequencia de registros em que os 3 primeiros u16 sao indices de vertice
+validos (< contagem de vertices), para tamanhos de registro de
+8/10/12/14/16 bytes.
+
+Resultado em 10 arquivos (melhor contagem por tamanho de registro):
+
+  arquivo                 vc    nc    8B   10B  12B  14B  16B
+  PrickleGlove_left      332   452    95    6   15   22   47
+  PrickleGlove_right     332   452     7    7    6    7   32
+  Sword40                 88   129     6    6    5    8    -
+  Sword40_L               88   129     8    6    5    8  167
+  Sword40_R               88   129     8    6    5    8    -
+  Monster263            1183  1872  1834  721  607    - 1186
+  Monster277            1561  1570  3257 2055 2171    - 1628
+  Monster290              93    93     8    6   25    8    -
+  Monster299            1518  1791    19   15   15    -  888
+  Monster300             363   426    18   15   14    - 1590
+
+CONCLUSAO: AMBIGUO. Nenhum tamanho de registro vence de forma consistente.
+8 B vence em 4 arquivos, 16 B em 4, 12 B em 2. O mesmo padrao de
+ambiguidade que ja havia derrubado a busca por um passo uniforme de
+vertice no inicio do ciclo.
+
+FALHA DE METODO REGISTRADA: a busca partia de uv_end = 52 + vc*16 + nc*20
++ nc*8, que depende da hipotese de uma regiao de UV com nc entradas de 8
+bytes. Essa hipotese NAO foi confirmada (92,65% dos floats em [0,1] contra
+baseline de ~87%, e apenas 28 de 145 arquivos com a regiao inteira em
+[0,1]). Procurar faces a partir de um offset derivado de uma hipotese nao
+confirmada propaga o erro: qualquer resultado seria inconclusivo mesmo que
+parecesse fechar.
+
+PROXIMO PASSO CORRETO: nao tentar adivinhar a secao de faces. Decodificar
+primeiro a secao imediatamente apos as normais de forma independente -
+por exemplo, testando se o seu comprimento e determinado por algum dos
+u16 ainda nao decodificados nos offsets 32/34/36/42/44 - e so entao
+procurar faces a partir de um offset verificado.
+
+CLASSIFICACAO: secao de faces NAO DETERMINADA. Nenhuma alteracao foi
+feita no parser com base nesta tentativa.
+
+======================================================================
+ANCORAS DURAS ENCONTRADAS APOS AS NORMAIS (resultado positivo parcial)
+======================================================================
+Nomes de textura em ASCII, NUL-terminados, foram encontrados apos a regiao
+de normais em 14 de 14 arquivos testados. Exemplos:
+
+  Monster263.bmd   @200000 'RsylvesterB.jpg'  @200016 'RsylvesterA.jpg'
+  Monster277.bmd   @63744  'boss_body.jpg'    @222464 'boss_weapon.jpg'
+  Monster290.bmd   @11412  'FereaKingAlpha.tga'
+  Monster301.bmd   @203100 'bass_body.tga'    @278734 'bass_fire.jpg'
+
+Sao strings NUL-terminadas, NAO campos de tamanho fixo - 'RsylvesterB.jpg'
+e 'RsylvesterA.jpg' sao adjacentes em 200000 e 200016, separadas por um
+unico byte 0x00. Isso descarta uma tabela de nomes com passo fixo.
+
+======================================================================
+REGIAO DE UV - NAO DETERMINADA
+======================================================================
+Teste: a partir do fim das normais, contar pares consecutivos de float32
+com ambos os valores em [0,1], parando no primeiro par fora da faixa.
+
+  arquivo                 vc    nc   n_end  uv_end  pares  pares/nc
+  PrickleGlove_left      332   452   14404  16908    313    0.692
+  Sword40                 88   129    4040   4624     73    0.566
+  Monster263            1183  1872   56420  61556    642    0.343
+  Monster277            1561  1570   56428  63740    914    0.582
+  Monster290              93    93    3400   3776     47    0.505
+  Monster299            1518  1791   60160  64392    529    0.295
+  Monster300             363   426   14380  16132    219    0.514
+  Monster301            1363  1533   52520  59272    844    0.551
+  Monster302             127   135    4784   5544     95    0.704
+  Monster315             113   102    3900   4572     84    0.824
+  Monster316             395   419   14752  15240     61    0.146
+  Monster317              50    50    1852   2156     38    0.760
+  Monster318              91    91    3328   3896     71    0.780
+
+  pares/nc: mediana 0.566, min 0.146, max 0.824
+
+CONCLUSAO: NAO DETERMINADA. A razao nao e constante nem proxima de 1,
+entao a regiao nao e um array de nc pares de UV. A varredura para cedo em
+todos os arquivos, o que indica dados intercalados - a hipotese mais
+provavel e que UV venha por malha, junto com os indices de face e o nome
+de textura de cada malha, e nao como uma secao unica.
+
+Isso e consistente com os nomes de textura aparecerem em offsets muito
+distantes entre si (63.744 e 222.464 em Monster277), o que sugere blocos
+por malha espalhados pelo arquivo.
+
+Nenhuma alteracao foi feita no parser com base nesta tentativa.
+
+======================================================================
+CONTAGEM DE MALHAS - TESTE INCONCLUSIVO
+======================================================================
+Hipotese testada: um dos u16 ainda nao decodificados (offsets 32, 34, 36,
+42, 44) seria a contagem de malhas, e igualaria o numero de nomes de
+textura encontrados apos a regiao de normais.
+
+Resultado em 60 arquivos:
+
+  detector FROUXO (aceita fragmentos de string):
+     u16@32 == nomes distintos   : 31 de 60  (52%)
+     u16@32 == ocorrencias       : 30 de 60  (50%)
+     u16@34 == nomes distintos   : 11 de 60  (18%)
+     u16@36 == nomes distintos   : 11 de 60  (18%)
+
+  detector ESTRITO (exige que o nome comece apos um byte NUL):
+     u16@32 == ocorrencias       : 25 de 60  (42%)
+     u16@32 == nomes distintos   : 22 de 60  (37%)
+     u16@36 == ocorrencias       : 20 de 60  (33%)
+     u16@34 == ocorrencias       : 19 de 60  (32%)
+
+CONCLUSAO: INCONCLUSIVO. u16@32 e o melhor candidato, mas 37-52% de
+concordancia nao confirma um campo de cabecalho. Para comparar: os campos
+verificados de contagem de vertices e normais concordam em 145 de 145
+(100%). Um campo real deveria se comportar assim.
+
+DEFEITO DE MEDICAO REGISTRADO: o detector de nomes de textura nao e
+confiavel. Ele encontra fragmentos - em PrickleGlove_right.bmd reportou
+'loveA.jpg', que e um pedaco de 'PrickleGloveA.jpg' cortado por um byte
+nao imprimivel. Exigir que o nome comece apos um byte NUL reduz a
+concordancia em vez de aumenta-la (52% -> 37%), o que mostra que o
+detector esta errado de uma forma que nao foi compreendida, e nao que a
+hipotese ficou mais fraca.
+
+Consequencia: este teste NAO pode refutar nem confirmar a hipotese de
+contagem de malhas. Ele precisa ser refeito com um extrator de nomes
+confiavel antes de qualquer conclusao. Um proximo passo concreto: extrair
+os nomes a partir do campo de 32 bytes do cabecalho e dos offsets ja
+mapeados, em vez de varrer o arquivo inteiro por strings.
+
+Exemplos de discordancia: PrickleGlove_right (u16@32=4, 8 ocorrencias,
+5 distintos), Monster300 (u16@32=2, 30 ocorrencias, 4 distintos),
+Monster277 (u16@32=5, 10 ocorrencias, 6 distintos).
+
+Nenhuma alteracao foi feita no parser com base neste teste.
+
+======================================================================
+QUARTA TENTATIVA SOBRE FACES - RESTRICAO DUPLA - TAMBEM AMBIGUA
+======================================================================
+Hipotese: um registro de face referencia indices de vertice E de normal,
+entao o teste [v0 v1 v2 n0 n1 n2] com vi < contagem_vertices e
+ni < contagem_normais seria muito mais restritivo que testar apenas um
+tipo de indice.
+
+  arquivo       vc    nc   rec 6B  rec 8B  rec 12B  rec 14B  rec 16B
+  Sword40       88   129       10       7      5        8        4
+  Monster263  1183  1872     2729    2047   2986     1949     2015
+
+  teste forte [v0 v1 v2 n0 n1 n2], rec 12 B:
+     Sword40    ->   5 registros
+     Monster263 -> 629 registros
+
+CONCLUSAO: INCONSISTENTE. A restricao dupla produziu 629 registros em
+Monster263 e apenas 5 em Sword40. Se o layout fosse esse, os dois
+arquivos deveriam se comportar de forma comparavel.
+
+NOTA DE METODO: em Monster263 as contagens altas (2.729 a 2.986) sao
+enganosas. Com nc=1872, um u16 aleatorio tem probabilidade alta de ser
+menor que nc, entao sequencias longas de "triplets < nc" surgem por acaso
+em um arquivo grande. O teste fraco nao discrimina quando a contagem de
+referencia e grande - exatamente o caso em que os numeros parecem melhores.
+
+ENCERRAMENTO DESTA LINHA DE ATAQUE: quatro tentativas de determinar a
+secao de faces por tamanho de registro foram feitas e todas falharam:
+  1. passo uniforme de vertice no arquivo inteiro  -> ambiguo
+  2. UV de nc*8 seguido de faces                   -> ambiguo
+  3. regiao de UV por floats em [0,1]              -> razao 0,146-0,824
+  4. restricao dupla vertice+normal                -> inconsistente
+
+Tentar um quinto tamanho de registro nao e um proximo passo razoavel. O
+que falta nao e mais um palpite melhor: e o significado dos campos, que
+nao se obtem por busca. As rotas que o dariam sao (a) uma implementacao
+open-source do formato sob licenca compativel, bloqueada por falta de
+acesso de saida a host de codigo neste ambiente, ou (b) documentacao do
+formato pelo autor.
+
+O parser permanece com as duas secoes verificadas e nada foi alterado com
+base nestas quatro tentativas.

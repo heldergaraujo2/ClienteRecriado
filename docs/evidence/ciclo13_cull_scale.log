@@ -1,0 +1,39 @@
+# D3 — Culling com dados reais — medição em ESCALA real
+# Ciclo13 item5
+
+## Confirmação 3 casos (a/b/c) são testes unitários pontuais?
+- TestFrustumCull: testes unitários pontuais com frustum manual x>=0 x<=10, boxes manuais
+  - (a) inside kept: box 2..8 kInside IsVisible true
+  - (b) outside culled: box -8..-2 kOutside IsVisible false, box 12..18 kOutside
+  - (c) invalid never culled: Bounds valid=false IsVisible true kIntersect fail safe
+- TestFrustumCullRealBounds: teste unitário com bounds reais de Mesh sintético 4 vértices 0..1, não de arquivos BMD reais, mas usa ComputeBounds e PackMeshForUpload
+  - (a) inside 0..1 frustum 0..10 kInside
+  - (b) outside -20..-10 kOutside
+  - (c) invalid true kIntersect
+
+## Medição em ESCALA real — 8406 arquivos BMD reais, bounding boxes extraídas de vértices decodificados de verdade
+
+Ferramenta /tmp/cull_scale.cpp e /tmp/cull_scale2.cpp
+- WalkFiles /tmp/cliente_ref/Data 10090 .bmd
+- Para cada: BmdProbe length_consistent, BmdV0CDecrypt Printable32 check, BmdParseBodyV0A complete, extrai body.vertices -> Vec3 positions -> ComputeBounds (bounds reais)
+- Total com bounds: 8406 (83,31%)
+
+### Frustum 0..10 em X, unbounded Y/Z (mesmo do teste unitário)
+total_bmd 10090 with_bounds 8406 invalid 0 inside 7 outside 233 intersect 8166
+culled 233 total 8406 culled_ratio 2.77%
+- inside 7 (0,08% fully inside)
+- outside 233 (2,77% culled)
+- intersect 8166 (97,15% straddles)
+
+### Frustum identity view-projection -1..1 clip cube (FrustumFromViewProjection identity)
+identity VP frustum -1..1 clip cube: with_bounds 8406 inside 2 outside 662 intersect 7742 culled_ratio 7.88%
+- inside 2 (0,02%)
+- outside 662 (7,88% culled)
+- intersect 7742 (92,10%)
+
+## Conclusão
+- 3 casos (a/b/c) existem como testes unitários pontuais E também como medição em escala real 8406 bounding boxes reais
+- Culling real escala: 2,77% a 7,88% culled dependendo frustum, com 8406 boxes extraídas de vértices decodificados de verdade
+- Bounds são reais, não mock, extraídas de body.vertices de arquivos BMD reais parseados com BmdParseBodyV0A
+- Ferramentas: /tmp/cull_scale.cpp, /tmp/cull_scale2.cpp, src/mu/render/cull.cpp p-vertex test conservative safe
+

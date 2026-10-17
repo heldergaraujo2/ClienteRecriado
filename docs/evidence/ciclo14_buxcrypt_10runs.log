@@ -1,0 +1,23 @@
+# BuxCrypt 1 MiB N=10 runs bench_assets
+# Each line: med_us p95_us p99_us mean_us MB MB/s
+run 1: med 388.6 us p95 419.6 p99 453.7 mean 393.4 MB/s 2573.2
+run 2: med 397.6 us p95 428.6 p99 495.9 mean 395.7 MB/s 2515.0
+run 3: med 389.8 us p95 412.7 p99 417.3 mean 391.3 MB/s 2565.5
+run 4: med 397.9 us p95 435.9 p99 457.9 mean 398.0 MB/s 2513.2
+run 5: med 398.3 us p95 425.7 p99 441.0 mean 394.5 MB/s 2510.7
+run 6: med 391.0 us p95 420.4 p99 430.9 mean 394.1 MB/s 2557.8
+run 7: med 393.5 us p95 411.2 p99 423.6 mean 391.2 MB/s 2541.2
+run 8: med 390.4 us p95 413.8 p99 432.0 mean 392.7 MB/s 2561.7
+run 9: med 391.6 us p95 419.2 p99 438.2 mean 393.2 MB/s 2553.8
+run 10: med 383.7 us p95 413.7 p99 429.4 mean 391.7 MB/s 2606.0
+
+median MB/s: 2555.8
+mean MB/s: 2549.81
+stdev MB/s: 30.41832232936813
+min MB/s: 2510.7
+max MB/s: 2606.0
+median med_us: 391.3
+mean med_us: 392.24
+stdev med_us: 4.673138369685006
+min med_us: 383.7
+max med_us: 398.3

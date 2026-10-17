@@ -1,0 +1,14 @@
+mc=4 bc=1 ac=1 ver=12 len=78732
+mesh 0 off 38 vc=332 ntri=546 tri_end 49284 name_at 49280 delta -4 name PrickleGloveA.jpg
+mesh 1 off 49312 vc=134 ntri=252 tri_end 70638 name_at 70634 delta -4 name PrickleGloveB.jpg
+mesh 2 off 70666 vc=42 ntri=80 tri_end 77688 name_at 77684 delta -4 name PrickleGloveC.jpg
+mesh 3 off 77716 vc=10 ntri=8 tri_end 78642 name_at 78638 delta -4 name flareRed.jpg
+base 78670 remain 62 expected bc*59-1+4=62
+extra u32 at base 1 hex 01000000
+ bone0 rec=78674 len=58 name='PrickleGlo' parent=65535
+  f0=0.0
+  f1=-4.999999873689376e-06
+  f2=1.9999999949504854e-06
+  f3=-1.570796012878418
+  f4=1.570796012878418
+  f5=0.0

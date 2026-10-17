@@ -1,0 +1,6 @@
+total bmd 10090 geom parsed 8406 (83.31%)
+with bones parsed 3800 (45.21% of geom, 37.66% of total) -> LEVEL 5
+with at least 1 valid bone name 3800 (100.00% of with_bones)
+with all floats finite 3800 (100.00%)
+total bones 8001, bone names valid 8001 (100.00% of total bones)
+parent root 5018 parent valid 8001

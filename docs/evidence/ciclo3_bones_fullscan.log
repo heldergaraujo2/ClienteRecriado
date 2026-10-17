@@ -1,0 +1,17 @@
+=== full-scan hierarquia de ossos (sem teto) ===
+data: 2026-10-12T14:22:00Z
+comando: python3 tools/bmd_bones_probe.py /home/user/Cliente_ref/Data
+HEAD: 1e970daced5b8b9fe2ab2b3fcf34e39d3654c189
+
+BMD bone hierarchy - FULL SCAN, no cap
+  tree                          : /home/user/Cliente_ref/Data
+
+  .bmd files seen               :  10090
+  eligible (single mesh, bones) :   4119  (40.82% of seen)
+  size matches bc*59-1          :   3552  (86.23% of eligible)
+  names ASCII valid             :   3505  (98.68% of size-ok)
+  names valid AND floats finite :   3505  (98.68% of size-ok)
+
+  Read the denominator. A rate over 'size-ok' is NOT a rate over
+  the tree: 98.68% of size-ok is 85.09% of eligible.
+EXIT=0

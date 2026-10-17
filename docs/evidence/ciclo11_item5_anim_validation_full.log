@@ -1,0 +1,47 @@
+CICLO 11 ITEM 5 — VALIDAR ESTATISTICAMENTE 62 ARQUIVOS PLAUSÍVEIS ANIMAÇÃO
+
+População total testada:
+- Total com ossos (loose, com ciclo detection): 3693 arquivos (mutool bmdreport)
+- Com extra após ossos (remain>0): 764 arquivos
+- Divisível bc*12 (3 floats por osso por keyframe): 231 arquivos
+- Plausível finite<1e6 e <1e10 (critério fraco usado ciclo10 Fase B): 62 arquivos (0,61% total, 1,68% de 3693)
+- Plausível estrito todos floats em [-pi,pi] (critério mais forte rotação): 53 arquivos (1,43% de 3693)
+
+Critério fraco finite<1e6:
+- Real: 62/3693 = 1,6789% per file
+- Controle mesma classe: vertex array 12B chunks como 3 floats finite<1e6, trials 55985 hits 55911 rate 99,8678% per trial, per file 231 files 231 hit rate 100%
+- Ratio per file: 1,6789% / 100% = 0,02x — controle tem taxa MAIOR que real, NÃO discriminativo, indica critério fraco (vertex coords também finite<1e6)
+- Conclusão: critério fraco não discrimina animação de dados de vértice, 62 plausíveis não confirmado com este critério
+
+Critério estrito [-pi,pi] todos floats:
+- Real: 53/3693 = 1,4351% per file
+- Controle vertex array 12B chunks em [-pi,pi]: trials 55985 hits 2079 rate 3,7135% per trial, per file 231 files 78 hit rate 33,7662%
+- Ratio per trial: 1,4351% / 3,7135% = 0,39x, per file: 1,4351% / 33,7662% = 0,04x — controle ainda maior que real, NÃO discriminativo
+- Explicação: vertex coords pequenos (0..500) muitos caem em [-3,14,3,14] por acaso (3,7% dos chunks), e per file 33% dos arquivos têm pelo menos um chunk em [-pi,pi], enquanto animação real tem apenas 1,4% dos arquivos com todos floats em [-pi,pi], então critério ainda não discrimina
+
+Tentativas de critério mais discriminativo:
+- Padrão observado em Object01.bmd: kf 18, primeiros 9 zeros, depois rotação Z 0,628 (36°) 1,256 (72°) 1,884 (108°) 2,513 (144°) 3,141 (180°) -2,513 etc, múltiplos de 0,628319 (pi/5)
+- Object04.bmd: kf 98, primeiros 48 zeros, depois 0,125,0,251,0,376... até 3,141 e negativos, múltiplos de 0,125664 (pi/25)
+- Isso sugere animação com keyframes de rotação com zeros iniciais e valores que são múltiplos de ângulo base, não apenas valores em [-pi,pi]
+- Controle vertex array não tem esse padrão de zeros + múltiplos, mas teste simples de [-pi,pi] não captura padrão
+
+Validação estatística com controle mesma classe (igual ossos/UV/multi-mesh):
+- Para ossos: controle 0,0079% vs real 43,93% ratio 1846x discriminativo
+- Para multi-mesh: strict 14,27% vs controle 0,0376% ratio 379x discriminativo
+- Para UV: 79,42% vs 70,34% ratio 1,13x rejeita
+- Para animação com critério fraco finite<1e6: real 1,68% vs controle 100% ratio 0,02x NÃO discriminativo
+- Para animação com critério [-pi,pi]: real 1,43% vs controle 33,76% ratio 0,04x NÃO discriminativo
+
+Conclusão item 5:
+- 62 arquivos plausíveis com critério finite<1e6 NÃO pode ser citado como achado confirmado, pois taxa falso-positivo controle é 99,86% per trial e 100% per file, ratio 0,02x <1x, ou seja controle tem mais hits que real
+- Mesmo com critério estrito [-pi,pi], ratio 0,04x per file, ainda não discriminativo
+- Portanto animação permanece NÃO DECODIFICADA formalmente, com 62 arquivos com valores plausíveis mas sem validação estatística suficiente, deve ser citado como tentativa com evidência negativa ou parcial, não confirmado
+- Próximos passos: definir critério mais discriminativo (ex: zeros iniciais + múltiplos de ângulo base + monotonicidade) e testar controle mesma classe com esse critério, ou investigar actionCount e keyframe count
+
+Evidências:
+- docs/evidence/ciclo10_itemB_anim_scan.log: 3693 total, 764 extra, 231 divisível, 62 plausíveis finite<1e6
+- docs/evidence/ciclo11_anim_validation.log: total 3693, 764 extra, 231 divisível, 62 plausible finite<1e6, controle vertex array 55985 trials 55911 hits 99,86% per file 100% ratio 0,02x
+- docs/evidence/ciclo11_anim_pi_validation.log: 3693 total, 764 extra, 231 divisível, 53 plausible_pi all in [-pi,pi], controle 55985 trials 2079 hits 3,71% per file 33,76% ratio 0,04x per file
+- Este log: síntese
+
+Ferramentas: /tmp/scan_anim.cpp, /tmp/ciclo11_item5_anim_validation.cpp, /tmp/ciclo11_item5_anim_pi.cpp, /tmp/dump_anim_detailed.cpp

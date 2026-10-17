@@ -1,0 +1,90 @@
+Cycle-17 interrupted-work recovery — Git evidence
+
+Local worktree at recovery start
+--------------------------------
+Current session branch was arena/1d9c1f53-clienterecriado at
+972fabcea1b0d4e80345f0f5abd287b46d819455. Its worktree had one modified
+tracked file (README.md), no staged diff, and untracked .gitignore, AGENTS.md,
+Makefile, Progresso, bench/, docs/, scripts/, src/, tests/, and tools/.
+
+Published refs at recovery start
+--------------------------------
+origin/main: 972fabcea1b0d4e80345f0f5abd287b46d819455
+origin/arena/519f8fc9-clienterecriado: 4c36befab01263bf95a509d1c8306c56a1e876c5
+origin/arena/1d9c1f53-clienterecriado: absent
+The published 519 commit was 193 commits ahead of the local base. It was fetched
+read-only for comparison; no checkout of branch 519 occurred.
+
+Workspace-vs-published tree comparison
+---------------------------------------
+Workspace snapshot: 260 files; published 519 tree: 227 files.
+46 shared paths differed, 33 workspace-only evidence/log paths existed, and no
+published-only project paths existed. Six shared PPM files differed in bytes;
+the published copies were left untouched and the interrupted-workspace copies
+were preserved outside Git. Sizes and SHA-256 hashes are in
+ciclo17_ppm_recovery_comparison.log. Neither set is GPU-render evidence.
+
+Recovery operation
+------------------
+Before integration, `git stash push --include-untracked` saved a recovery
+snapshot as stash@{0}. An external workspace archive was retained at
+`/home/user/ClienteRecriado_cycle17_workspace_before_fastforward.tar.gz`
+(SHA-256 `cbbe233b47f79c97f1d5a94241e6623f1f1da214304c6f20e88b4bb9e135bc1e`).
+The fixed session branch was then fast-forwarded from
+972fabcea1b0d4e80345f0f5abd287b46d819455 to the published 519 commit
+4c36befab01263bf95a509d1c8306c56a1e876c5. No destructive Git reset/clean,
+branch switch, force-push, or write to the reference repository was used.
+The changes were overlaid after reviewing the local-vs-published differences;
+the six PPM variants were not added to Git.
+
+Validated content commit and publication
+----------------------------------------
+Commit: be4f79ae5a3c003502e68a5cc245f8f0e6cdba5f
+Message: recovery: reconcile cycle-17 asset audit
+Push command: git push -u origin arena/1d9c1f53-clienterecriado
+Push result: success; new fixed session branch created and tracking origin.
+At verification, local `git rev-parse HEAD` and remote `git ls-remote` for
+arena/1d9c1f53-clienterecriado both returned
+be4f79ae5a3c003502e68a5cc245f8f0e6cdba5f.
+The same verification showed origin/arena/519f8fc9-clienterecriado remained at
+4c36befab01263bf95a509d1c8306c56a1e876c5 and origin/main remained at
+972fabcea1b0d4e80345f0f5abd287b46d819455.
+Post-push status: ## arena/1d9c1f53-clienterecriado...origin/arena/1d9c1f53-clienterecriado
+
+A small follow-up commit records the final publication state in CURRENT_STATE.md.
+
+Post-publication recovery audit (2026-10-12; read-only baseline)
+-----------------------------------------------------------------
+Before the documentation-only reconciliation in the current cycle:
+
+- `git status --short --branch` returned
+  `## arena/1d9c1f53-clienterecriado...origin/arena/1d9c1f53-clienterecriado`;
+  staged/unstaged diffs and untracked paths were empty.
+- `git rev-parse HEAD` returned
+  `f839757d7b0b56d0b0a8d542aae9c67df1628d37`; upstream comparison returned
+  `0 0` (no local commits to push and no remote commits to pull).
+- `git ls-remote --heads origin` reported:
+  `f839757d7b0b56d0b0a8d542aae9c67df1628d37 refs/heads/arena/1d9c1f53-clienterecriado`,
+  `4c36befab01263bf95a509d1c8306c56a1e876c5 refs/heads/arena/519f8fc9-clienterecriado`,
+  and `972fabcea1b0d4e80345f0f5abd287b46d819455 refs/heads/main`.
+  GitHub REST branch queries returned the same three hashes.
+- The 519 commit was the merge base; `git diff --shortstat` from that commit to
+  the fixed branch reported 78 files changed, 3,950 insertions, 1,684 deletions.
+  The two already-published commits are `be4f79ae5a3c003502e68a5cc245f8f0e6cdba5f`
+  and `f839757d7b0b56d0b0a8d542aae9c67df1628d37`.
+- `stash@{0}` and both external workspace archives remain preserved; no stash
+  was applied or dropped. Six divergent PPM copies remain outside Git and are
+  not cited as GPU evidence.
+- `make clean && make` exited 0 with no warnings. Subsequent `make test` and
+  `make test-san` each exited 0 with 539 checks and zero failures. The
+  documentation checker without an argument exited 2 because its default
+  `/home/user/Cliente_ref/Data` path is absent in this sandbox;
+  `python3 tools/check_docs_consistency.py /tmp/cliente_ref/Data` then passed 54
+  checks with zero failures. The reference clone remained at
+  `88edfc73f5e1d63f806a51f21a118f84ba6c2bb9` with a clean tracked/staged state.
+- The renderer API conflict between DEC-008/008-A and the newer evaluation plan
+  was recorded as DEC-014; no API choice or Windows/GPU runtime claim was made.
+
+This baseline log records the pre-reconciliation tip. The documentation-only
+reconciliation is published in the fixed branch's following commit; see
+`git log` and the cycle summary for its resulting hash.

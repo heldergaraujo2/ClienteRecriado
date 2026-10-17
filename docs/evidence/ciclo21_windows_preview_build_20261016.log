@@ -1,0 +1,51 @@
+Cycle 21 — Windows D3D11 preview executable build and artifact
+Local date: 2026-10-16 (America/Sao_Paulo)
+
+Source commit: b3cc50401f4129730fba81f1f2c1321da8c59946
+Branch: arena/1d9c1f53-clienterecriado
+Workflow run: https://github.com/heldergaraujo2/ClienteRecriado/actions/runs/38996411696
+Run ID: 38996411696
+Event: push
+Conclusion: success
+Job ID: 117289854130
+Job: Build Windows x64 diagnostic preview
+
+GitHub Actions API reported all job steps completed successfully:
+- Set up job
+- Check out source
+- Configure MSVC x64 environment
+- Build the D3D11 preview executable
+- Upload the Windows x64 executable
+- Post Check out source
+- Complete job
+
+The workflow build step invokes `scripts/build_d3d11_bmd_preview.ps1`, checks
+that the output is non-empty, runs `dumpbin /headers` and requires the PE x64
+machine signature, then computes a SHA-256 for the EXE. The build and artifact
+upload steps both concluded `success`. The hosted run took 32 seconds. This is a
+compile/PE/artifact result only; it does not create a D3D11 device or window and
+does not render or validate a model.
+
+Artifact metadata returned by GitHub API:
+- Name: d3d11-bmd-preview-windows-x64
+- Artifact ID: 12087526346
+- Archive size: 128131 bytes
+- Created: 2026-10-17T02:49:52Z
+- Expires: 2026-11-16T02:49:51Z
+- Archive digest: sha256:b806a6a4b0da853c6c283142520d367a10b106b40c42f2b21fd9fc026ac324cd
+
+The run had a non-blocking GitHub Actions annotation that actions targeting
+Node.js 20 were being forced to Node.js 24. All job steps still succeeded.
+
+Sandbox limitation: `gh run view --log` and `gh run download` could not retrieve
+the logs/archive because their signed download endpoints are outside this
+sandbox's outbound-host allowlist (the requests returned EOF). The artifact is
+present on the GitHub Actions run linked above and can be downloaded from there;
+it was not copied into this workspace. The archive digest above is for the
+artifact archive, not the executable's own SHA-256. The build-step log containing
+the executable hash could not be retrieved.
+
+Not validated by this run: real Windows/GPU execution, BMD geometry rendered on
+a D3D11 device, UV semantics, material association, texture decoding/binding,
+or visual compatibility. The existing preview remains geometry-only and accepts
+plaintext BMD v0x0A only.

@@ -1,0 +1,111 @@
+# Evidencia - campo de contagem de normais no cabecalho BMD v0x0A
+# Gerado em: 2026-10-11T22:59:04Z
+#
+AFIRMACAO TESTADA: em arquivos BMD v0x0A com payload em claro, o u16 no
+offset 40 do corpo (ou seja, 8 bytes apos o campo de nome de 32 bytes)
+e igual ao numero de registros de normais, e a regiao de normais tem
+exatamente contagem*20 bytes.
+
+METODO INDEPENDENTE: a contagem de normais NAO foi lida do cabecalho.
+Ela foi obtida localizando, por varredura no arquivo inteiro, a maior
+sequencia consecutiva de triplos float32 com norma euclidiana 1
+(tolerancia 1e-3) a passo de 20 bytes. As duas medidas sao depois
+comparadas. Um campo de cabecalho que coincide com uma contagem
+derivada de uma propriedade geometrica e evidencia, nao circularidade.
+
+Taxa de falso positivo do teste de norma 1, medida em 2.000.000
+amostras uniformes em [-1.5,1.5]: 4.480e-04.
+
+======================================================================
+RESULTADO sobre os 200 primeiros arquivos v0x0A nomeados e em claro
+  com sequencia de normais detectavel (>=20 registros) : 154
+  sem sequencia detectavel                             : 46
+
+  u16@40 == contagem derivada                          : 145
+  diferente                                            : 9
+  taxa de concordancia                                 : 94.2%
+
+  dos 145 concordantes, regiao == contagem*20 bytes  : 145  (discordancias: 0)
+
+AMOSTRAS (arquivo, contagem, byte_inicio, byte_fim):
+   PrickleGlove_left.bmd         452      5364..14404     tamanho    9040 = 452*20
+   PrickleGlove_right.bmd        452      5364..14404     tamanho    9040 = 452*20
+   Sword40.bmd                   129      1460..4040      tamanho    2580 = 129*20
+   Sword40_L.bmd                 129      1460..4040      tamanho    2580 = 129*20
+   Sword40_R.bmd                 129      1460..4040      tamanho    2580 = 129*20
+   Monster263.bmd               1872     18980..56420     tamanho   37440 = 1872*20
+   Monster277.bmd               1570     25028..56428     tamanho   31400 = 1570*20
+   Monster299.bmd               1791     24340..60160     tamanho   35820 = 1791*20
+   Monster300.bmd                426      5860..14380     tamanho    8520 = 426*20
+   Monster301.bmd               1533     21860..52520     tamanho   30660 = 1533*20
+   Monster315.bmd                102      1860..3900      tamanho    2040 = 102*20
+   Monster316.bmd                419      6372..14752     tamanho    8380 = 419*20
+
+DISCORDANCIAS (arquivo, contagem_derivada, u16@40):
+    ('Monster290.bmd', 599, 93)
+    ('Monster302.bmd', 594, 135)
+    ('Monster318.bmd', 158, 91)
+    ('Monster321.bmd', 49, 23)
+    ('MagicBox06.bmd', 53, 52)
+    ('MagicBox07.bmd', 53, 52)
+    ('Wing402.bmd', 1645, 992)
+    ('Wing403.bmd', 684, 236)
+    ('absolute_stick.bmd', 102, 63)
+
+======================================================================
+O QUE ISTO ESTABELECE
+======================================================================
+
+- O corpo BMD v0x0A comeca com um campo de nome ASCII de 32 bytes.
+- No offset 40 do corpo ha um u16 little-endian que e a contagem de
+  registros de normais, confirmado em 145 de 154 arquivos testaveis
+  (94,2%), com a regiao medindo exatamente contagem*20 bytes em 145 de
+  145 (100%) dos concordantes.
+- O registro tem 20 bytes (5 floats). Os 3 primeiros sao a normal
+  unitaria (x,y,z). Os 2 restantes NAO estao identificados.
+
+======================================================================
+O QUE ISTO NAO ESTABELECE
+======================================================================
+
+- 9 de 154 arquivos discordam. Exemplos: Monster290 (derivado 599 vs
+  u16@40 93), Monster302 (594 vs 135). Nesses casos a varredura pode ter
+  capturado uma secao diferente, ou o arquivo pode ter outro layout.
+  Nao resolvido.
+- 46 de 200 arquivos nao apresentam sequencia detectavel. Causa nao
+  determinada.
+- Os 2 floats finais do registro de 20 bytes seguem nao identificados.
+  A hipotese (u,v) de textura e plausivel mas NAO foi verificada.
+- A posicao da regiao de normais dentro do arquivo varia (byte 852 a
+  357308), entao os campos entre o offset 42 e o inicio da regiao ainda
+  nao sao decodificados. O formato completo NAO esta determinado e
+  nenhum parser e possivel ainda.
+
+CLASSIFICACAO: campo de cabecalho verificado (contagem de normais) e
+tamanho de registro verificado (20 bytes). Layout completo: NAO
+DETERMINADO.
+
+
+======================================================================
+TESTE ADICIONAL - os 2 floats finais do registro de 20 bytes
+======================================================================
+Hipotese testada: seriam coordenadas de textura (u,v), portanto em [0,1].
+
+Medicao na regiao de normais (145 arquivos, 2 floats por registro):
+   77236 / 80868 = 95,5% dentro de [0,1]
+   100,0% finitos
+
+CONTROLE (obrigatorio): a mesma medicao foi repetida em uma regiao
+adjacente de igual tamanho, imediatamente apos a regiao de normais, onde
+nao ha motivo para haver coordenadas de textura:
+   70480 / 80868 = 87,2% dentro de [0,1]
+
+   razao: 1,10x
+
+CONCLUSAO: HIPOTESE NAO SUSTENTADA. Floats arbitrarios nestes arquivos ja
+caem em [0,1] em 87,2% dos casos, entao 95,5% nao e evidencia de (u,v).
+O teste e fraco demais para discriminar. Sem o controle, o numero de
+95,5% teria sido apresentado como confirmacao - exatamente a categoria
+de erro que a auditoria do ciclo 1 apontou.
+
+Os 2 floats finais seguem NAO IDENTIFICADOS.

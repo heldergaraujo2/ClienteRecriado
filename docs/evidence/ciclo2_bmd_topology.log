@@ -1,0 +1,13 @@
+raiz analisada                 : /home/user/Cliente_ref/Data
+arquivos de malha única usados : 586
+
+HIPÓTESE  índices em +2/+6/+10 : 134524/137205 =  98.05%
+CONTROLE  região f32 de vértice:   5961/254025 =   2.35%
+ACASO     vc/65536 médio       :                 0.71%
+
+razão hipótese/acaso           : 138.3x
+razão hipótese/controle        : 41.78x
+
+nome de textura no ponto previsto: 515/586 = 87.9%
+resíduos mais comuns após o array: 90 (286x), 149 (45x), 5845 (24x), 496 (23x), 8991 (20x)
+EXIT=0

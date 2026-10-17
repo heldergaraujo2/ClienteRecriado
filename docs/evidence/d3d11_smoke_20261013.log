@@ -1,0 +1,8 @@
+﻿===== D3D11 SMOKE TEST =====
+Data: 2026-10-13
+GPU: AMD Radeon RX 6600
+Dedicated video memory reported by DXGI: 8147 MiB
+D3D feature level: 0xB100
+Resultado: triangulo exibido; encerramento normal confirmado.
+Mensagem: D3D11 smoke test: clean shutdown.
+Observacao: teste funcional isolado; nao representa benchmark do jogo.

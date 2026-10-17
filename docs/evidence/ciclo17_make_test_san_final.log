@@ -1,0 +1,122 @@
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tests/test_assets.cpp -o build-san/tests/test_assets.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/format.cpp -o build-san/src/mu/assets/format.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozt.cpp -o build-san/src/mu/assets/ozt.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozj.cpp -o build-san/src/mu/assets/ozj.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd.cpp -o build-san/src/mu/assets/bmd.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_body.cpp -o build-san/src/mu/assets/bmd_body.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/mesh.cpp -o build-san/src/mu/assets/mesh.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/cull.cpp -o build-san/src/mu/render/cull.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/buffers.cpp -o build-san/src/mu/render/buffers.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/skinning.cpp -o build-san/src/mu/render/skinning.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/software_rasterizer.cpp -o build-san/src/mu/render/software_rasterizer.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/platform/win32_window.cpp -o build-san/src/mu/platform/win32_window.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/platform/main_loop.cpp -o build-san/src/mu/platform/main_loop.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_report.cpp -o build-san/src/mu/assets/bmd_report.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/terrain.cpp -o build-san/src/mu/assets/terrain.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/tga.cpp -o build-san/src/mu/assets/tga.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/manifest.cpp -o build-san/src/mu/assets/manifest.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/fs.cpp -o build-san/src/mu/fs.o
+ar rcs build-san/libmuassets.a build-san/src/mu/assets/format.o build-san/src/mu/assets/ozt.o build-san/src/mu/assets/ozj.o build-san/src/mu/assets/bmd.o build-san/src/mu/assets/bmd_body.o build-san/src/mu/assets/mesh.o build-san/src/mu/render/cull.o build-san/src/mu/render/buffers.o build-san/src/mu/render/skinning.o build-san/src/mu/render/software_rasterizer.o build-san/src/mu/platform/win32_window.o build-san/src/mu/platform/main_loop.o build-san/src/mu/assets/bmd_report.o build-san/src/mu/assets/terrain.o build-san/src/mu/assets/tga.o build-san/src/mu/assets/manifest.o build-san/src/mu/fs.o
+g++ -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer build-san/tests/test_assets.o build-san/libmuassets.a -o build-san/test_assets
+build-san/test_assets
+ClienteRecriado asset library tests
+[ RUN  ] crc32 known vectors
+[  OK  ] crc32 known vectors
+[ RUN  ] ozt round trip
+[  OK  ] ozt round trip
+[ RUN  ] ozt 24-bit pixel conversion
+[  OK  ] ozt 24-bit pixel conversion
+[ RUN  ] ozt variant with extra prefix
+[  OK  ] ozt variant with extra prefix
+[ RUN  ] ozt rejects bad input
+[  OK  ] ozt rejects bad input
+[ RUN  ] ozj probe
+[  OK  ] ozj probe
+[ RUN  ] ozj duplicated header prefix
+[  OK  ] ozj duplicated header prefix
+[ RUN  ] bux cipher is self inverse
+[  OK  ] bux cipher is self inverse
+[ RUN  ] bmd probe
+[  OK  ] bmd probe
+[ RUN  ] entropy separates plaintext from ciphertext
+[  OK  ] entropy separates plaintext from ciphertext
+[ RUN  ] terrain probe
+[  OK  ] terrain probe
+[ RUN  ] manifest parse
+[  OK  ] manifest parse
+[ RUN  ] manifest verify
+[  OK  ] manifest verify
+[ RUN  ] extension helpers
+[  OK  ] extension helpers
+[ RUN  ] bmd v0x0c cipher
+[  OK  ] bmd v0x0c cipher
+[ RUN  ] bmd triangles
+[  OK  ] bmd triangles
+[ RUN  ] topology is a strict subset of geometry
+[  OK  ] topology is a strict subset of geometry
+[ RUN  ] mesh from bmd
+[  OK  ] mesh from bmd
+[ RUN  ] compute bounds
+[  OK  ] compute bounds
+[ RUN  ] frustum cull
+[  OK  ] frustum cull
+[ RUN  ] frustum from view projection
+[  OK  ] frustum from view projection
+[ RUN  ] terrain height
+[  OK  ] terrain height
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
+[ RUN  ] bmd report levels are separate
+[  OK  ] bmd report levels are separate
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
+[ RUN  ] bmd percent helper
+[  OK  ] bmd percent helper
+[ RUN  ] bmd report accumulates kinds
+[  OK  ] bmd report accumulates kinds
+[ RUN  ] bmd multi-mesh large counts (regression 8406)
+[  OK  ] bmd multi-mesh large counts (regression 8406)
+[ RUN  ] bmd multi-mesh extreme meshCount 0xFFFF
+[  OK  ] bmd multi-mesh extreme meshCount 0xFFFF
+[ RUN  ] bmd multi-mesh truncated payload
+[  OK  ] bmd multi-mesh truncated payload
+[ RUN  ] bmd multi-mesh overflow check
+[  OK  ] bmd multi-mesh overflow check
+[ RUN  ] bmd bones circular parent (cycle detection)
+[  OK  ] bmd bones circular parent (cycle detection)
+[ RUN  ] bmd bones extreme boneCount
+[  OK  ] bmd bones extreme boneCount
+[ RUN  ] bmd bones truncated payload
+[  OK  ] bmd bones truncated payload
+[ RUN  ] bmd bones overflow check
+[  OK  ] bmd bones overflow check
+[ RUN  ] mesh internal representation (C1)
+[  OK  ] mesh internal representation (C1)
+[ RUN  ] pack mesh for upload (D1)
+[  OK  ] pack mesh for upload (D1)
+[ RUN  ] skinning LBS CPU strict (D2)
+[  OK  ] skinning LBS CPU strict (D2)
+[ RUN  ] frustum cull real bounds (D3)
+[  OK  ] frustum cull real bounds (D3)
+[ RUN  ] win32 wgl skeleton BLOCKED (D5)
+[  OK  ] win32 wgl skeleton BLOCKED (D5)
+[ RUN  ] main loop skeleton update/render/present (E2)
+[  OK  ] main loop skeleton update/render/present (E2)
+[ RUN  ] software rasterizer framebuffer (B)
+[  OK  ] software rasterizer framebuffer (B)
+[ RUN  ] software rasterizer camera (B)
+[  OK  ] software rasterizer camera (B)
+[ RUN  ] software rasterizer triangle (B)
+[  OK  ] software rasterizer triangle (B)
+[ RUN  ] software rasterizer z-buffer (B)
+[  OK  ] software rasterizer z-buffer (B)
+[ RUN  ] software texture loads OZT pixels
+[  OK  ] software texture loads OZT pixels
+[ RUN  ] software rasterizer uses mesh texcoords
+[  OK  ] software rasterizer uses mesh texcoords
+
+539 checks, 0 failures
+
+[exit code: 0]

@@ -1,0 +1,13 @@
+Frustum culling over meshes imported from /home/user/Cliente_ref/Data
+
+  meshes with valid bounds               8408
+  visible (must be drawn)                 207  (  2.46%)
+  culled (draw calls avoided)            8201  ( 97.54%)
+
+  Camera: origin, +z, 60 deg vertical FOV, aspect 16:9,
+  near 1, far 4000. Objects laid out on a 64-wide grid at
+  200-unit spacing, because BMD carries no world transform.
+
+  This counts DRAW CALLS AVOIDED, not frame rate. Whether it
+  moves frametime must be measured on real hardware.
+EXIT=0

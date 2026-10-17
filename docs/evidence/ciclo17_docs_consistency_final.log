@@ -1,0 +1,61 @@
+check_docs_consistency: docs/ contra "mutool bmdreport /tmp/cliente_ref/Data"
+
+--- numeros citados vs saida da ferramenta ---
+  nivel 1 - estrutura valida                     ferramenta: 10023 (99.34%)
+  nivel 2 - payload em claro (1245+100+7226)     ferramenta: 8571 (84.95%)
+  nivel 2 - OPAQUE                               ferramenta: 1519 (15.05%)
+  nivel 3 - vertice + normal                     ferramenta: 8406 (83.31%)
+  nivel 4 - topologia                            ferramenta: 8405 (83.30%)
+  nivel 4b - queda por multi-mesh                ferramenta: 0 (0.00%)
+  nivel 5 - ossos                                ferramenta: 3693 (36.60%)
+  total de arquivos .bmd                         ferramenta: 10090
+
+--- numero dentro de cada linha da tabela de seis niveis ---
+  ok      docs/COMPATIBILITY.md "1 — structure" = 10023 (99.34%)
+  ok      docs/COMPATIBILITY.md "2 — payload" = 8571 (84.95%)
+  ok      docs/COMPATIBILITY.md "3 — vertices" = 8406 (83.31%)
+  ok      docs/COMPATIBILITY.md "4 — topology" = 8405 (83.30%)
+  ok      docs/COMPATIBILITY.md "6 — UV" = 0
+  ok      docs/ASSET_FORMATS.md "1 — structure" = 10023 (99.34%)
+  ok      docs/ASSET_FORMATS.md "2 — payload" = 8571 (84.95%)
+  ok      docs/ASSET_FORMATS.md "3 — vertices" = 8406 (83.31%)
+  ok      docs/ASSET_FORMATS.md "4 — topology" = 8405 (83.30%)
+  ok      docs/ASSET_FORMATS.md "6 — UV" = 0
+  ok      docs/ASSET_FORMATS.md "2 — payload" = 8571 (84.95%)
+  ok      docs/ASSET_FORMATS.md "6 — UV" = 0
+
+--- numeros ja corrigidos que nao podem voltar ---
+
+--- trava de DEC-010: nenhum include grafico em src/ ---
+  ok      zero includes graficos em src/
+
+--- breakdown nivel 4 falhando (item 2 auditoria) ---
+  medido via detail tool: total=10090 level4_ok=8405 failing=1685
+  esperado docs: failing 1685 = 1483 OPAQUE + 67 invalid + 134 geom + 1 zero
+  medido: opaque=1483 invalid=67 geom_other=134 zero=1 multi=0
+  ok      failing 1685 == 1685
+  ok      docs contem 1.685
+
+--- validacao multi-mesh taxas (item 3 auditoria) ---
+  medido: strict_m4 1796 (14.27%), weak_m4 6572 (52.2%), strict_files 1651 (38.79%), control_weak_rate 77.51%
+  ok      strict_m4_pct 14.27% ~ 14.27%
+  ok      weak_m4_pct 52.2% ~ 52.2%
+  ok      control_weak_rate 77.51% ~ 77.51%
+  ok      strict_files_pct 38.79% ~ 38.79%
+  ok      docs contem 14,27%
+  ok      docs contem 52,20%
+  ok      docs contem 77,51%
+  ok      docs contem 38,79%
+  ok      docs contem 379×
+  ok      docs contem 0,0376%
+  ok      docs contem 0,67×
+  ok      docs contem 1.685
+  ok      docs contem 1.483
+
+--- nivel 4 e subconjunto do nivel 3 ---
+  ok      8405 <= 8406
+
+54 verificacoes, 0 falhas
+documentacao consistente com a ferramenta.
+
+[exit code: 0]

@@ -1,0 +1,19 @@
+BMD -> internal mesh pipeline for /home/user/Cliente_ref/Data
+
+  .bmd files seen                       10090
+  v0x0C decrypted and plausible          7226
+  body parsed complete                   8408
+  converted to internal mesh             8408  ( 83.33%)
+
+  vertices produced                   1792108
+  meshes with triangles                  4071
+  triangles produced                   978853
+  corner refs dropped (out of range)   242177
+  meshes with a bounding box             8408
+  meshes with texture coordinates           0
+
+  Texture coordinates are ZERO by design, not by failure: the
+  BMD corner-to-UV binding was never located, so the importer
+  refuses to guess. No mesh here is renderable as a textured
+  model. See docs/ASSET_FORMATS.md.
+EXIT=0

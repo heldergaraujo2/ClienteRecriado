@@ -1,0 +1,71 @@
+﻿**********************
+Início da transcrição do Windows PowerShell
+Hora de início: 20261012233924
+Nome de Usuário: ADMINISTRADOR\helde
+Executar como Usuário: ADMINISTRADOR\helde
+Nome da Configuração: 
+Computador: ADMINISTRADOR (Microsoft Windows NT 10.0.26200.0)
+Aplicativo Host: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+ID do Processo: 21296
+PSVersion: 5.1.26100.9444
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.9444
+BuildVersion: 10.0.26100.9444
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcrição iniciada, o arquivo de saída é .\docs\evidence\d3d12_smoke_20261012.log
+PS D:\MU-REENGINEER> Write-Host "`n===== AMBIENTE ====="
+
+===== AMBIENTE =====
+PS D:\MU-REENGINEER> Get-ComputerInfo |
+    Select-Object WindowsProductName, OsBuildNumber, OsArchitecture
+
+WindowsProductName OsBuildNumber OsArchitecture
+------------------ ------------- --------------
+Windows 10 Home    26200         64 bits
+
+
+PS D:\MU-REENGINEER> Write-Host "`n===== COMPILADOR ====="
+
+===== COMPILADOR =====
+PS D:\MU-REENGINEER> cl.exe /Bv
+
+PS D:\MU-REENGINEER> Write-Host "`n===== DRIVER AMD ====="
+
+===== DRIVER AMD =====
+PS D:\MU-REENGINEER> Get-CimInstance Win32_VideoController |
+    Where-Object { $_.Name -like "*Radeon*" } |
+    Select-Object Name, DriverVersion, DriverDate
+
+Name               DriverVersion   DriverDate
+----               -------------   ----------
+AMD Radeon RX 6600 32.0.21045.5002 16/08/2026 21:00:00
+
+
+PS D:\MU-REENGINEER> Write-Host "`n===== EXECUCAO D3D12 ====="
+
+===== EXECUCAO D3D12 =====
+PS D:\MU-REENGINEER> .\build\d3d12_triangle.exe
+
+PS D:\MU-REENGINEER> TerminatingError(): "O pipeline foi interrompido."
+>> TerminatingError(): "O pipeline foi interrompido."
+PS D:\MU-REENGINEER> Write-Host "`n===== CODIGO DE SAIDA ====="
+
+===== CODIGO DE SAIDA =====
+PS D:\MU-REENGINEER> $LASTEXITCODE
+-1073741510
+PS D:\MU-REENGINEER> Stop-Transcript
+**********************
+Fim da transcrição do Windows PowerShell
+Hora de término: 20261012233949
+**********************
+
+===== CONFIRMACAO DE ENCERRAMENTO D3D12 =====
+Data: 2026-10-12
+GPU: AMD Radeon RX 6600
+Resultado: triangulo exibido; encerramento normal confirmado.
+Mensagem: D3D12 smoke test: clean shutdown.
+Observacao: teste funcional isolado; nao representa benchmark do jogo.

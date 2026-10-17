@@ -1,0 +1,3 @@
+mutool scan exit=0
+mutool bmdreport exit=2 (2 is expected while OPAQUE payloads remain)
+mutool meshimport exit=0

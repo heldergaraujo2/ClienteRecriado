@@ -1,0 +1,921 @@
+# Decisions
+
+Each entry records the decision, the alternatives considered, the evidence, and
+what would make it worth revisiting.
+
+---
+
+## D-000 — Starting the implementation from scratch was the only option
+
+**Decision.** The reconstruction was built from an empty repository.
+
+**Evidence.** The state of `ClienteRecriado` before this work, verified with
+`git show --stat 972fabc` and `git show 972fabc:README.md`:
+
+```
+commit 972fabcea1b0d4e80345f0f5abd287b46d819455
+    Initial commit
+
+ README.md | 1 +
+ 1 file changed, 1 insertion(+)
+```
+
+The complete literal content of that file was:
+
+```
+# ClienteRecriado
+```
+
+That is the entire prior state of the repository: one commit, one file, one
+line, a heading and nothing else.
+
+**Explicitly recorded, as required:** there was **no** pre-existing
+`AGENTS.md`, `CURRENT_STATE.md`, `NEXT_TASK.md`, `DECISIONS.md`, no source code,
+no build system, no tests and no documentation of any kind. There was no work by
+another agent to preserve and no implementation to continue from. Starting this
+front from scratch was therefore not a matter of convenience — there was nothing
+to start from.
+
+This is stated because "continue from existing work if there is any" is a
+standing instruction, and a reader is entitled to see the check that established
+there was none.
+
+**Reference repository hash at the start of cycle 1**, recorded so that any
+future claim about modifying the reference client can be checked:
+
+```
+$ cd Cliente_ref && git rev-parse HEAD
+88edfc73f5e1d63f806a51f21a118f84ba6c2bb9
+```
+
+**Revisit when.** Never — this is a record of a past state, not an open choice.
+
+---
+
+## D-001 — Build an independent asset layer rather than patching the client
+
+**Decision.** Read the original assets with new code; do not modify the client.
+
+**Alternatives.**
+- Patch or unpack the existing client. Rejected: `Main.exe` is VMProtect-protected
+  and the render loop is inside it. Out of scope by policy and by practicality.
+- Wrap the existing executable with a launcher. Rejected: it would not improve
+  anything that matters, and presenting a wrapper as a reconstruction would be
+  dishonest.
+- Replace individual assets with optimised versions. Considered and deferred:
+  promising, but it requires the formats to be readable first, which is what
+  this decision delivers.
+
+**Evidence.** `objdump -h Main.exe` shows `.vmp0` and `.vmp1` sections with
+`.text`/`.rdata`/`.data` at zero on-disk size. Meanwhile no asset format in the
+tree is protected, and 99.31% of OZJ, 98.10% of OZT, 99.76% of BMD and 100% of
+terrain and TGA files now parse.
+
+**Revisit when.** Never, unless the protection situation changes fundamentally.
+
+---
+
+## D-002 — C++17 with zero third-party dependencies
+
+**Decision.** The library builds with a compiler and nothing else.
+
+**Alternatives.**
+- C. Rejected: `std::vector`, `std::string` and RAII remove a whole class of
+  memory bug in code whose entire job is parsing hostile files.
+- Rust. Considered seriously and rejected for this project: the Windows build
+  path cannot be tested here, and adding a toolchain that has never been run on
+  the target platform is a bigger risk than the language's memory guarantees
+  offset.
+- C++ with vcpkg/Conan. Rejected: a manifest that has never been executed on
+  Windows is a way to ship a broken build.
+
+**Evidence.** The build succeeds in a container with no `GL/gl.h`, no `zlib.h`,
+no `libpng`, no `libjpeg`, no SDL and no package registry access.
+
+**Cost.** No JPEG pixel decoder. Recorded as a gap in
+[`DEPENDENCIES.md`](DEPENDENCIES.md).
+
+**Revisit when.** A JPEG decoder is needed, at which point `stb_image.h` behind
+a pluggable interface is the recommended addition — one header, public domain,
+no build integration.
+
+---
+
+## D-003 — Plain `make` instead of CMake
+
+**Decision.** A 60-line Makefile.
+
+**Alternatives.** CMake, Meson, Bazel. All rejected because none is installed in
+the development environment, and installing one means the build depends on a
+network fetch that cannot be verified on Windows.
+
+**Evidence.** `cmake` and `meson` are both absent from the environment. `make`
+4.3 and `g++` 12.2 are present.
+
+**Cost.** Less portable across exotic toolchains. Acceptable: the target is
+Windows plus Linux development, both well served.
+
+**Revisit when.** A Visual Studio solution or an IDE integration is needed. A
+`CMakeLists.txt` can be added *alongside* the Makefile rather than replacing it.
+
+---
+
+## D-004 — Custom 40-line test harness instead of a framework
+
+**Decision.** No test framework.
+
+**Alternatives.** GoogleTest, Catch2, doctest. All require a download.
+
+**Rationale.** The dependency-free property is worth more than parameterised
+tests and matchers. The harness is `Check`, `CHECK`, `CHECK_EQ` and a table of
+function pointers — 40 lines that do what is needed.
+
+**Cost.** No test filtering, no XML output, no parameterised cases. Mitigated by
+printing `[ RUN ]` / `[ OK ]` / `[ FAIL ]` per test, which is enough to see what
+broke.
+
+**Revisit when.** The suite passes a few hundred tests and filtering becomes a
+genuine time cost.
+
+---
+
+## D-005 — Accept unusual OZT trailers rather than rejecting them
+
+**Decision.** The OZT loader accepts any trailer up to 4096 bytes and reports
+its length, rather than requiring 0 or 26.
+
+**Evidence.** Measured over 400 files: trailer 26 bytes in 362, 0 bytes in 22,
+30 bytes in 12, 34 bytes in 1. Strict rejection of anything but 0 or 26 would
+fail roughly 3% of the asset base.
+
+**Rationale.** The pixel payload is fully determined by the header, so trailing
+metadata cannot corrupt the image. Compatibility with the existing asset base is
+a stated project priority, and there was nothing to gain from strictness here.
+
+**Guard.** A trailer above 4096 bytes is still rejected, so a corrupt length
+field cannot pass as data.
+
+**Revisit when.** If a trailer turns out to carry meaningful data — a mipmap
+chain, say — it should be parsed rather than skipped.
+
+---
+
+## D-006 — Report the OZT `00 4B 6D 4B` variant as unsupported rather than guessing
+
+**Decision.** 43 variant files are recognised and returned as `kUnsupported`
+with a message naming the marker.
+
+**Alternatives.** Pick a pixel offset that makes the file length arithmetic
+close.
+
+**Why not.** Three measurements on those files cannot all be satisfied by one
+layout: image type reads 0 rather than 2, dimensions sit 4 bytes later than the
+standard form, and the file is exactly 4 bytes shorter than header-plus-payload.
+An offset that closes the arithmetic would overlap the bits-per-pixel field and
+produce silently wrong pixels. A texture that loads and displays the wrong image
+is worse than one that reports a clear error.
+
+**Evidence.** `Rank01.OZT` is 24,358 bytes; 26 + 78*78*4 = 26,362.
+
+**Revisit when.** The variant's layout is established from a second source —
+another file that documents it, or the tool that produced these files.
+
+---
+
+## D-007 — Auto-detect bux encryption by measured gain, not by magic bytes
+
+**Decision.** `BuxDecryptGain` measures how much decrypting raises the zero-byte
+fraction; a gain above 0.05 means the file is bux-encrypted.
+
+**Evidence.** `Data/gate.bmd` is bux-encrypted but contains no `BMD` magic once
+decrypted — it opens with four repetitions of the key, i.e. twelve plaintext
+zero bytes, and decrypts to a data blob. 100 such files exist. Keying detection
+on the magic alone would have classified all of them as unknown.
+
+**Guard.** The reverse direction is tested too: high-entropy noise shows no gain
+and must not be classified as bux.
+
+**Revisit when.** A bux-encrypted file is found whose plaintext has no zero
+padding. None has been seen.
+
+---
+
+## D-008 — Require a decisive gain before applying bux to terrain
+
+**Decision.** `TerrainTryBuxDecrypt` only accepts a decryption that improves
+small-byte density by more than 0.10.
+
+**Evidence.** Decrypting 60 `EncTerrain*` files with the bux key improved the
+density of exactly 1. The `Enc*` family uses a different cipher, and applying
+bux to it would silently corrupt data that a future loader might otherwise
+handle correctly.
+
+**Rationale.** A cipher applied to data it does not match still "succeeds" — XOR
+always produces output. The only protection against silently corrupting a file
+is to check that the result looks more like the expected plaintext.
+
+---
+
+## D-009 — `mu::Status` instead of exceptions or booleans
+
+**Decision.** Every reader returns a status code plus a message.
+
+**Rationale.** A boolean cannot distinguish "not an OZT" from "a truncated
+OZT", and that distinction is the difference between a correct inventory and a
+wrong one. Exceptions would be reasonable, but they add cost to a hot path that
+runs over 29,000 files, and they make the "keep going past one bad file"
+behaviour awkward.
+
+**Consequence that matters.** Messages are written to be actionable. `mutool
+info` prints all four readers' messages for an unrecognised file, which turns
+triage from guesswork into reading.
+
+---
+
+## D-010 — Header-only probing on the inventory path
+
+**Decision.** Separate `Probe` (validate, no copy) from `Read` (copy pixels).
+Inventories use `Probe` only.
+
+**Evidence.** `OztProbe` 0.0 µs median against `OztRead` 6.0 µs and
+`OztToRgbaTopDown` 62.4 µs. `mutool scan` over 29,060 files and 2,372 MB takes
+1.67 s.
+
+**Consequence.** Whole-tree validation is cheap enough to run on every change,
+which is what caught the OZJ defect that sampling missed.
+
+---
+
+## D-011 — No original asset bytes in the repository
+
+**Decision.** Fixtures are generated at run time.
+
+**Rationale.** Licensing, first: the assets are third-party intellectual
+property. Practicality, second: the suite runs anywhere with no setup and no
+large files in Git.
+
+**Cost.** Real-asset validation needs the reference client present. Handled by
+making it a separate, documented step (`mutool scan`) rather than part of
+`make test`.
+
+---
+
+## D-012 — Record `NOT EXECUTED` explicitly rather than omitting
+
+**Decision.** Every unrun test gets a line saying so, with its blocker.
+
+**Rationale.** An absent line reads as "not relevant". In this project a great
+many things are "not yet possible" — no Windows, no GPU, no server — and the
+difference between those two states is the difference between an honest status
+report and a misleading one.
+
+---
+
+## DEC-007 — Registro histórico: proposta de usar transformação v0x0C de terceiro
+
+**Data original:** ciclo 2 · **Status atual (ciclo 17): SUPERSEDIDA / BLOCKED por `AGENTS.md`.
+
+> Este registro preserva a decisão tomada à época; não autoriza o uso ou a
+> expansão da implementação atual. A cifra BMD v0x0C permanece **BLOCKED**.
+> Os rótulos/counts do código são observações do classificador existente, não
+> prova de cifra validada, legitimidade da fonte, semântica ou compatibilidade.
+> Não retomar esse trabalho sem fonte legítima/autorização e atualização explícita
+> do bloqueio em `AGENTS.md`.
+
+**Problema.** A cifra do payload BMD v0x0C tornava 8.594 de 10.090 arquivos <!-- historico -->
+opacos e era o bloqueio nº 1 do projeto. Cinco abordagens haviam sido tentadas e
+todas falharam: entropia e estatística byte a byte, varredura de chaves XOR
+periódicas, decifragem por arquivo claro conhecido, modelos de cifragem em
+bloco e varredura por frequência de palavras. Uma varredura exaustiva de chaves
+XOR de 4 bytes exigiria ~4,3 bilhões de decifragens — inviável neste ambiente.
+
+**Decisão.** Adotar o algoritmo e a tabela de chave do projeto open-source
+`xulek/muonline-bmd-viewer` (ISC), reimplementando-o em C++ em vez de copiar
+código.
+
+**Por quê.**
+
+1. A restrição do usuário era **não contornar DRM nem enfraquecer validações de
+   servidor**. Usar um formato de arquivo documentado publicamente não viola
+   nenhuma das duas: não há verificação de licença envolvida e nenhum servidor é
+   afetado.
+2. A alternativa era não renderizar 85% dos modelos do cliente. A missão exige
+   compatibilidade visual e funcional.
+3. A licença ISC é permissiva e compatível com a MIT deste repositório, e exige
+   apenas atribuição, que está registrada em três lugares.
+
+**Alegação do ciclo 2, retirada no ciclo 17.** O texto anterior dizia que o
+resultado era "de terceiros validado" e que o filtro de nome impedia uma chave
+errada de classificar lixo. Essas frases eram fortes demais e não são mais uma
+conclusão aceita: um campo imprimível e um corpo aceito pelo parser não validam
+criptograficamente a transformação nem a legitimidade/abrangência da fonte.
+
+**Alternativas consideradas à época.** O relatório propunha continuar, reutilizar
+a fonte ou deixar v0x0C sem suporte. Esta escolha histórica não muda o bloqueio
+atual. O único número que pode ser citado hoje é **7.226 arquivos com rótulo
+v0x0C pelo classificador legado**, não "arquivos decifrados" nem compatibilidade
+validada. Veja `COMPATIBILITY.md` e `TEST_RESULTS.md`.
+
+---
+
+## DEC-008 — Substituir o pipeline fixed-function por VBO/VAO como piso mínimo
+
+**Data:** ciclo 2 · **Status:** aceita · **Depende de:** DEC-001 (fidelidade visual)
+
+### Problema
+
+O escopo passou a incluir, além de reaproveitar os assets originais, suportar
+malhas e texturas **significativamente mais pesadas** que as originais sem
+perder FPS, fluidez ou responsividade. O pipeline do cliente original não
+suporta isso, e o motivo é estrutural, não de tuning.
+
+O que foi medido no ciclo 1 sobre o cliente original (evidência em
+`docs/RENDERING.md`): OpenGL **1.1 fixed-function**, com `glBegin`/`glEnd`,
+display lists e vertex arrays do lado do cliente. Ausentes do binário:
+`glGenBuffers`, `glDrawElements`, framebuffer objects, `wglSwapIntervalEXT`.
+
+### Por que fixed-function é incompatível com malha pesada
+
+1. **`glBegin`/`glEnd` envia um vértice por chamada de função.** Cada vértice
+   atravessa o driver como uma chamada individual. Não há como o driver
+   transferir em lote nem reutilizar entre quadros. O custo escala linearmente
+   com a contagem de vértices **por quadro**, mesmo para geometria estática.
+
+2. **Vertex array do lado do cliente reenvia os dados a cada desenho.** Sem
+   buffer no lado do servidor, a memória de vértice é copiada a cada
+   `glDrawArrays`. Para uma malha pesada desenhada todos os quadros, isso é
+   tráfego de barramento contínuo que VBO elimina por construção.
+
+3. **Display lists são estáticas e opacas.** Ajudam para geometria que nunca
+   muda, mas não permitem instancing, atualização parcial, nem atributos por
+   vértice além do conjunto fixo. Skin moderno e atributos customizados ficam
+   fora.
+
+4. **Sem `glDrawElements` no binário, não há índice.** Toda malha é enviada
+   expandida. Uma malha com compartilhamento de vértices paga o custo de
+   triplicar os dados — exatamente o oposto do que se quer para conteúdo
+   pesado.
+
+5. **Fixed-function não tem shader.** LOD por shader, skinning na GPU,
+   decalque, PBR — nada disso é expressável. O limite não é de velocidade, é de
+   capacidade de expressar o pipeline.
+
+Nenhum desses pontos é contornável com otimização dentro de fixed-function. São
+propriedades do modelo de programação.
+
+### Decisão
+
+Adotar **VBO + VAO com draw indexado** como piso mínimo do pipeline de
+renderização da reconstrução, dentro da mesma stack OpenGL. Concretamente:
+
+- Geometria residente em buffer do lado do servidor (`GL_ARRAY_BUFFER` /
+  `GL_ELEMENT_ARRAY_BUFFER`), enviada uma vez e não a cada quadro.
+- Estado de atributos em VAO, para troca de malha custar um bind.
+- Draw indexado (`glDrawElements`), para malha com vértice compartilhado não
+  pagar expansão.
+- Shader mínimo substituindo a função fixa, habilitando skinning e LOD na GPU.
+
+Isso é **mudança de backend dentro da mesma stack**, permitida pelo comando
+mestre quando justificada: continua sendo OpenGL, não é troca de API.
+
+### Texto da decisão, sem ambiguidade
+
+> **Decisão: VBO + VAO com buffers indexados (`GL_ARRAY_BUFFER` +
+> `GL_ELEMENT_ARRAY_BUFFER` + `glDrawElements`) é o piso mínimo do pipeline de
+> renderização da reconstrução.** Immediate mode e submissão não indexada estão
+> excluídos como caminho de produção. Permanecem OpenGL; não há troca de API.
+
+**Justificativa baseada na medição.** No carregamento, expandir índice → flat
+custa **5,49×** mais que subir o buffer indexado (19190,9 µs contra 3493,1 µs,
+N=5). Por quadro, o modelo sem índice submete **1,29×** mais volume e faz
+**63,9%** de envios de vértice redundantes (2.936.559 envios de canto contra
+1.792.108 vértices únicos). A segunda parte é uma **quantidade exata** derivada
+das importações ausentes do binário original, não uma medição de desempenho. O
+**custo** por quadro está `BLOCKED`: exige contexto GL que este ambiente não tem.
+
+**Condições sob as quais esta decisão será revista.** Não é definitiva, e as
+condições são objetivas:
+
+1. **Se a Parte B (medição em contexto real) mostrar diferença de tempo de
+   quadro menor que a diferença de volume já estabelecida**, a decisão é
+   **revisada, não defendida**. O critério está em DEC-008-A §3.3.
+2. **Se o requisito de conteúdo pesado for retirado do escopo**, o teto
+   estrutural de fixed-function deixa de ser impeditivo e a opção de menor
+   complexidade volta a ser candidata.
+3. **Se o alvo mínimo de hardware subir** a ponto de GL 2.0 deixar de ser
+   relevante, a comparação entre "VBO/VAO em OpenGL" e "trocar de API" muda,
+   porque o custo que rejeitou a troca era a perda de compatibilidade com
+   hardware antigo.
+4. **Se `glDrawElements` vier a ser encontrado no binário original** (a ausência
+   foi verificada por import table no ciclo 1), a premissa de que o original
+   reenvia vértice compartilhado cai, e a justificativa de capacidade precisa
+   ser refeita.
+
+Fora dessas quatro condições, a decisão permanece e não será reaberta por
+preferência.
+
+### Custo e risco
+
+| Opção | Custo | Risco | Veredicto |
+|---|---|---|---|
+| Manter fixed-function | zero | não atende ao requisito (b); teto de capacidade intransponível | rejeitada |
+| **VBO/VAO em OpenGL (adotada)** | reescrever o caminho de desenho; exige GL 2.0+ no alvo | baixo: é o mesmo conjunto de conceitos, e o hardware que roda o cliente original roda GL 2.0+ | **adotada** |
+| Trocar de API (Vulkan/D3D12) | reescrita completa do backend | alto: perde a compatibilidade com hardware antigo que é requisito do projeto | rejeitada |
+
+A opção adotada é a de menor risco que atende ao requisito. Trocar de API daria
+mais teto, mas sacrificaria a compatibilidade com o hardware que hoje roda o
+cliente — e essa compatibilidade é parte do escopo.
+
+### Compatibilidade com decisões já registradas
+
+- **DEC-001 (fidelidade visual):** preservada. VBO/VAO muda *como* a geometria
+  chega à GPU, não *o que* é desenhado. O caminho A (assets originais) produz a
+  mesma malha.
+- **Zero dependência de build (ver `DEPENDENCIES.md`):** preservada. VBO/VAO é
+  OpenGL puro; não entra biblioteca.
+- **Prioridades de desempenho do comando mestre:** atende à ordem — primeiro
+  eliminar crash/corrupção, depois gargalo de FPS. Este é um gargalo de FPS e de
+  tempo de carregamento.
+
+### O que esta decisão NÃO diz
+
+**Nada aqui está implementado ou validado em GPU.** Não há baseline de FPS,
+frametime ou VRAM neste projeto, porque não há Windows nem GPU no ambiente.
+Qualquer número de ganho só pode ser declarado depois de medido em condições
+declaradas, conforme a regra permanente deste projeto.
+
+E **não substitui o bloqueio nº 1.** Ver DEC-009 e o item 10 do comando: teste
+de pipeline com geometria sintética é teste de pipeline, não suporte a asset
+original.
+
+---
+
+## DEC-008-A — Comparação formal de custo e risco (completando DEC-008)
+
+**Data:** ciclo 4 · **Status:** registrada · **Depende de:** DEC-008 ·
+**Exigida por:** DEC-010, que travou todo código de backend até aqui
+
+DEC-008 registrou a intenção. DEC-010 apontou corretamente que intenção não é
+decisão, e listou quatro itens que faltavam. Esta seção os responde.
+
+### 1. Comparação explícita: fixed-function/immediate mode contra VBO/VAO
+
+Os quatro eixos que a auditoria pediu, cada um com o que se sabe e de onde vem:
+
+| Eixo | Fixed-function / immediate mode (como o original) | VBO/VAO com draw indexado |
+|---|---|---|
+| **Capacidade de suportar malha pesada** | Teto estrutural, em dois lugares diferentes. **Carregamento:** sem `glDrawElements` o array tem que ser expandido — **medido: 19190,9 µs** para a árvore inteira, **5,49×** o custo do upload indexado. **Por quadro:** o volume submetido é o expandido — **67,21 MiB por draw**, **2.936.559 envios de canto**, dos quais **63,9% reenviam vértice que já foi enviado**. O custo por quadro é driver/barramento e está `BLOCKED` | Vértice único enviado uma vez e residente. **Carregamento: 3493,1 µs** de upload. **Por quadro:** 52,22 MiB residentes no total, draw indexado, volume independente da contagem de vértice. Custo por quadro `BLOCKED` |
+| **Número de draw calls** | Uma chamada por primitiva em immediate mode; display list agrupa mas é estática e opaca. Sem índice, não há como reduzir o volume dentro de uma chamada | Uma chamada por malha via `glDrawElements`, volume independente da contagem de vértice. Instancing disponível. **Contagem real de draw call em tempo de execução: BLOQUEADA** — exige contexto |
+| **Compatibilidade com hardware e drivers modernos** | OpenGL 1.1 fixed-function está **deprecado** desde GL 3.1 e **removido do perfil core** desde GL 3.2. Drivers modernos mantêm caminho de compatibilidade, mas em camadas de tradução (ex.: D3D12/Vulkan por baixo no Windows), o que tipicamente custa mais, não menos. Hardware antigo que roda o cliente original roda GL 2.0+ | GL 2.0 como piso, disponível em todo hardware que hoje roda o cliente original. Não exige driver recente nem troca de API. **Desempenho em driver específico: BLOQUEADO** |
+| **Complexidade de implementação** | Zero — é o que o original faz. Mas não atende ao requisito de conteúdo pesado, então o custo zero compra um teto intransponível | Moderada e conhecida: buffer + VAO + shader mínimo substituindo a função fixa. Mesmo conjunto de conceitos, sem biblioteca nova. Estimativa de esforço: **não medida**, e não será afirmada como prazo |
+
+### 2. Custo e risco de cada alternativa, incluindo o risco de não medir
+
+| Alternativa | Custo de implementação | Risco técnico | Risco de não conseguir medir | Veredicto |
+|---|---|---|---|---|
+| Manter fixed-function | zero | **alto**: teto de capacidade intransponível; caminho deprecado em drivers modernos | baixo, mas irrelevante — medir confirmaria o teto | **rejeitada** |
+| **VBO/VAO em OpenGL (adotada)** | reescrever o caminho de desenho; shader mínimo | **baixo**: mesmos conceitos, mesma stack, sem dependência nova | **alto e declarado**: não há GPU nem contexto aqui, então a validação final não pode ocorrer neste ambiente | **adotada** |
+| Trocar de API (Vulkan / D3D12) | reescrita completa do backend | **alto**: perde compatibilidade com hardware antigo, que é requisito do projeto | alto | **rejeitada** |
+
+O risco de não medir é **alto na opção adotada e isso não a desqualifica** —
+qualifica a afirmação que se pode fazer sobre ela. A alternativa de menor risco
+de medição (manter fixed-function) é justamente a que não atende ao requisito.
+Escolher por facilidade de medição seria otimizar a métrica errada.
+
+> **Correção do ciclo 5, item 1 da auditoria.** As duas primeiras versões desta
+> seção comparavam o custo da expansão contra o **orçamento de um quadro a 60
+> FPS** e declaravam "123,0% do orçamento inteiro de um quadro". **Essa <!-- historico -->
+> comparação era inválida.** A expansão índice → flat é um custo de
+> **carregamento**, não de quadro. A tabela e o texto abaixo foram corrigidos.
+
+### 3. O que será medido para decidir, e em que hardware
+
+#### 3.1 A natureza de cada custo, explicitada
+
+A auditoria do ciclo 4 exigiu que se dissesse qual das duas interpretações se
+aplica, com justificativa técnica. A resposta é que **os dois custos existem e
+pertencem a orçamentos diferentes**, e confundi-los foi o erro.
+
+**(1) Expansão índice → flat: custo de CARREGAMENTO.**
+
+No caminho `glDrawArrays` do cliente (`Main.dll`) existe um array de vértice
+flat em memória de aplicação. A implementação natural o constrói **uma vez**, ao
+carregar o modelo, e o reutiliza. A evidência do ciclo 1
+([`RENDERING.md`](RENDERING.md) §3) diz que "vertex data lives in client memory
+and is **re-marshalled per draw**" — isso é o **driver** relendo o array a cada
+draw, não o aplicativo **reconstruindo** o array. São coisas diferentes, e a
+import table não sustenta a segunda.
+
+Portanto: comparar a expansão com o orçamento de um quadro era comparar um custo
+único contra um orçamento recorrente. **Retirado.**
+
+**(2) Volume de submissão por quadro: o que realmente se repete.**
+
+Sem `glGenBuffers`/`glBufferData` no binário, o dado de vértice mora em memória
+de cliente e o driver o re-marshals a cada draw. Sem `glDrawElements`, vértice
+compartilhado é **reenviado** em vez de referenciado. Logo o volume por quadro é
+o tamanho **expandido**. Isso é uma **quantidade exata**, derivada das importações
+ausentes, e não depende de GPU.
+
+O **custo** desse volume — marshalling de driver, transferência por barramento e
+overhead de chamada por vértice — **não pode ser medido neste ambiente**: não há
+contexto GL.
+
+No caminho immediate mode de `Main.exe` (`glBegin`/`glEnd`/`glVertex3f`,
+[`RENDERING.md`](RENDERING.md) §2) não há array persistido: cada vértice cruza a
+fronteira da API como chamada individual, a cada quadro. Aí o custo por quadro é
+estrutural, mas é **overhead de chamada**, e também não é mensurável aqui.
+
+#### 3.2 O que foi medido
+
+Evidência:
+[`evidence/ciclo4_dec008_submission_cost.log`](evidence/ciclo4_dec008_submission_cost.log).
+Gerada por `tools/gen_dec008_evidence.py`, que deriva todos os números da saída
+do benchmark — nenhum valor é digitado.
+
+**Amostra pequena (N=5 execuções completas do binário), indicativa, não
+definitiva — sujeita a nova medição quando ambiente gráfico real estiver
+disponível.**
+
+**CARREGAMENTO — medido em CPU:**
+
+| Medida | Mediana (N=5) | Amplitude entre execuções |
+|---|---|---|
+| Expansão índice → flat, árvore inteira | 19190,9 µs | 5,14×–5,62× na razão |
+| Upload VBO, só vértices únicos | 3493,1 µs | — |
+| Razão expansão/upload | **5,49×** | 5,14× a 5,62× |
+
+**VOLUME POR QUADRO — quantidade exata; custo `BLOCKED`:**
+
+| Medida | Valor |
+|---|---|
+| Sem `glDrawElements`, expandido | **67,21 MiB por draw** |
+| VBO + index buffer, residente uma vez | 52,22 MiB total |
+| Razão de volume por quadro | **1,29×** |
+| Envios de canto, expandido | **2.936.559 por draw** |
+| Vértices únicos, indexado | 1.792.108, enviados uma vez |
+| Vértices reenviados desnecessariamente | **63,9% dos envios** |
+
+Contagens reais da árvore (`mutool meshimport`): 1.792.108 vértices, 978.853
+triângulos, 4.071 malhas. Razão de compartilhamento medida: 1,64 vértice por
+triângulo em vez de 3.
+
+Carregar os 10.090 modelos de uma vez não é o que um jogo faz; uma cena carrega
+um subconjunto. Os números acima são o **teto** para a árvore inteira. A **razão**
+é o que se preserva em qualquer subconjunto, porque ambos os custos são lineares
+na contagem de vértice.
+
+#### 3.3 Critério objetivo de validação, em três partes
+
+- **PARTE A — CONCLUÍDA.** Custo de CPU do **carregamento**. Sustentado:
+  expandir custa **5,49×** mais que subir o buffer indexado. Isso é trabalho de
+  carregamento, e o orçamento relevante é o de carga, não o de quadro.
+- **PARTE A' — CONCLUÍDA, e é quantidade, não custo.** Volume de submissão por
+  quadro: **1,29×** maior e **63,9%** mais envios de vértice no modelo sem índice.
+  Segue das importações ausentes, não de medição de desempenho.
+- **PARTE B — `BLOCKED`.** Custo real por quadro: benchmark sintético comparando
+  immediate mode contra VBO em contexto real. **Não pode ser executado neste
+  ambiente**: não há GPU, não há driver, não há `wglCreateContext`, e o ambiente
+  não permite instalá-los (sem root, sem headers de GL). Roteiro reproduzível em
+  [`BENCHMARKS.md`](BENCHMARKS.md) e `scripts/benchmark_windows.ps1`.
+
+**O que decidirá entre as opções quando a Parte B puder rodar:** tempo de quadro
+e contagem de draw call para volume de geometria declarado, com hardware, driver,
+resolução e estado de cache registrados. **Se a diferença medida for menor que a
+diferença de volume já estabelecida, a decisão é revisada, não defendida.**
+
+### 4. O que acontece com a compatibilidade visual em cada caso
+
+| Alternativa | Efeito sobre DEC-001 (fidelidade visual) |
+|---|---|
+| Manter fixed-function | Preserva por construção — é o mesmo caminho. Mas o requisito de conteúdo pesado fica não atendido |
+| **VBO/VAO (adotada)** | **Preservada em princípio**: muda *como* a geometria chega à GPU, não *o que* é desenhado. O caminho A produz a mesma malha. **Não verificada**: sem GPU não há como comparar pixel a pixel. Estado: `NOT EXECUTED` |
+| Trocar de API | Preservada em princípio, com risco maior de diferença de arredondamento e de comportamento de driver |
+
+A compatibilidade visual da opção adotada é **`NOT EXECUTED`, não
+"preservada"**. Dizer "preservada" sem comparação medida seria exatamente o
+tipo de afirmação que a regra permanente deste projeto proíbe.
+
+### O que destrava agora
+
+Com esta seção registrada, a trava de DEC-010 sobre código de backend deixa de
+valer por ausência de decisão. **Permanece valendo por ausência de ambiente:**
+escrever código de GL aqui seria não testável, e código não testável de backend
+gráfico é o caminho mais curto para afirmar compatibilidade que não foi
+verificada. A ordem correta é:
+
+1. Caminho A completo (UV, multi-mesh) — não depende de GPU para ser escrito e testado
+2. Backend VBO/VAO — escrito quando houver ambiente que o execute, ou com camada de abstração testável sem GL
+3. Validação da Parte B — em Windows com GPU
+
+---
+
+## DEC-009 — Teste de pipeline sintético não é suporte a asset original
+
+**Data:** ciclo 2 · **Status:** aceita · **Obriga:** toda documentação e relatório
+
+### Problema
+
+Adotar VBO/VAO (DEC-008) cria uma tentação de relatório: subir um cubo ou uma
+esfera procedural, ver que desenha, e registrar "renderização funcionando" ou
+"suporte a modelo pesado". Isso seria falso duas vezes — nem o asset é original,
+nem o peso foi validado.
+
+### Decisão
+
+Testes do novo pipeline com geometria sintética ou placeholder são aceitáveis
+**apenas como teste de unidade do pipeline**. Exemplo legítimo: verificar que um
+VBO sobe, que um VAO binda, que um draw indexado produz os pixels esperados.
+
+Esses testes devem ser rotulados, sempre e sem exceção, como
+**"teste sintético de pipeline"**. Nunca como:
+
+- "suporte a modelo pesado validado";
+- "asset original funcionando";
+- substituto do trabalho pendente em faces/UV/ossos do BMD.
+
+### Por que a regra é permanente
+
+O bloqueio nº 1 continua de pé: **sem índices de face decodificados com
+confiança, nenhum modelo BMD pode ser renderizado como malha**. O ciclo 2
+localizou o array de triângulos (98,05% de índices plausíveis contra 2,35% no
+controle), mas o conteúdo interno do registro de 64 bytes **não** está
+determinado — o byte de polígono esperado deu 3,01%, indistinguível de
+aleatório.
+
+Um pipeline novo funcionando não muda esse estado. Ele cria a capacidade de
+desenhar; não cria o dado a desenhar. Confundir os dois faria o projeto parecer
+mais avançado do que está, que é exatamente a falha que a auditoria do ciclo 1
+corrigiu.
+
+### Como verificar o cumprimento
+
+Todo relatório que citar renderização deve dizer, na mesma frase, qual é a fonte
+da geometria: asset original decodificado, ou sintética. Se não disser, o
+relatório está incompleto.
+
+---
+
+## DEC-010 — Frustum culling implementado antes da decisão formal de pipeline
+
+**Data:** ciclo 3 · **Status:** aceita, com registro retroativo · **Depende de:** DEC-008
+
+### O que aconteceu, sem suavizar
+
+`src/mu/render/cull.cpp` foi implementado **antes** de a decisão formal de
+pipeline de renderização (DEC-008) ter sido registrada com a comparação de
+custo/risco que este projeto exige. A ordem correta seria decidir o pipeline e
+depois escrever o código que dele depende. Isso não foi feito.
+
+Esta decisão existe para registrar o fato e estabelecer por que o código pode
+permanecer, não para justificá-lo retroativamente como se a ordem estivesse certa.
+
+### Por que o código pode permanecer
+
+Frustum culling é **matemática pura em CPU, sem nenhuma dependência de backend
+gráfico**. Verificável no arquivo:
+
+- Não inclui nenhum header de GL, D3D ou Vulkan.
+- Não chama nenhuma função de driver.
+- Sua entrada é uma matriz 4×4 `float[16]` e uma caixa delimitadora; sua saída é
+  um enum de três valores.
+
+Nenhuma dessas três coisas muda conforme o pipeline escolhido seja VBO/VAO,
+renderizador por software, ou outro. Um frustum é definido pela matriz
+view-projection, e toda API gráfica que existe produz essa matriz. Descartar
+geometria fora dele é anterior à pergunta "como desenho o que sobrou".
+
+**Teste de que a afirmação é verdadeira e não conveniente:** se amanhã o projeto
+decidir não usar OpenGL, `cull.cpp` compila e passa nos testes sem alteração.
+Isso é verificável hoje — o módulo não está em nenhum caminho que toque GL, e
+este ambiente não tem headers de GL, então ele já está sendo compilado e testado
+sem eles.
+
+### O que isto NÃO autoriza
+
+**Nenhum código que inclua headers de OpenGL/D3D deve ser escrito até DEC-008
+estar registrada com a comparação de custo/risco exigida.** Especificamente,
+estão bloqueados até lá:
+
+- `wglCreateContext`, `wglMakeCurrent` e qualquer criação de contexto
+- `glGenBuffers`, `glBindBuffer`, `glBufferData`, `glGenVertexArrays`
+- `glDrawElements`, `glDrawArrays`
+- Shaders, FBOs, ou qualquer chamada que presuma uma versão de API
+
+A distinção que torna culling aceitável e estes inaceitáveis: culling tem uma
+resposta correta independente da API; uma chamada de GL **é** a escolha da API.
+
+### Decisão formal de pipeline: REGISTRADA no ciclo 4
+
+DEC-008 registrou a **intenção** (VBO/VAO como piso mínimo) sem a comparação de
+custo/risco. Esta seção apontou os quatro itens que faltavam, e **DEC-008-A os
+respondeu no ciclo 4**:
+
+1. Custo de implementação de cada alternativa considerada — respondido
+2. Risco de cada uma, incluindo o risco de não conseguir medir — respondido, e o
+   risco de não medir é **alto na opção adotada**, declarado em vez de omitido
+3. O que será medido para decidir, e em que hardware — respondido em duas
+   partes: Parte A (CPU, **concluída e medida**) e Parte B (GPU, **BLOQUEADA**)
+4. O que acontece com a compatibilidade visual — respondido, e o estado é
+   **`NOT EXECUTED`**, não "preservada"
+
+**A decisão está registrada.** O que continua impedindo código de backend não é
+mais a ausência de decisão, e sim a ausência de ambiente que o execute: sem GPU
+nem contexto, backend gráfico escrito aqui seria não testável, e backend não
+testável é o caminho mais curto para afirmar compatibilidade não verificada.
+
+### Como verificar o cumprimento
+
+`grep -rn "glGenBuffers\|wglCreateContext\|glDrawElements\|GL/gl.h\|windows.h.*GL" src/`
+deve retornar vazio enquanto DEC-008 estiver incompleta. Se retornar algo, o
+código foi escrito antes da decisão e deve ser revertido ou a decisão completada.
+
+---
+
+## DEC-011 — Violação de commits atômicos no ciclo 6 (commit 1fc1024) e correção de processo
+
+**Data:** ciclo 6, item 2 da auditoria ciclo 6 · **Status:** desvio documentado, processo corrigido
+
+### O que aconteceu
+
+Commit `1fc10242b190f78d5ffed988b80da0c754df5c14` com mensagem
+`docs: itens 2-4 auditoria ciclo5 - contabilidade, validacao multi-mesh, licenciamento`
+agrupou **três unidades coerentes distintas** em um único commit:
+
+1. **Contabilidade nível 4 falhando 1.685 arquivos** (1.483 OPAQUE 88,01% + 67 inválidos 3,98% + 134 geometria não parseada 7,95% + 1 zero faces 0,06%, multi-mesh 0%). Gerado por `tools/gen_level4_breakdown.py`, evidência `ciclo6_level4_breakdown.log`.
+2. **Validação estatística multi-mesh** full-scan 4.256 arquivos (12.590 malhas), parsing 100%, nome estrito 14,27% vs controle 0,0376% razão 379×, fraco 52,20% vs controle 77,51% 0,67× não discrimina. Evidência `ciclo6_multimesh_validation.log`.
+3. **Licenciamento referência externa multi-mesh** fonte `xulek/muonline-bmd-viewer` commit `3f11bf89`, `bmd-loader.ts:348-422`, ISC, loop inspirado, header 14B vs 10B, triângulo diferente, `git show --stat 3a44591` confirma nenhum `.ts` copiado.
+
+Arquivos tocados: 14 arquivos, +1015/-79 linhas, cobrindo `ASSET_FORMATS.md`, `COMPATIBILITY.md`, `CURRENT_STATE.md`, `DEPENDENCIES.md`, `LICENSING.md`, `NEXT_TASK.md`, 4 evidências, 3 ferramentas.
+
+Isso viola regra permanente registrada em `AGENTS.md` §4 e reforçada na auditoria ciclo 1 item 8:
+**commit imediatamente após cada unidade coerente de trabalho, não acumular tarefas não relacionadas,
+mensagem descritiva do que mudou e por quê, 1 commit por item**.
+
+### Por que não foi desfeito
+
+- Push já realizado para `origin/arena/519f8fc9-clienterecriado` (`1fc1024` está no remoto).
+- Regra `sem reescrever histórico` e `sem force-push sem autorização` proíbe `git reset --hard` ou `rebase -i`.
+- Desfazer exigiria `git revert` de 14 arquivos e re-aplicar em 3 commits, gerando ruído maior que o desvio original.
+- Auditoria exige **documentar desvio**, não reescrever.
+
+### Decisão
+
+- **Documentar desvio** em `CHANGELOG.md` ciclo 6 e nesta DEC-011, com hash, mensagem e lista de itens agrupados.
+- **Corrigir processo a partir do ciclo 6 item 0:** 1 commit por item da auditoria (0,1,2,3,4,5,6), cada um com evidência bruta, push após cada commit, confirmação `git rev-parse HEAD` vs `git ls-remote`.
+- **Trava:** `tools/check_docs_consistency.py` não verifica atomicidade de commits, mas `AGENTS.md` §4 exige revisão manual de `git log --oneline -20` antes de push.
+
+### Como verificar
+
+```
+$ git show --stat 1fc1024
+ 14 files changed, 1015 insertions(+), 79 deletions(-)
+$ git log --oneline --grep="itens 2-4"
+ 1fc1024 docs: itens 2-4 auditoria ciclo5
+```
+
+A partir de `e858c69` (item 0) e `44b5c92` (item 1), cada item tem commit próprio.
+
+### Consequência
+
+Processo corrigido, histórico preservado, desvio registrado. Não afeta funcionalidade (docs apenas), mas afeta auditabilidade.
+
+
+---
+
+## DEC-012 — Prioridade formal: UV vs ossos/animação após validação ciclo 9 itens 1-3
+
+**Data:** ciclo 9, itens 1-3 validação ossos · **Status:** decisão registrada, prioridade UV escolhida
+
+### Contexto e estado atual após validação
+
+**Frente UV (nível 6):**
+- Nível 6 = 0% — índice ligando canto de triângulo a coordenada de textura não localizado
+- 9 hipóteses descartadas no ciclo 3, com critério de parada e controle mesma classe
+  - Hipótese 9 (bytes 24..59 como UV por canto): 79,42% em [0,1] vs controle aleatório 24,82% razão 3,2× parecia forte, mas controle correto array de normais 70,34% razão 1,13× rejeita
+  - Lição: controle tem que ser mesma classe, não dados vs ruído
+- Sem UV, **nenhum dos 8.405 arquivos com topologia pode ser texturizado**. Malha sem textura serve para colisão, bbox, análise, não para renderização fiel visualmente comparável ao cliente original
+- UV é pré-requisito para QUALQUER renderização visualmente reconhecível dos modelos originais, mesmo estático
+
+**Frente ossos/animação (nível 5):**
+- Após validação ciclo 9 itens 1-3:
+  - Loose (>=3 printable + parent válido + 6 f32 finitos): 3.800 arquivos (45,21% de geom, 37,66% total) — era 3.505 (34,74%) ciclo 7
+  - Strict (NUL-padded ASCII >=3, zeros após NUL): 1.601 arquivos (19,05% de geom) — altamente discriminativo
+  - Validação estatística item 2: loose real 45,21% vs controle 8,3234% (dentro de vertex/tri area, bc=1) razão **5,43× MARGINAL** (>=5x mas <10x); strict real 19,05% vs controle 0,0040% razão **4803× ALTAMENTE DISCRIMINATIVO**
+  - Segurança item 3: ciclo detection implementado (A->B->A rejeita), bc extremo 0xFFFF falha graciosa, truncado, overflow bc*59, 389 checks 0 failures ASan/UBSan 0
+- Ossos são pré-requisito para animação (skinning), mas modelo sem UV não pode ser comparado visualmente ao cliente original mesmo estático
+- Animação após ossos: 500 arquivos com bloco extra, 385 divisível por 12*boneCount 77% (modelo bc*keyframes*12), 3 f32 por keyframe não decodificados, actionCount não verificado
+
+### Comparação explícita de valor
+
+| Critério | UV | Ossos/Animação |
+|---|---|---|
+| Pré-requisito para renderização fiel reconhecível | **SIM — sem UV, textura não pode ser aplicada, modelo não é comparável visualmente** | NÃO — esqueleto sem textura ainda não é comparável |
+| Pré-requisito para animação | NÃO | SIM |
+| Estado atual | 0%, 9 hipóteses descartadas, investigação encerrada com critério parada | 37,66% loose marginal 5,43x, 19,05% strict 4803x confirmado, ciclo detection, 389 checks |
+| Esforço recente | Ciclo 3 último, nenhum progresso desde | Ciclos 7-8-9 focados, +295 arquivos, validação e segurança completas |
+| Risco de escolher pela tarefa mais fácil | UV é mais difícil (9 hipóteses descartadas), ossos foi mais recentemente trabalhada e mais fácil continuar | Escolher ossos seria viés de recência e facilidade |
+| Impacto para fidelidade visual (prioridade 7 do projeto) | **Alto — textura é 50% da fidelidade visual** | Médio — animação sem textura não aumenta fidelidade visual comparável |
+| Testável sem GPU | SIM — parsing puro CPU, controle mesma classe | SIM — parsing puro CPU |
+
+### Decisão
+
+**Prioridade escolhida para restante deste ciclo: retomar UV (nível 6).**
+
+Justificativa formal, não por facilidade ou recência:
+1. UV é pré-requisito para QUALQUER modelo renderizável texturizado visualmente reconhecível dos originais. Ossos são pré-requisito para animação, mas modelo animado sem textura continua não comparável visualmente ao cliente original, mesmo estático.
+2. Estado ossos após itens 1-3 está em nível aceitável para pausa: 3.800 loose marginal 5,43x documentado, 1.601 strict altamente discriminativo 4803x confirmado, segurança com ciclo detection e 389 checks ASan 0. Continuar em ossos seria otimização incremental (+295) sem destravar fidelidade visual.
+3. UV está em 0% há 5 ciclos, com 9 hipóteses descartadas mas sem considerar offsets descobertos desde então (v0x0A offset 4 vs v0x0C decifrado offset 8, delta multi-mesh ±4, posição real ossos 59B/58B como âncora para localizar UV por eliminação). Há espaço não explicado entre fim de triângulos e início de ossos em alguns arquivos que pode conter UV.
+4. Escolher UV não é escolher tarefa mais fácil — é mais difícil, com histórico de 9 falhas — mas é a de maior valor para fidelidade visual (prioridade 7) e para desbloquear comparação visual com cliente original.
+5. Se UV não progredir após esforço razoável com mesmo rigor estatístico (controle mesma classe, full-scan), documentar bloqueio atualizado com lista completa 10+ tentativas e voltar para animação/OPAQUE 15,05%.
+
+**O que isso NÃO significa:** abandonar ossos. Ossos 37,66% com validação e segurança permanecem, e animação continua como próxima após UV. Significa apenas que, para restante deste ciclo, recurso é alocado em UV por ter maior impacto em fidelidade visual reconhecível.
+
+Evidência: ciclo9_item1_criteria_adjustment.log, ciclo9_item2_validation.log (5,43x marginal, 4803x discriminativo), ciclo9_item3_security_test.log (389 checks ASan 0).
+
+
+---
+
+## DEC-013 — Caminho B: formato de importação para assets pesados customizados (C2 — CONCLUÍDO ciclo12)
+
+**Data:** ciclo12 C2 · **Status:** decisão registrada, formato escolhido glTF 2.0 · **Depende de:** C1 (representação interna única) · **Exigida por:** Parte C do comando ciclo12
+
+### Contexto
+
+O projeto tem dois caminhos de importação, definidos em ARCHITECTURE.md §9:
+
+- **Caminho A:** assets originais (BMD/OZJ/OZT) → representação interna única `Mesh`+`Skeleton` (C1). Status PARCIAL: vértices/normais/triângulos/ossos decodificados, UV 0%, pesos skinning não decodificados, mas estrutura existe.
+- **Caminho B:** assets pesados customizados (não originais) em formato moderno, para conteúdo significativamente mais pesado que original (DEC-008). Não substitui Caminho A, coexiste. Deve acomodar: vértices, normais, UV, índices, hierarquia ossos, pesos skinning, PBR.
+
+C2 exige escolher formato concreto para Caminho B, comparando pelo menos 2 alternativas quanto a: suporte skinning, suporte PBR, maturidade parsing C++ sem dependências problemáticas, licença. Documentar decisão formal e deixar explícito que Caminho B não substitui Caminho A.
+
+### Alternativas consideradas
+
+| Critério | glTF 2.0 | FBX | OBJ | Collada (DAE) |
+|---|---|---|---|---|
+| **Suporte skinning** | SIM — joints, weights, inverseBindMatrices, até 4+ influências por vértice, especificação clara | SIM — mas SDK proprietário, formato binário complexo, skinning via clusters | NÃO — sem skinning nativo, apenas posições/normais/UV | SIM — mas via biblioteca complexa, skinning via controller |
+| **Suporte PBR** | SIM — metallic-roughness, baseColor, normal, occlusion, emissive, extensões KHR | SIM — via propriedades custom, mas não padronizado, depende de DCC | NÃO — apenas material simples Kd/Ka/Ks, sem PBR | SIM — via profile COMMON e extensões, mas verboso |
+| **Maturidade parsing C++ sem dependências problemáticas** | ALTA — `tinygltf` single-header public domain/MIT, `cgltf` MIT, `fastgltf` MIT, sem dependências, já usado em produção, parsing JSON + bin, 1 arquivo header | BAIXA — FBX SDK proprietário Autodesk, licença restritiva, binário fechado, alternativas open-source `ufbx` MIT mas ainda jovem, `assimp` suporta FBX mas com dependências e bugs | ALTA — parsing trivial, mas sem skinning/PBR, não atende requisito | MÉDIA — `assimp` suporta, mas formato XML verboso, parsing pesado, especificação grande |
+| **Licença** | MIT / Public Domain (tinygltf MIT, cgltf MIT) compatível com projeto MIT, sem obrigação tracking | Proprietário (FBX SDK) ou MIT (ufbx) mas SDK oficial restritivo, risco jurídico | MIT/public domain, mas funcionalidade insuficiente | MIT (assimp) mas formato legado |
+| **Tamanho arquivo / eficiência** | GLB binário compacto, JSON legível, Draco compressão opcional, KTX2 textura | Binário compacto mas proprietário | Texto verboso, sem compressão | XML verboso, grande |
+| **Ecossistema / ferramentas** | Blender, Substance, etc exportam glTF nativo, validador oficial, conversores | Blender exporta FBX mas com perdas, Autodesk ecosystem | Blender exporta OBJ, mas limitado | Blender exporta DAE, mas legado |
+
+### Decisão
+
+**Escolhido glTF 2.0 como formato concreto para Caminho B.**
+
+Justificativa formal:
+
+1. **Skinning:** glTF 2.0 tem suporte completo a skinning (joints, weights, inverseBindMatrices) com especificação clara e testes de conformidade. FBX também tem, mas via SDK proprietário; OBJ não tem; Collada tem mas via biblioteca complexa. glTF atende requisito C1 (pesos skinning por vértice) diretamente.
+2. **PBR:** glTF 2.0 tem suporte nativo a PBR metallic-roughness, com materiais baseColor, metallic, roughness, normal, occlusion, emissive, e extensões KHR para clearcoat, transmission, etc. FBX tem via propriedades custom não padronizadas, OBJ não tem PBR, Collada tem via perfil verboso. glTF atende requisito futuro PBR sem gambiarra.
+3. **Maturidade parsing C++ sem dependências problemáticas:** `tinygltf` single-header MIT, `cgltf` single-header MIT, `fastgltf` MIT, todas sem dependências, já usadas em produção (ex: three.js, Babylon.js, Godot, etc). Parsing JSON + binário, 1 arquivo header, sem necessidade de vcpkg/Conan, compatível com regra zero dependências do projeto (D-002). FBX SDK é proprietário com licença restritiva, `ufbx` MIT mas ainda jovem, `assimp` suporta glTF e FBX mas com dependências e histórico de bugs; para glTF, `tinygltf`/`cgltf` são mais leves e maduras que `assimp` para FBX. OBJ parsing trivial mas funcionalidade insuficiente.
+4. **Licença:** MIT / Public Domain compatível com projeto MIT, sem obrigação tracking, sem risco jurídico. FBX SDK proprietário tem risco, Collada via assimp MIT mas formato legado.
+5. **Caminho B não substitui Caminho A:** Explicitamente registrado: Caminho B é para assets pesados customizados (não originais), para conteúdo significativamente mais pesado que original (DEC-008). Caminho A (BMD/OZJ/OZT originais) continua sendo o caminho principal para compatibilidade visual/funcional com cliente original. Representação interna única `Mesh`+`Skeleton` (C1) é usada por ambos, independente de formato origem, sem duplicar lógica de renderização. Importador glTF converterá para mesma `Mesh`+`Skeleton` que `MeshFromBmd` produz.
+
+### O que isso NÃO significa
+
+- Não significa abandonar BMD: BMD continua sendo decodificado e é pré-requisito para compatibilidade visual com cliente original.
+- Não significa implementar parsing glTF agora: decisão é de formato, não de implementação imediata. Implementação do importador glTF será feita quando houver necessidade de assets pesados customizados, usando `tinygltf` ou `cgltf` single-header MIT.
+- Não significa que glTF substitui OZJ/OZT: OZJ/OZT continuam para texturas originais, glTF usará KTX2 ou PNG/JPEG para texturas customizadas.
+
+### Revisit when
+
+- Se `tinygltf`/`cgltf` se mostrarem inadequados para skinning pesado (ex: >64 bones, >4 influências por vértice) ou se surgir formato com suporte PBR superior e parsing igualmente leve e licença compatível.
+- Se DEC-008 for revisitada e exigir formato com compressão de geometria mais eficiente (ex: `EXT_meshopt_compression` já suportada em glTF, então glTF continua adequado).
+
+**Evidência:** comparação tabela acima, licenças MIT de tinygltf/cgltf, especificação glTF 2.0 skinning e PBR, status C1 representação interna única implementada `src/mu/assets/mesh.hpp` com `bone_weights`.
+
+**Status C2: CONCLUÍDO ciclo12** — formato concreto glTF 2.0 escolhido, 2+ alternativas comparadas (glTF vs FBX vs OBJ vs Collada), decisão documentada formalmente como DEC-013, Caminho B não substitui Caminho A explicitamente registrado.
+
+---
+
+## DEC-014 — Renderer API choice reopened for the modern-GPU target
+
+**Date:** 2026-10-12 · **Status:** REOPENED; D3D12 is the first Windows/GPU spike, not yet the production API.
+
+**Product-owner decision:** prioritize high practical performance on modern Windows PCs with dedicated GPUs. Older-hardware compatibility is no longer a hard requirement for the primary target. Preserve original assets and faithful rendering as the default; optional visual enhancements must remain controllable.
+
+**Effect on prior decisions:** DEC-008/DEC-008-A remain valid historical records of why OpenGL VBO/VAO was chosen under the former compatibility requirement. For the current product target, their rejection of a new API is superseded by this decision. Do not rewrite historical evidence or claim the D3D12 backend is already implemented.
+
+### Candidate comparison
+
+| API | Strengths for this target | Costs / risks | Role in this project |
+|---|---|---|---|
+| **Direct3D 12** | Native Windows API; explicit queues, command lists, descriptors and resource lifetime; suited to reducing CPU submission overhead in heavy scenes | Highest implementation burden; explicit synchronization and residency/lifetime bugs are our responsibility; Windows-only backend | **First prototype** because Windows is primary and modern dedicated GPUs are the target |
+| **Vulkan** | Explicit control and multi-vendor support; portable to other operating systems if that becomes a requirement | Loader/SDK and shader toolchain setup; more platform/surface integration; no current cross-platform requirement | Keep as comparison candidate; do not build in parallel before the first spike |
+| **Direct3D 11** | Simpler resource and synchronization model; useful baseline and potentially faster to implement correctly | Less explicit control of submission and memory lifetime than D3D12; still capable of modern rendering | Candidate baseline if D3D12 complexity or measured results do not justify its cost |
+| **OpenGL 3.x+ (VBO/VAO)** | Small integration surface and reuses the former decision; broad driver support | Driver-managed behavior and less explicit resource/synchronization control; no longer needed solely to support old hardware | Retain only as fallback/comparison if evidence makes it worthwhile; not the first path |
+
+This is a design comparison, not a benchmark. D3D12 and Vulkan do not automatically produce higher FPS; both transfer more synchronization/resource-lifetime responsibility to the application than D3D11. Official references are linked in docs/RENDERER_API_SPIKE.md.
+
+### Decision and validation gate
+
+1. Implement a small, isolated D3D12 window + hardware-device + GPU triangle smoke test, not yet coupled to the asset library.
+2. Build and run it on the user's Windows PC. Record adapter name, dedicated-memory report, driver/runtime, Windows build, debug-layer status, present loop and clean shutdown.
+3. After it runs, compare D3D12 with a D3D11 baseline on the same machine and identical triangle/present conditions; build a Vulkan spike only if portability or results justify its cost.
+4. The production backend is not finally locked until the prototype builds/runs and the comparison records correctness, implementation complexity, CPU submission cost, frame-time distribution and stability. A triangle smoke test proves API operation, not game performance.
+5. Keep renderer APIs behind a backend-neutral boundary. Asset readers must not depend on D3D12 headers.
+
+**Current evidence:** no Windows/GPU runtime is available in this authoring environment. The D3D12 source and PowerShell build script are prepared as a first spike, but compilation and runtime status remain **NOT EXECUTED** here. No FPS or performance improvement is claimed.
+
+**Revisit when:** a Windows/GPU run demonstrates incompatibility, excessive implementation cost, driver problems, or a D3D11/Vulkan baseline offers a materially better correctness/performance trade-off.

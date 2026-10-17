@@ -1,0 +1,6 @@
+65bb1c4 HEAD@{0}: commit: fix(ciclo13-item1): corrige discrepância test 469 vs test-san 389 — sanitização agora cobre 100% checks
+ed88a52 HEAD@{1}: reset: moving to origin/arena/519f8fc9-clienterecriado
+454de1b HEAD@{2}: checkout: moving from arena/519f8fc9-clienterecriado to arena/519f8fc9-clienterecriado
+454de1b HEAD@{3}: commit: fix(ciclo13-item1): corrige discrepância test 469 vs test-san 389 — sanitização agora cobre 100% checks
+972fabc HEAD@{4}: checkout: moving from main to arena/519f8fc9-clienterecriado
+972fabc HEAD@{5}: clone: from https://github.com/heldergaraujo2/ClienteRecriado.git

@@ -1,0 +1,7 @@
+Single-run CLI wall times after full-tree scans; filesystem cache was already warm.
+Times are Python perf_counter wall-clock observations; not performance guarantees.
+
+scan | build/mutool scan /tmp/cliente_ref/Data | exit_code=0 | wall_seconds=3.308
+bmdreport | build/mutool bmdreport /tmp/cliente_ref/Data | exit_code=2 | wall_seconds=0.744
+meshimport | build/mutool meshimport /tmp/cliente_ref/Data | exit_code=0 | wall_seconds=0.760
+verify | build/mutool verify /tmp/cliente_ref/ListaPatch.txt /tmp/cliente_ref | exit_code=2 | wall_seconds=0.036
