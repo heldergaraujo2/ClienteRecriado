@@ -1,0 +1,283 @@
+Cycle 18 validation evidence
+Source commit: ce8d3bd6da6c8bf2c226ad8b037f55773f848d7c
+Branch: arena/1d9c1f53-clienterecriado
+Platform: Linux 6.1.158+ x86_64
+Compiler: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+
+--- clean build (all outputs redirected to /tmp) ---
+$ make BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build SAN_BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build-san clean
+$ make -j2 BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build SAN_BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build-san
+Commit: ce8d3bd6da6c8bf2c226ad8b037f55773f848d7c
+Branch: arena/1d9c1f53-clienterecriado
+Platform: Linux 6.1.158+ x86_64
+Compiler: g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+$ make BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build SAN_BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build-san clean
+rm -rf /tmp/clienterecriado-ce8d-repo-validation-20261016/build /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san
+$ make -j2 BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build SAN_BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build-san
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tools/mutool.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/tools/mutool.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/format.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/format.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozt.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/ozt.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozj.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/ozj.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/bmd.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_body.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/bmd_body.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/mesh.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/mesh.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/cull.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/render/cull.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/buffers.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/render/buffers.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/skinning.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/render/skinning.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/software_rasterizer.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/render/software_rasterizer.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/platform/win32_window.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/platform/win32_window.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/platform/main_loop.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/platform/main_loop.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_report.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/bmd_report.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/terrain.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/terrain.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/tga.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/tga.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/manifest.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/manifest.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/fs.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/fs.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tests/test_assets.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/tests/test_assets.o
+ar rcs /tmp/clienterecriado-ce8d-repo-validation-20261016/build/libmuassets.a /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/format.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/ozt.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/ozj.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/bmd.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/bmd_body.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/mesh.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/render/cull.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/render/buffers.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/render/skinning.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/render/software_rasterizer.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/platform/win32_window.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/platform/main_loop.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/bmd_report.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/terrain.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/tga.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/assets/manifest.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/src/mu/fs.o
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc /tmp/clienterecriado-ce8d-repo-validation-20261016/build/tools/mutool.o -L/tmp/clienterecriado-ce8d-repo-validation-20261016/build -lmuassets -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/mutool
+g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc /tmp/clienterecriado-ce8d-repo-validation-20261016/build/tests/test_assets.o -L/tmp/clienterecriado-ce8d-repo-validation-20261016/build -lmuassets -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build/test_assets
+
+--- make test ---
+$ make -j2 BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build SAN_BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build-san test
+/tmp/clienterecriado-ce8d-repo-validation-20261016/build/test_assets
+ClienteRecriado asset library tests
+[ RUN  ] crc32 known vectors
+[  OK  ] crc32 known vectors
+[ RUN  ] ozt round trip
+[  OK  ] ozt round trip
+[ RUN  ] ozt 24-bit pixel conversion
+[  OK  ] ozt 24-bit pixel conversion
+[ RUN  ] ozt variant with extra prefix
+[  OK  ] ozt variant with extra prefix
+[ RUN  ] ozt rejects bad input
+[  OK  ] ozt rejects bad input
+[ RUN  ] ozj probe
+[  OK  ] ozj probe
+[ RUN  ] ozj duplicated header prefix
+[  OK  ] ozj duplicated header prefix
+[ RUN  ] bux cipher is self inverse
+[  OK  ] bux cipher is self inverse
+[ RUN  ] bmd probe
+[  OK  ] bmd probe
+[ RUN  ] entropy separates plaintext from ciphertext
+[  OK  ] entropy separates plaintext from ciphertext
+[ RUN  ] terrain probe
+[  OK  ] terrain probe
+[ RUN  ] manifest parse
+[  OK  ] manifest parse
+[ RUN  ] manifest verify
+[  OK  ] manifest verify
+[ RUN  ] extension helpers
+[  OK  ] extension helpers
+[ RUN  ] bmd v0x0c cipher
+[  OK  ] bmd v0x0c cipher
+[ RUN  ] bmd triangles
+[  OK  ] bmd triangles
+[ RUN  ] topology is a strict subset of geometry
+[  OK  ] topology is a strict subset of geometry
+[ RUN  ] mesh from bmd
+[  OK  ] mesh from bmd
+[ RUN  ] compute bounds
+[  OK  ] compute bounds
+[ RUN  ] frustum cull
+[  OK  ] frustum cull
+[ RUN  ] frustum from view projection
+[  OK  ] frustum from view projection
+[ RUN  ] terrain height
+[  OK  ] terrain height
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
+[ RUN  ] bmd report levels are separate
+[  OK  ] bmd report levels are separate
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
+[ RUN  ] bmd percent helper
+[  OK  ] bmd percent helper
+[ RUN  ] bmd report accumulates kinds
+[  OK  ] bmd report accumulates kinds
+[ RUN  ] bmd multi-mesh triangle record layout
+[  OK  ] bmd multi-mesh triangle record layout
+[ RUN  ] bmd multi-mesh large counts (regression 8406)
+[  OK  ] bmd multi-mesh large counts (regression 8406)
+[ RUN  ] bmd multi-mesh extreme meshCount 0xFFFF
+[  OK  ] bmd multi-mesh extreme meshCount 0xFFFF
+[ RUN  ] bmd multi-mesh truncated payload
+[  OK  ] bmd multi-mesh truncated payload
+[ RUN  ] bmd multi-mesh overflow check
+[  OK  ] bmd multi-mesh overflow check
+[ RUN  ] bmd bones circular parent (cycle detection)
+[  OK  ] bmd bones circular parent (cycle detection)
+[ RUN  ] bmd bones extreme boneCount
+[  OK  ] bmd bones extreme boneCount
+[ RUN  ] bmd bones truncated payload
+[  OK  ] bmd bones truncated payload
+[ RUN  ] bmd bones overflow check
+[  OK  ] bmd bones overflow check
+[ RUN  ] mesh internal representation (C1)
+[  OK  ] mesh internal representation (C1)
+[ RUN  ] pack mesh for upload (D1)
+[  OK  ] pack mesh for upload (D1)
+[ RUN  ] skinning LBS CPU strict (D2)
+[  OK  ] skinning LBS CPU strict (D2)
+[ RUN  ] frustum cull real bounds (D3)
+[  OK  ] frustum cull real bounds (D3)
+[ RUN  ] win32 wgl skeleton BLOCKED (D5)
+[  OK  ] win32 wgl skeleton BLOCKED (D5)
+[ RUN  ] main loop skeleton update/render/present (E2)
+[  OK  ] main loop skeleton update/render/present (E2)
+[ RUN  ] software rasterizer framebuffer (B)
+[  OK  ] software rasterizer framebuffer (B)
+[ RUN  ] software rasterizer camera (B)
+[  OK  ] software rasterizer camera (B)
+[ RUN  ] software rasterizer triangle (B)
+[  OK  ] software rasterizer triangle (B)
+[ RUN  ] software rasterizer z-buffer (B)
+[  OK  ] software rasterizer z-buffer (B)
+[ RUN  ] software texture loads OZT pixels
+[  OK  ] software texture loads OZT pixels
+[ RUN  ] software rasterizer uses mesh texcoords
+[  OK  ] software rasterizer uses mesh texcoords
+
+560 checks, 0 failures
+
+--- make test-san ---
+$ make -j2 BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build SAN_BUILD=/tmp/clienterecriado-ce8d-repo-validation-20261016/build-san test-san
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/format.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/format.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c tests/test_assets.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/tests/test_assets.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozt.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/ozt.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/ozj.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/ozj.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/bmd.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_body.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/bmd_body.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/mesh.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/mesh.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/cull.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/render/cull.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/buffers.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/render/buffers.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/skinning.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/render/skinning.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/render/software_rasterizer.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/render/software_rasterizer.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/platform/win32_window.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/platform/win32_window.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/platform/main_loop.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/platform/main_loop.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/bmd_report.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/bmd_report.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/terrain.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/terrain.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/tga.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/tga.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/assets/manifest.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/manifest.o
+g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Isrc -MMD -MP -c src/mu/fs.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/fs.o
+ar rcs /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/libmuassets.a /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/format.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/ozt.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/ozj.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/bmd.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/bmd_body.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/mesh.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/render/cull.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/render/buffers.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/render/skinning.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/render/software_rasterizer.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/platform/win32_window.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/platform/main_loop.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/bmd_report.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/terrain.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/tga.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/assets/manifest.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/src/mu/fs.o
+g++ -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/tests/test_assets.o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/libmuassets.a -o /tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/test_assets
+/tmp/clienterecriado-ce8d-repo-validation-20261016/build-san/test_assets
+ClienteRecriado asset library tests
+[ RUN  ] crc32 known vectors
+[  OK  ] crc32 known vectors
+[ RUN  ] ozt round trip
+[  OK  ] ozt round trip
+[ RUN  ] ozt 24-bit pixel conversion
+[  OK  ] ozt 24-bit pixel conversion
+[ RUN  ] ozt variant with extra prefix
+[  OK  ] ozt variant with extra prefix
+[ RUN  ] ozt rejects bad input
+[  OK  ] ozt rejects bad input
+[ RUN  ] ozj probe
+[  OK  ] ozj probe
+[ RUN  ] ozj duplicated header prefix
+[  OK  ] ozj duplicated header prefix
+[ RUN  ] bux cipher is self inverse
+[  OK  ] bux cipher is self inverse
+[ RUN  ] bmd probe
+[  OK  ] bmd probe
+[ RUN  ] entropy separates plaintext from ciphertext
+[  OK  ] entropy separates plaintext from ciphertext
+[ RUN  ] terrain probe
+[  OK  ] terrain probe
+[ RUN  ] manifest parse
+[  OK  ] manifest parse
+[ RUN  ] manifest verify
+[  OK  ] manifest verify
+[ RUN  ] extension helpers
+[  OK  ] extension helpers
+[ RUN  ] bmd v0x0c cipher
+[  OK  ] bmd v0x0c cipher
+[ RUN  ] bmd triangles
+[  OK  ] bmd triangles
+[ RUN  ] topology is a strict subset of geometry
+[  OK  ] topology is a strict subset of geometry
+[ RUN  ] mesh from bmd
+[  OK  ] mesh from bmd
+[ RUN  ] compute bounds
+[  OK  ] compute bounds
+[ RUN  ] frustum cull
+[  OK  ] frustum cull
+[ RUN  ] frustum from view projection
+[  OK  ] frustum from view projection
+[ RUN  ] terrain height
+[  OK  ] terrain height
+[ RUN  ] bmd body parses verified layout
+[  OK  ] bmd body parses verified layout
+[ RUN  ] bmd body rejects bad input
+[  OK  ] bmd body rejects bad input
+[ RUN  ] bmd report levels are separate
+[  OK  ] bmd report levels are separate
+[ RUN  ] bmd geometry needs a real body
+[  OK  ] bmd geometry needs a real body
+[ RUN  ] bmd percent helper
+[  OK  ] bmd percent helper
+[ RUN  ] bmd report accumulates kinds
+[  OK  ] bmd report accumulates kinds
+[ RUN  ] bmd multi-mesh triangle record layout
+[  OK  ] bmd multi-mesh triangle record layout
+[ RUN  ] bmd multi-mesh large counts (regression 8406)
+[  OK  ] bmd multi-mesh large counts (regression 8406)
+[ RUN  ] bmd multi-mesh extreme meshCount 0xFFFF
+[  OK  ] bmd multi-mesh extreme meshCount 0xFFFF
+[ RUN  ] bmd multi-mesh truncated payload
+[  OK  ] bmd multi-mesh truncated payload
+[ RUN  ] bmd multi-mesh overflow check
+[  OK  ] bmd multi-mesh overflow check
+[ RUN  ] bmd bones circular parent (cycle detection)
+[  OK  ] bmd bones circular parent (cycle detection)
+[ RUN  ] bmd bones extreme boneCount
+[  OK  ] bmd bones extreme boneCount
+[ RUN  ] bmd bones truncated payload
+[  OK  ] bmd bones truncated payload
+[ RUN  ] bmd bones overflow check
+[  OK  ] bmd bones overflow check
+[ RUN  ] mesh internal representation (C1)
+[  OK  ] mesh internal representation (C1)
+[ RUN  ] pack mesh for upload (D1)
+[  OK  ] pack mesh for upload (D1)
+[ RUN  ] skinning LBS CPU strict (D2)
+[  OK  ] skinning LBS CPU strict (D2)
+[ RUN  ] frustum cull real bounds (D3)
+[  OK  ] frustum cull real bounds (D3)
+[ RUN  ] win32 wgl skeleton BLOCKED (D5)
+[  OK  ] win32 wgl skeleton BLOCKED (D5)
+[ RUN  ] main loop skeleton update/render/present (E2)
+[  OK  ] main loop skeleton update/render/present (E2)
+[ RUN  ] software rasterizer framebuffer (B)
+[  OK  ] software rasterizer framebuffer (B)
+[ RUN  ] software rasterizer camera (B)
+[  OK  ] software rasterizer camera (B)
+[ RUN  ] software rasterizer triangle (B)
+[  OK  ] software rasterizer triangle (B)
+[ RUN  ] software rasterizer z-buffer (B)
+[  OK  ] software rasterizer z-buffer (B)
+[ RUN  ] software texture loads OZT pixels
+[  OK  ] software texture loads OZT pixels
+[ RUN  ] software rasterizer uses mesh texcoords
+[  OK  ] software rasterizer uses mesh texcoords
+
+560 checks, 0 failures
+
+--- standalone OrbitCamera strict-warning test ---
+Command: g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Werror -Isrc src/mu/render/orbit_camera.cpp tests/test_orbit_camera_standalone.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/orbit_camera_test
+OrbitCamera standalone tests (no assets or D3D11 dependencies)
+57 checks, 0 failures
+
+--- standalone OrbitCamera ASan/UBSan test ---
+Command: g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wuseless-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wdouble-promotion -Wformat=2 -Werror -Isrc src/mu/render/orbit_camera.cpp tests/test_orbit_camera_standalone.cpp -o /tmp/clienterecriado-ce8d-repo-validation-20261016/orbit_camera_test_san
+OrbitCamera standalone tests (no assets or D3D11 dependencies)
+57 checks, 0 failures
+
+--- docs consistency check after final documentation edits ---
+$ python3 tools/check_docs_consistency.py
+erro: arvore de dados nao encontrada: /home/user/Cliente_ref/Data
+exit_status=2

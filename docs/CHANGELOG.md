@@ -3,6 +3,23 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
+## 2026-10-16 — validate latest BMD topology fixtures on Linux
+
+### Validation
+
+- Fast-forwarded only the fixed session branch to published `ce8d3bd` after
+  preserving the pre-sync workspace in a local archive and stash; the stash was
+  left unapplied. No parser/test/preview source was hand-edited in this task;
+  repository build outputs remained untouched.
+- Out-of-tree C++17 build passed without warnings; `make test` and
+  `make test-san` each passed **560 checks, 0 failures**. Standalone camera
+  strict-warning and ASan/UBSan runs each passed **57 checks, 0 failures**.
+- `tools/check_docs_consistency.py` was attempted and blocked (exit 2) because
+  `/home/user/Cliente_ref/Data` is absent. Windows D3D11 BMD preview, real-tree
+  asset scan, UV/material semantics and GPU performance were not validated.
+- Full output: `docs/evidence/ciclo18_linux_validation_20261016.log`. All build
+  outputs were directed to `/tmp`, not the repository `build/` directory.
+
 ## 2026-10-13 — BMD triangle-array offset follow-up
 
 ### Changed

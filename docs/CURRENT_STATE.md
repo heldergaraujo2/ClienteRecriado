@@ -4,25 +4,40 @@ This snapshot separates **probe**, structural validation, decoding, semantics,
 and verified rendering. The repository contains a C++17 asset library and
 inspection tools; **it is not yet a playable Windows client**.
 
-## Immediate update — BMD triangle-offset follow-up (2026-10-13)
+## Cycle 18 — workspace reconciliation and Linux validation (2026-10-16)
 
-The owner pulled commit `bbea18e` and ran `make -B test` plus
-`make test-san`. Both stopped in `TestBmdTriangles`: the single-mesh fixture
-expected one triangle but received none, and the sanitizer exposed an unsafe
-test dereference after that failed assertion. The regression fixtures explicitly
-place the UV block four bytes before the normal-array end cursor; the preceding
-fix removed that adjustment from both parser paths, contradicting those fixtures.
+At the start of this task the fixed session branch was at the initial `972fab`
+commit while the published branch had advanced to `ce8d3bd`. The full project
+worktree was present as 284 files (a modified README plus untracked project
+files). Before
+synchronizing, the workspace was archived to
+`/home/user/ClienteRecriado_workspace_before_reconcile_20261016.tar.gz`
+(SHA-256 `cb2af481fc8dcc51c342c1067f49d1f24b1b0cd076846d37baf372871f17b26d`)
+and preserved in local `stash@{0}` (`9cce6144a061ecffbe57e129ff01ad90f35a31ed`).
+The stash has not been applied or dropped; do not apply it wholesale. The same
+fixed branch was then fast-forwarded to `ce8d3bd` and now tracks its origin.
 
-This follow-up restores the four-byte adjustment in both paths and guards the
-test's triangle indexing so a parser regression reports assertions instead of
-crashing. This is still a fixture-alignment correction, not proof that the
-boundary is authoritative for all real BMD files.
+The pre-sync worktree differed from that remote in 12 files, including parser
+comments, parser-test fixtures, four continuity documents, and six PPM outputs.
+Those versions remain in the archive and stash; they were not copied over the
+updated branch. The preview source present in the pre-sync workspace matched
+the remote version, and no `.backup` file was present. This says nothing about
+any separate external Windows/WSL working copy; do not infer that it was lost.
 
-**Validation is pending again.** Re-run `make -B test` and `make test-san`
-from `NEXT_TASK.md` after pulling the new commit. The user's uncommitted
-`platform/windows/d3d11_bmd_preview.cpp` and its untracked `.backup` must be
-preserved. Do not claim parser or preview acceptance until tests pass and the
-Windows model preview is rebuilt and visually checked.
+On the current source commit `ce8d3bd`, an out-of-tree C++17 clean build passed
+without warnings; `make test` and `make test-san` each passed **560 checks, 0
+failures**. The standalone orbit-camera test passed **57 checks, 0 failures**
+with strict warnings and again with ASan/UBSan. All build outputs were redirected
+to `/tmp`; repository `build/` was absent and untouched. Exact output is in
+[`evidence/ciclo18_linux_validation_20261016.log`](evidence/ciclo18_linux_validation_20261016.log).
+
+The documentation consistency checker was invoked and stopped with exit 2
+because `/home/user/Cliente_ref/Data` is unavailable; the reference clone is
+absent, so no reference HEAD or real-tree scan could be checked. Windows/MSVC,
+D3D11 BMD preview, camera input, and GPU performance were **NOT EXECUTED** in
+this task; UV/material semantics remain **BLOCKED**. The logged D3D11 smoke is
+still for a triangle, not a model preview. These Linux passes validate the
+synthetic suite, not real-asset or visual compatibility.
 
 ## Parallel viewer work — isolated orbit-camera helper (2026-10-13)
 
@@ -32,11 +47,10 @@ Windows model preview is rebuilt and visually checked.
 - The helper provides yaw/pitch/distance and an eye/target/up pose. It is **not
   integrated** into D3D11 and does not create a view-projection matrix or process
   window input. The preview source was not edited.
-- Preservation caveat: this sandbox did not contain the owner's reported
-  uncommitted preview source or `.backup` before the fast-forward. The current
-  preview file is the published baseline version and is unchanged here; this
-  says nothing about an external Windows/WSL working copy, which must remain
-  untouched and be compared before integration.
+- In the pre-sync workspace, `platform/windows/d3d11_bmd_preview.cpp` matched
+  the published version and no `.backup` existed. Any separate external
+  Windows/WSL working copy remains unknown; do not infer it was lost or
+  overwrite it before comparison.
 - The existing committed `d3d11_smoke_20261013.log` reports an isolated triangle
   smoke run. The task owner reports a separate local `agnecklace.bmd` preview,
   but that exact build/run output was not available in this environment; do not
@@ -45,10 +59,10 @@ Windows model preview is rebuilt and visually checked.
   not verified UV semantics; the importer still has no proven material/texture
   association. OZT decoding is available for supported uncompressed formats;
   OZJ pixel decoding is not implemented.
-- This feature adds no changes to the parser, `tests/test_assets.cpp`,
-  `Makefile`, or `build/` outputs. The checkout was first fast-forwarded to the
-  already-published `0c21ddd` parser/test baseline; the full post-correction
-  parser validation remains pending under the first task in `NEXT_TASK.md`.
+- The orbit-camera change itself adds no parser, existing-test, Makefile, or
+  preview-source edits. The cycle-18 validation on `ce8d3bd` ran the full suite
+  with temporary output directories and passed 560 checks in both normal and
+  sanitizer builds; see the current update above for evidence and limitations.
 - `tools/check_docs_consistency.py` was invoked but stopped before data checks
   with exit 2 because the expected `/home/user/Cliente_ref` clone (and its
   `Data/` tree) is absent. The reference HEAD start/end hash could not be checked;
@@ -163,9 +177,12 @@ unknown).
   They do not measure GPU, full-client loading, FPS, or latency. Latest single-run output:
   [`ciclo17_bench_final.log`](evidence/ciclo17_bench_final.log).
 
-## Build and tests
+## Build and tests — cycle17 historical snapshot
 
-| Check | State in this audit |
+The table below records the earlier cycle17 audit; the latest Linux build/test
+results are in the cycle18 update above.
+
+| Check | State in that audit |
 |---|---|
 | `make clean && make` | **PASS** — full build, no warnings |
 | `make test` | **PASS** — **539 checks, 0 failures** |

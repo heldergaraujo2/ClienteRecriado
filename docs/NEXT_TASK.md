@@ -1,41 +1,48 @@
 # Next task — first verifiable Windows/GPU vertical slice
 
-## Immediate task — validate BMD topology fixture correction
+## Immediate task — finish one verifiable BMD-to-GPU vertical slice
 
-The owner pulled through `751d9b6` and ran `make -B test`: compilation
-succeeded, but the suite reported 560 checks and 6 failures, all in
-`topology is a strict subset of geometry`. Inspection found two invalid
-fixtures: the single-mesh triangle record was four bytes beyond the parser's
-accepted cursor-adjusted start, and the multi-mesh case only changed the global
-`meshCount` field on a single-mesh body.
+The parser/test source snapshot validated here was commit `ce8d3bd`; this
+continuity update changes no C++ source. An out-of-tree C++17 build completed
+without warnings; `make test` and `make test-san` each
+passed 560 checks, and the standalone orbit-camera test passed 57 checks in
+normal and ASan/UBSan runs. Evidence:
+`docs/evidence/ciclo18_linux_validation_20261016.log`. These are synthetic/Linux
+checks, not proof of real-asset interpretation or Windows/GPU rendering.
 
-Commit `49b2be3` fixes both fixture layouts on
-`arena/1d9c1f53-clienterecriado`. It has not yet been validated on the owner's
-PC. Preserve the active D3D11 preview edits and backup; do not use reset/clean
-or overwrite the preview file.
+1. **Preserve and reconcile the Windows/WSL working copy first.** Record
+   `git status --short --branch`, inspect unstaged/staged diffs for
+   `platform/windows/d3d11_bmd_preview.cpp` and its `.backup`, and save any local
+   version before fetching or updating. Do not run `git reset --hard` or
+   `git clean`, and do not overwrite files merely because the sandbox copy
+   matches the published version. The separate external copy is not visible
+   here; its state is unknown.
+2. **Run reference-data checks where authorized data exists.** The sandbox has
+   no `/home/user/Cliente_ref` clone or `Data/` tree. On the authorized local
+   reference clone, record its HEAD/status before and after, run
+   `python3 tools/check_docs_consistency.py` and the documented full-tree
+   `mutool scan`/manifest verification, and keep asset bytes outside Git.
+3. **Build and run the actual Windows model preview.** After comparing/preserving
+   local edits, run `.\scripts\build_d3d11_bmd_preview.ps1` from Developer
+   PowerShell, then run the resulting preview with the same authorized
+   plaintext `agnecklace.bmd`. Record compiler output, exact invocation,
+   parser counts, dropped triangles, visible result, exit status, and final
+   Git status. The D3D11 triangle smoke log is not a BMD preview result.
+4. **Integrate camera input only after that reconciliation.** Retain
+   object-space positions; derive target/range from validated bounds; map drag
+   and wheel input to `OrbitCamera`; add D3D11 view/projection, resize/aspect,
+   depth and clean-shutdown handling. Test full orbit and zoom on Windows. Do
+   not modify the BMD parser or existing parser tests for this integration.
+5. **Keep texture semantics separate.** Establish UV/material binding with
+   positive and negative controls before using candidate indices or names.
+   OZT supports only its documented standard 24/32-bit uncompressed subset;
+   the prefixed variant remains unsupported. OZJ still needs an approved pixel
+   decoder and tests. BMD v0x0C and `Enc*` remain BLOCKED; do not bypass them.
+6. **Measure before optimizing.** After a real model scene renders correctly,
+   record repeatable frame-time/CPU/GPU/memory baseline data on the target PC.
+   Optimize measured bottlenecks; do not report FPS or compatibility from a
+   software renderer, triangle smoke, or unverified preview.
 
-Run:
-
-```powershell
-git status --short --branch
-git pull --ff-only origin arena/1d9c1f53-clienterecriado
-wsl -d Ubuntu -- bash -lc "cd /mnt/d/MU-REENGINEER && make -B test"
-```
-
-If the regular suite passes, continue with:
-
-```powershell
-wsl -d Ubuntu -- bash -lc "cd /mnt/d/MU-REENGINEER && make test-san"
-```
-
-If either test fails, capture the complete failing assertions and fix the
-specific defect before proceeding. Then run the documentation consistency
-checker against the available read-only reference data. Only after these
-checks pass should the Windows preview be rebuilt and rerun against
-`agnecklace.bmd`. Record exact compiler output, parser counts,
-dropped-triangle count, visible result, exit status, and final Git status. The
-green debug clear colour and other local preview diagnostics are not part of
-the parser/test fix and must remain local until reviewed separately.
 ## Product target
 
 An independent, playable MU Online Season 6.20 client for Windows, preserving
