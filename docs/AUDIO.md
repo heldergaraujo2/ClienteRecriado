@@ -37,7 +37,7 @@ mu/audio/
   mixer.cpp — mixer CPU, 32 vozes, volume por categoria SFX/Music
 ```
 
-- **Inicialização:** `MainLoop::DoUpdate` chama `AudioEngine::Update` a cada frame, não bloqueia render
+- **Future integration:** a `MainLoop` update callback may call `AudioEngine::Update` once per frame without blocking rendering; the audio engine is not implemented or connected to the loop
 - **Carregamento:** streaming de assets — SFX WAV carregados sob demanda quando objeto visível (IsVisible true), música MP3/OGG streaming com buffer duplo, orçamento VRAM não aplica mas RAM sim
 - **Integração com culling:** SFX posicionais só tocam se objeto visível ou próximo (distância < threshold), reduz vozes ativas
 - **Segurança:** sem HTTP, sem bcrypt, sem WININET, sem DLL carregada de diretório atual — carregar libs estáticas, validar TLS se precisar HTTP (não em áudio)

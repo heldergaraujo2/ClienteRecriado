@@ -39,7 +39,7 @@ from preference.
 +--------------------------------------------------------------+
 | src/mu/assets        partial readers (OZT/OZJ/TGA/BMD/terrain) |
 | src/mu/render        CPU rasterizer, culling, buffer packing   |
-| src/mu/platform      main-loop/window skeletons               |
+| src/mu/platform      callback-driven frame-loop coordinator; Win32 window skeleton |
 | src/mu/fs            portable directory walking               |
 +--------------------------------------------------------------+
           (future) GPU backend, resource manager, playable client
@@ -167,6 +167,7 @@ playable. Some partial foundations exist; their acceptance limits are in
 | `mu/render` CPU | Diagnostic rasterizer, culling, buffer packing/skinning helpers, platform-independent orbit-camera pose helper | CPU helpers only; the camera is not wired into D3D11 and this is not a product renderer |
 | `mu/gfx` | GPU backend abstraction | No production abstraction; DEC-014 keeps the final API choice open after isolated smoke tests |
 | `platform/windows` | Isolated D3D11/D3D12 triangle smoke programs; experimental D3D11 BMD preview | Smoke tests do not establish a production backend; BMD preview remains untextured and camera helper is not integrated |
+| `mu/platform` | Callback-driven update/render/present frame coordinator | Hooks are testable and timed, but no application, screen manager, Win32 event integration, or GPU callbacks are wired |
 | `mu/res` | Resource cache/lifetime/budgeting | Not implemented |
 | `mu/world` | Terrain/maps/objects | Partial parsers; no complete world renderer |
 | `mu/anim` | Skeletal animation | Not implemented as an animation system; bone records are partial and semantics remain unverified; cipher restrictions remain in force |

@@ -1,4 +1,17 @@
-# Interface — fluxo de telas definido (E3 ciclo13)
+# Interface — intended screen flow and current implementation
+
+## Cycle 20 — frame-loop foundation
+
+`mu::platform::MainLoop` now accepts update, render, and present callbacks and
+measures their synchronous execution with `std::chrono::steady_clock`. It no
+longer supplies sample object counts or fabricated elapsed times. A timing
+sample is marked valid only when all three callbacks are installed; it records
+callback durations, not end-to-end frame time, GPU time, or FPS. The loop is
+still not wired to a window, screen manager, renderer, or gameplay system.
+
+The exact screen flow below remains an architectural target. Only the
+platform-independent callback shell is implemented; no login or screen UI is
+functional yet.
 
 ## Fluxo login → seleção servidor → seleção personagem → mundo — definido
 
@@ -43,14 +56,14 @@ mu/interface/
     button.cpp, label.cpp, list.cpp — UI widgets, sem GDI, com atlas glyph cache
 ```
 
-- **Integração:** `MainLoop::Tick` chama `ScreenManager::Update` (update) → `ScreenManager::Render` (render CPU side prepara draw calls via PackMeshForUpload) → `Present` (SwapBuffers)
+- **Integration target (not implemented):** install application callbacks on `MainLoop` so update advances the screen/session, render prepares draw calls via `PackMeshForUpload`, and present delegates to the selected graphics backend. No `ScreenManager`, real window loop, or GPU callback is currently connected.
 - **Assets:** todos via `mu/assets/*` (ozt, ozj, bmd, terrain, tga, manifest), sem conversão em lote sem verificar compatibilidade e manter cópia referência (regra permanente), preferir carregadores compatíveis formatos existentes
 - **Segurança:** não expor credenciais Settings.ini [AutoLogin] plaintext, não contornar DRM, não usar registry para resolução (usar config file), input via high-res clock QPC não timeGetTime 1ms (6% frame 60Hz 14% 144Hz), sem SetWindowsHookEx global hook
 
-## Estado
+## Current implementation status
 
-- **CONCLUÍDO ciclo13:** fluxo telas definido login→server→char→world, como consome assets decodificados documentado com rótulos CONFIRMADO/PROVÁVEL/DESCONHECIDO/BLOQUEADO, integração com C1/D1/D2/D3/E2
-- **PARCIAL:** implementação não iniciada, UI widgets não implementados, Lua ScriptEffect não integrado, Cg shaders não reimplementados GLSL
-- **Próximo passo:** implementar screen_manager.hpp esqueleto com enum Screen e transição, sem GL, teste unitário transição login→server→char→world
+- **Implemented (partial, cycle 20):** callback-driven `MainLoop` update/render/present hooks, monotonic-clock callback timing, bounded history, valid-sample gating, and budget prediction over complete callback samples. The standalone tests are wired into `make test` and `make test-san`.
+- **Not implemented:** `ScreenManager`, login/server/character/world screens, widgets, application-owned callback registrations, Win32 event integration, gameplay session, and GPU rendering.
+- **Next application-layer step:** implement and test a platform-independent `ScreenManager` without embedding unverified network behavior. The Windows/GPU model-render milestone remains a separate higher-level acceptance gate.
 
-E3 CONCLUÍDO ciclo13 como fluxo definido, implementação pendente.
+E3's cycle-13 screen-flow design remains a target, not a completed UI implementation.

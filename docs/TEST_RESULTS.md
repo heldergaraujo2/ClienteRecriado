@@ -1,8 +1,29 @@
-# Test results — latest status as of cycle 19 (2026-10-16)
+# Test results — latest status as of cycle 20 (2026-10-16)
 
 Results are classified as `PASS`, `FAIL`, `BLOCKED`, `NOT EXECUTED`, or
 `INCOMPLETE`. A probe, a parser acceptance, a sanitizer run, and a product
 compatibility test answer different questions and are reported separately.
+
+## Cycle 20 — callback-driven frame-loop foundation (2026-10-16)
+
+The source was the working tree on `arena/1d9c1f53-clienterecriado`, based on
+`9d3de3b469e1c2d57112a356d1b63c1aa22b2383`, with the cycle-20 frame-loop
+changes. All build outputs used `/tmp`; repository `build/` remained absent.
+
+| Check | Result | Evidence / limitation |
+|---|---|---|
+| `make` with repository warning flags | **PASS** — exit 0, no warnings | `evidence/ciclo20_main_loop_validation_20261016.log` |
+| `make test` | **PASS** — 560 asset checks + 82 frame-loop checks, 0 failures | Same log; generated fixtures and callback tests only |
+| `make test-san` | **PASS** — 560 asset checks + 82 frame-loop checks, 0 failures; no ASan/UBSan report | Same log |
+| Strict-warning standalone frame-loop test | **PASS** — 82 checks, 0 failures | Same log; binary in `/tmp` |
+| `python3 tools/check_docs_consistency.py` | **BLOCKED (exit 2)** | `/home/user/Cliente_ref/Data` is absent; reference data unavailable |
+| Windows executable, window/input, GPU render, real BMD preview | **NOT EXECUTED** | This task did not modify the preview or build a Windows client |
+| FPS, end-to-end frame time, GPU time, or optimization gain | **NOT MEASURED** | MainLoop records callback durations only; no real application callbacks are connected |
+| Client/Muserver integration | **NOT EXECUTED** | No client networking implementation or authorized test server |
+
+These tests verify orchestration callbacks, truthful hook timing, bounds on
+history, invalid frame-rate handling, and prediction gating. They do not measure
+full-frame performance or establish a functional client.
 
 ## Cycle 19 — Muserver handoff documentation (2026-10-16)
 

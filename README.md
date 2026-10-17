@@ -38,10 +38,10 @@ outside this repository; see [docs/LICENSING.md](docs/LICENSING.md).
 | src/mu/assets/ | C++17 readers/classifiers for OZT, OZJ, TGA, BMD, terrain and patch manifests |
 | src/mu/assets/mesh.* | Canonical CPU-side mesh and skeleton representation |
 | src/mu/render/ | CPU-side buffer packing, skinning, culling, software rasterizer and texture proof of concept |
-| src/mu/platform/ | Win32/OpenGL window and main-loop skeletons; GPU execution remains blocked/unverified |
+| src/mu/platform/ | Callback-driven frame-loop coordinator; Win32 window and production GPU execution remain incomplete/unverified |
 | src/mu/fs.* | Portable recursive directory walker (POSIX + Win32) |
 | tools/mutool.cpp | Command-line inspection, validation and software-rendering tools |
-| tests/test_assets.cpp | Unit-test suite; latest verified Linux run at `ce8d3bd` reports 560 checks, 0 failures (`docs/evidence/ciclo18_linux_validation_20261016.log`) |
+| tests/test_assets.cpp / tests/test_main_loop_standalone.cpp | Asset suite plus callback-driven frame-loop tests; cycle-20 build/test/sanitizer evidence is in `docs/evidence/ciclo20_main_loop_validation_20261016.log` |
 | bench/bench_assets.cpp | Asset micro-benchmarks with percentile reporting |
 | docs/ | Audits, architecture, compatibility, measurements and continuity plan |
 

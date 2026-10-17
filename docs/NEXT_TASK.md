@@ -2,13 +2,14 @@
 
 ## Immediate task — finish one verifiable BMD-to-GPU vertical slice
 
-The parser/test source snapshot validated here was commit `ce8d3bd`; this
-continuity update changes no C++ source. An out-of-tree C++17 build completed
-without warnings; `make test` and `make test-san` each
-passed 560 checks, and the standalone orbit-camera test passed 57 checks in
-normal and ASan/UBSan runs. Evidence:
-`docs/evidence/ciclo18_linux_validation_20261016.log`. These are synthetic/Linux
-checks, not proof of real-asset interpretation or Windows/GPU rendering.
+The latest Linux validation is recorded in
+`docs/evidence/ciclo20_main_loop_validation_20261016.log`: an out-of-tree C++17
+build passed without warnings; `make test` and `make test-san` each passed 560
+asset checks plus 82 frame-loop checks. The frame-loop foundation now accepts
+update/render/present callbacks, but no application, screen manager, window,
+renderer, or gameplay callback is connected. Its timings are callback durations,
+not full-frame, GPU, or FPS measurements. These Linux tests do not validate
+real-asset interpretation or Windows/GPU rendering.
 
 **Muserver handoff:** read [`NETWORK.md`](NETWORK.md) before implementing server
 compatibility. No client networking module or verified wire protocol exists in
@@ -58,9 +59,10 @@ modern PCs with dedicated GPUs. The target and measurement contract are in
 [`PERFORMANCE_TARGET.md`](PERFORMANCE_TARGET.md). This is the **target**, not an
 achieved result.
 
-The current implementation is a C++17 asset library and inspection tools, plus a
-CPU-only diagnostic rasterizer. There is no runnable Windows client, GPU backend,
-functional window/input path, or playable game session. This session is fixed to
+The current implementation is a C++17 asset library and inspection tools, a
+CPU-only diagnostic rasterizer, and a callback-driven frame-loop foundation.
+There is no runnable Windows client, production GPU backend, functional
+window/input path, screen manager, or playable game session. This session is fixed to
 branch `arena/1d9c1f53-clienterecriado`.
 
 ## Prerequisites and blockers

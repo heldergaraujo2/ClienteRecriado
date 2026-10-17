@@ -3,6 +3,24 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
+## 2026-10-16 — callback-driven frame-loop foundation
+
+- Replaced hard-coded frame-work counts and elapsed-time placeholders in
+  `mu::platform::MainLoop` with optional update/render/present callbacks.
+  Callback durations use `steady_clock`; no work is fabricated when hooks are
+  absent, and only a complete three-hook sample participates in budget
+  prediction. Frame snapshots retain callback-provided scene/draw counts.
+- Added `tests/test_main_loop_standalone.cpp` and wired it into `make`,
+  `make test`, and `make test-san`, leaving the BMD parser and
+  `tests/test_assets.cpp` untouched.
+- Out-of-tree warning-free build passed; both normal and sanitizer runs passed
+  560 asset checks plus 82 frame-loop checks. Exact output:
+  `docs/evidence/ciclo20_main_loop_validation_20261016.log`.
+- This is orchestration foundation only—not an application, full-frame/GPU
+  timing, FPS measurement, optimization gain, or playable-client milestone.
+  Windows/renderer integration and docs consistency remain unexecuted/blocked
+  as recorded in `TEST_RESULTS.md`.
+
 ## 2026-10-16 — Muserver interoperability handoff
 
 - Reworked `docs/NETWORK.md` into an evidence-labelled handoff for the separate

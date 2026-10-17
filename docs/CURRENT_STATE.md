@@ -1,8 +1,35 @@
 # Current state — audit and handoff updated 2026-10-16
 
 This snapshot separates **probe**, structural validation, decoding, semantics,
-and verified rendering. The repository contains a C++17 asset library and
-inspection tools; **it is not yet a playable Windows client**.
+and verified rendering. The repository contains a C++17 asset library,
+inspection tools, and a callback-driven frame-loop foundation; **it is not yet
+a playable Windows client**.
+
+## Cycle 20 — callback-driven frame-loop foundation (2026-10-16)
+
+Replaced the synthetic `MainLoop` workload with optional update/render/present
+callbacks. Callback durations use `std::chrono::steady_clock`; no callback means
+zero work and zero reported workload time, and `timing_valid` is set only when
+the full three-hook pipeline is present. Returned scene/draw counts are carried
+into the frame snapshot. Budget prediction ignores incomplete or stale-target
+samples, and replacing callbacks or changing the effective target FPS clears
+history. These are callback-duration diagnostics—not end-to-end frame time,
+GPU timings, FPS, or an optimization result. No screen manager, Win32 event integration, renderer,
+network, or game system is connected yet.
+
+Added `tests/test_main_loop_standalone.cpp` and wired it into `make`, `make test`,
+and `make test-san` without editing `tests/test_assets.cpp` or BMD parser tests.
+An out-of-tree warning-free build passed; `make test` and `make test-san` each
+passed **560 asset checks and 82 frame-loop checks**, with no failures or
+sanitizer reports. Build outputs stayed under `/tmp`; repository `build/` was
+absent. Exact commands/output are in
+[`evidence/ciclo20_main_loop_validation_20261016.log`](evidence/ciclo20_main_loop_validation_20261016.log).
+
+The reference clone `../Cliente_ref` was absent at cycle start and end, so its
+HEAD could not be recorded; no reference files were read or changed. The docs
+consistency checker remains BLOCKED (exit 2) because
+`/home/user/Cliente_ref/Data` is absent. Windows/GPU rendering, model semantics,
+network compatibility, and client performance remain **NOT EXECUTED/BLOCKED**.
 
 ## Cycle 19 — Muserver interoperability handoff (2026-10-16)
 

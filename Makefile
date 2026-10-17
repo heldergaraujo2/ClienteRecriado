@@ -41,11 +41,12 @@ LIB_OBJS := $(LIB_SRCS:%.cpp=$(BUILD)/%.o)
 
 TOOL_SRC := tools/mutool.cpp
 TEST_SRC := tests/test_assets.cpp
+MAIN_LOOP_TEST_SRC := tests/test_main_loop_standalone.cpp
 BENCH_SRC := bench/bench_assets.cpp
 
-.PHONY: all test bench clean tool test-san
+.PHONY: all test test-main-loop bench clean tool test-san
 
-all: $(BUILD)/mutool $(BUILD)/test_assets
+all: $(BUILD)/mutool $(BUILD)/test_assets $(BUILD)/test_main_loop
 
 $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
@@ -61,14 +62,21 @@ $(BUILD)/mutool: $(BUILD)/$(TOOL_SRC:%.cpp=%.o) $(BUILD)/libmuassets.a
 $(BUILD)/test_assets: $(BUILD)/$(TEST_SRC:%.cpp=%.o) $(BUILD)/libmuassets.a
 	$(CXX) $(CXXFLAGS) $< -L$(BUILD) -lmuassets -o $@ $(LDFLAGS)
 
+$(BUILD)/test_main_loop: $(BUILD)/$(MAIN_LOOP_TEST_SRC:%.cpp=%.o) $(BUILD)/libmuassets.a
+	$(CXX) $(CXXFLAGS) $< -L$(BUILD) -lmuassets -o $@ $(LDFLAGS)
+
 $(BUILD)/bench_assets: $(BUILD)/$(BENCH_SRC:%.cpp=%.o) $(BUILD)/libmuassets.a
 	$(CXX) $(CXXFLAGS) $< -L$(BUILD) -lmuassets -o $@ $(LDFLAGS)
 
 tool: $(BUILD)/mutool
 bench: $(BUILD)/bench_assets
 
-test: $(BUILD)/test_assets
+test: $(BUILD)/test_assets $(BUILD)/test_main_loop
 	$(BUILD)/test_assets
+	$(BUILD)/test_main_loop
+
+test-main-loop: $(BUILD)/test_main_loop
+	$(BUILD)/test_main_loop
 
 # A separate binary rather than a flag on the normal one, so `make test` can
 # never silently run an instrumented build, and the documented sanitizer claim
@@ -83,11 +91,16 @@ SAN_FLAGS := -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer
 SAN_BUILD := build-san
 SAN_LIB_OBJS := $(LIB_SRCS:%.cpp=$(SAN_BUILD)/%.o)
 SAN_TEST_OBJ := $(SAN_BUILD)/$(TEST_SRC:%.cpp=%.o)
+SAN_MAIN_LOOP_TEST_OBJ := $(SAN_BUILD)/$(MAIN_LOOP_TEST_SRC:%.cpp=%.o)
 
-test-san: $(SAN_BUILD)/test_assets
+test-san: $(SAN_BUILD)/test_assets $(SAN_BUILD)/test_main_loop
 	$(SAN_BUILD)/test_assets
+	$(SAN_BUILD)/test_main_loop
 
 $(SAN_BUILD)/test_assets: $(SAN_TEST_OBJ) $(SAN_BUILD)/libmuassets.a
+	$(CXX) $(SAN_FLAGS) $^ -o $@ $(LDFLAGS)
+
+$(SAN_BUILD)/test_main_loop: $(SAN_MAIN_LOOP_TEST_OBJ) $(SAN_BUILD)/libmuassets.a
 	$(CXX) $(SAN_FLAGS) $^ -o $@ $(LDFLAGS)
 
 $(SAN_BUILD)/libmuassets.a: $(SAN_LIB_OBJS)
@@ -109,4 +122,4 @@ clean:
 
 # Pull in the generated header dependencies. The leading '-' keeps a fresh
 # checkout working, since no .d files exist yet on the first build.
--include $(shell find $(BUILD) -name '*.d' 2>/dev/null)
+-include $(shell find $(BUILD) $(SAN_BUILD) -name '*.d' 2>/dev/null)

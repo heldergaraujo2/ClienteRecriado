@@ -74,6 +74,14 @@ reported. See [`BENCHMARKS.md`](BENCHMARKS.md).
 Windows only, and **not yet executed**. Covers FPS, frametime percentiles, CPU,
 RAM, VRAM, load times, long-session stability and map changes.
 
+### 2.6 Platform-independent frame-loop tests
+
+`tests/test_main_loop_standalone.cpp` runs as part of `make test` and
+`make test-san`. It uses synthetic callbacks to verify update/render/present
+ordering, result propagation, monotonic callback timing, invalid-rate handling,
+history bounds, and prediction gating. The timing assertions test only the
+orchestration logic; they are not FPS, full-frame, or GPU benchmarks.
+
 ## 3. Regression detection
 
 The cheap, always-on layer:

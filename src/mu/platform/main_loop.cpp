@@ -1,96 +1,149 @@
 // SPDX-License-Identifier: MIT
-// E2 implementação esqueleto — sem GL, sem Windows, puro CPU
-
 #include "mu/platform/main_loop.hpp"
 
-#include <chrono>
 #include <algorithm>
+#include <chrono>
+#include <cmath>
 
 namespace mu {
 namespace platform {
+namespace {
 
-MainLoop::MainLoop(double target_fps) : frame_index_(0) {
+using SteadyClock = std::chrono::steady_clock;
+
+[[nodiscard]] double Milliseconds(SteadyClock::duration duration) {
+  return std::chrono::duration<double, std::milli>(duration).count();
+}
+
+}  // namespace
+
+MainLoop::MainLoop(double target_fps)
+    : target_fps_(60.0),
+      target_frame_ms_(1000.0 / 60.0),
+      frame_index_(0),
+      callbacks_{},
+      history_{} {
   SetTargetFps(target_fps);
 }
 
+void MainLoop::SetCallbacks(MainLoopCallbacks callbacks) {
+  callbacks_ = callbacks;
+  history_.clear();
+}
+
 void MainLoop::SetTargetFps(double fps) {
-  target_fps_ = fps > 0 ? fps : 60.0;
-  target_frame_ms_ = 1000.0 / target_fps_;
+  double next_fps = fps;
+  if (!std::isfinite(next_fps) || next_fps <= 0.0) {
+    next_fps = 60.0;
+  }
+
+  double next_frame_ms = 1000.0 / next_fps;
+  if (!std::isfinite(next_frame_ms) || next_frame_ms <= 0.0) {
+    next_fps = 60.0;
+    next_frame_ms = 1000.0 / next_fps;
+  }
+
+  if (next_fps != target_fps_) {
+    history_.clear();
+  }
+  target_fps_ = next_fps;
+  target_frame_ms_ = next_frame_ms;
 }
 
-UpdateResult MainLoop::DoUpdate(const InputState& /*input*/) {
-  // Esqueleto: em jogo real aqui entraria lógica, física, animação, frustum culling
-  // Mede via high-res clock — aqui placeholder 0ms
-  UpdateResult r;
-  r.elapsed_ms = 0.1; // placeholder medido, não inventado como benchmark real
-  r.visible_objects = 100;
-  r.culled_objects = 50;
-  return r;
+UpdateResult MainLoop::DoUpdate(const InputState& input) const {
+  if (callbacks_.update == nullptr) {
+    return {};
+  }
+  return callbacks_.update(input, callbacks_.user_data);
 }
 
-RenderResult MainLoop::DoRender(const UpdateResult& upd) {
-  // Esqueleto: prepara draw calls CPU side (PackMeshForUpload já feito), agrupa por material, sem GL
-  RenderResult r;
-  r.elapsed_ms = 0.2; // placeholder
-  r.draw_calls_prepared = upd.visible_objects; // 1 draw call por objeto visível simplificado
-  r.triangles_submitted = upd.visible_objects * 100; // placeholder
-  return r;
+RenderResult MainLoop::DoRender(const UpdateResult& update) const {
+  if (callbacks_.render == nullptr) {
+    return {};
+  }
+  return callbacks_.render(update, callbacks_.user_data);
 }
 
-PresentResult MainLoop::DoPresent() {
-  // Esqueleto: SwapBuffers(hdc) em Windows real, aqui placeholder
-  PresentResult r;
-  r.elapsed_ms = 0.05; // placeholder
-  return r;
+void MainLoop::DoPresent() const {
+  if (callbacks_.present != nullptr) {
+    callbacks_.present(callbacks_.user_data);
+  }
 }
 
 FrameBudget MainLoop::Tick(const InputState& input) {
-  auto t0 = std::chrono::high_resolution_clock::now();
+  UpdateResult update{};
+  RenderResult render{};
+  double update_ms = 0.0;
+  double render_ms = 0.0;
+  double present_ms = 0.0;
 
-  UpdateResult upd = DoUpdate(input);
-  auto t1 = std::chrono::high_resolution_clock::now();
+  if (callbacks_.update != nullptr) {
+    const auto begin = SteadyClock::now();
+    update = DoUpdate(input);
+    update_ms = Milliseconds(SteadyClock::now() - begin);
+  }
 
-  RenderResult rnd = DoRender(upd);
-  auto t2 = std::chrono::high_resolution_clock::now();
+  if (callbacks_.render != nullptr) {
+    const auto begin = SteadyClock::now();
+    render = DoRender(update);
+    render_ms = Milliseconds(SteadyClock::now() - begin);
+  }
 
-  PresentResult prs = DoPresent();
-  auto t3 = std::chrono::high_resolution_clock::now();
+  if (callbacks_.present != nullptr) {
+    const auto begin = SteadyClock::now();
+    DoPresent();
+    present_ms = Milliseconds(SteadyClock::now() - begin);
+  }
 
-  // Mede tempos reais via chrono, não usa placeholders para total
-  double update_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
-  double render_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
-  double present_ms = std::chrono::duration<double, std::milli>(t3 - t2).count();
-  // Para esqueleto, soma placeholders + medidas mínimas
-  // Em implementação real, update_ms = upd.elapsed_ms medido com QPC, etc
-  // Aqui usamos medidas chrono + placeholders para demonstrar separação
-  double total = update_ms + render_ms + present_ms + upd.elapsed_ms + rnd.elapsed_ms + prs.elapsed_ms;
+  FrameBudget frame{};
+  frame.target_fps = target_fps_;
+  frame.target_frame_ms = target_frame_ms_;
+  frame.update_ms = update_ms;
+  frame.render_ms = render_ms;
+  frame.present_ms = present_ms;
+  frame.total_ms = update_ms + render_ms + present_ms;
+  frame.slack_ms = target_frame_ms_ - frame.total_ms;
+  frame.visible_objects = update.visible_objects;
+  frame.culled_objects = update.culled_objects;
+  frame.draw_calls_prepared = render.draw_calls_prepared;
+  frame.triangles_submitted = render.triangles_submitted;
+  frame.timing_valid = callbacks_.update != nullptr &&
+                       callbacks_.render != nullptr &&
+                       callbacks_.present != nullptr;
+  frame.over_budget = frame.timing_valid &&
+                      frame.total_ms > frame.target_frame_ms;
+  frame.frame_index = frame_index_++;
 
-  FrameBudget fb;
-  fb.target_fps = target_fps_;
-  fb.target_frame_ms = target_frame_ms_;
-  fb.update_ms = upd.elapsed_ms + update_ms;
-  fb.render_ms = rnd.elapsed_ms + render_ms;
-  fb.present_ms = prs.elapsed_ms + present_ms;
-  fb.total_ms = total;
-  fb.slack_ms = target_frame_ms_ - total;
-  fb.over_budget = total > target_frame_ms_;
-  fb.frame_index = frame_index_++;
+  history_.push_back(frame);
+  if (history_.size() > kHistorySize) {
+    history_.erase(history_.begin());
+  }
 
-  history_.push_back(fb);
-  if (history_.size() > kHistorySize) history_.erase(history_.begin());
-
-  return fb;
+  return frame;
 }
 
 bool MainLoop::PredictOverBudget() const {
-  if (history_.size() < 10) return false;
-  double avg = 0;
-  size_t n = std::min(history_.size(), size_t(30));
-  for (size_t i = history_.size() - n; i < history_.size(); ++i) avg += history_[i].total_ms;
-  avg /= static_cast<double>(n);
-  // Prediz estouro se média últimos 30 frames > 90% budget
-  return avg > target_frame_ms_ * 0.9;
+  const std::size_t lookback = std::min(history_.size(), std::size_t{30});
+  const std::size_t first = history_.size() - lookback;
+  double total_ms = 0.0;
+  std::size_t valid_samples = 0;
+
+  for (std::size_t index = first; index < history_.size(); ++index) {
+    const FrameBudget& frame = history_[index];
+    if (!frame.timing_valid || frame.target_fps != target_fps_) {
+      continue;
+    }
+    total_ms += frame.total_ms;
+    ++valid_samples;
+  }
+
+  if (valid_samples < 10) {
+    return false;
+  }
+
+  const double average_ms = total_ms / static_cast<double>(valid_samples);
+  return average_ms > target_frame_ms_ * 0.9;
 }
 
-} // namespace platform
-} // namespace mu
+}  // namespace platform
+}  // namespace mu

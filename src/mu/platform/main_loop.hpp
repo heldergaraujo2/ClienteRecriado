@@ -1,87 +1,97 @@
 // SPDX-License-Identifier: MIT
-// E2 — Esqueleto main loop update/render/present com predição frame budget, sem GL
-// Não chama OpenGL, não inclui <windows.h>, puro CPU
+// Platform-independent frame orchestration; no Win32 or graphics headers.
 #ifndef MU_PLATFORM_MAIN_LOOP_HPP
 #define MU_PLATFORM_MAIN_LOOP_HPP
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
-#include <string>
 
 namespace mu {
 namespace platform {
 
-// Frame timing
 struct FrameBudget {
-  double target_fps = 60.0; // alvo
-  double target_frame_ms = 16.666; // 1000/target_fps
-  double update_ms = 0.0; // medido update
-  double render_ms = 0.0; // medido render (CPU side, sem GPU)
-  double present_ms = 0.0; // medido present (SwapBuffers)
+  double target_fps = 60.0;
+  double target_frame_ms = 1000.0 / 60.0;
+  double update_ms = 0.0;
+  double render_ms = 0.0;
+  double present_ms = 0.0;
   double total_ms = 0.0;
-  double slack_ms = 0.0; // target - total
+  double slack_ms = 1000.0 / 60.0;
+  std::size_t visible_objects = 0;
+  std::size_t culled_objects = 0;
+  std::size_t draw_calls_prepared = 0;
+  std::size_t triangles_submitted = 0;
+  // Valid means all hooks ran; these durations are not full-frame, FPS, or GPU
+  // measurements and exclude event waiting and frame pacing.
+  bool timing_valid = false;
   bool over_budget = false;
-  uint64_t frame_index = 0;
+  std::uint64_t frame_index = 0;
 };
 
-// Input state (simplificado)
 struct InputState {
   bool quit_requested = false;
-  // teclas, mouse etc — placeholder
 };
 
-// Update: lógica jogo, física, animação, culling
-// Retorna tempo gasto ms (medido via high-res clock em implementação real)
 struct UpdateResult {
-  double elapsed_ms = 0.0;
-  size_t visible_objects = 0;
-  size_t culled_objects = 0;
+  std::size_t visible_objects = 0;
+  std::size_t culled_objects = 0;
 };
 
-// Render: prepara draw calls (CPU side, sem GL)
-// Retorna tempo gasto ms + número draw calls preparadas
 struct RenderResult {
-  double elapsed_ms = 0.0;
-  size_t draw_calls_prepared = 0;
-  size_t triangles_submitted = 0;
+  std::size_t draw_calls_prepared = 0;
+  std::size_t triangles_submitted = 0;
 };
 
-// Present: SwapBuffers + timing
-struct PresentResult {
-  double elapsed_ms = 0.0;
+// Synchronous hooks supplied by the future application. user_data is owned by
+// the caller and must remain valid while the callbacks are installed.
+struct MainLoopCallbacks {
+  using UpdateCallback = UpdateResult (*)(const InputState&, void* user_data);
+  using RenderCallback = RenderResult (*)(const UpdateResult&, void* user_data);
+  using PresentCallback = void (*)(void* user_data);
+
+  UpdateCallback update = nullptr;
+  RenderCallback render = nullptr;
+  PresentCallback present = nullptr;
+  void* user_data = nullptr;
 };
 
-// Main loop esqueleto — separa update/render/present, prediz budget
+// Calls the supplied update -> render -> present hooks and records their wall
+// times. A timing sample is valid only when all three hooks are installed; the
+// loop never fabricates workload, object counts, draw calls, or elapsed time.
 class MainLoop {
 public:
   explicit MainLoop(double target_fps = 60.0);
 
-  // Chamado uma vez por frame, na ordem update -> render -> present
-  // Sem GL, sem Windows — puro CPU, mede tempos via std::chrono em implementação real
+  // Install or replace hooks between frames. Clearing history prevents samples
+  // from a previous callback set from influencing budget prediction.
+  void SetCallbacks(MainLoopCallbacks callbacks);
+
+  // Invoke one frame synchronously in update -> render -> present order.
   FrameBudget Tick(const InputState& input);
 
-  // Prediz se próximo frame estourará budget baseado em média móvel últimos N frames
+  // Predict from at least ten valid samples in the most recent thirty frames.
   bool PredictOverBudget() const;
 
-  // Histórico para análise
   const std::vector<FrameBudget>& History() const { return history_; }
 
-  // Config
+  // Invalid, non-positive, or unrepresentable rates fall back to 60 FPS.
   void SetTargetFps(double fps);
 
 private:
   double target_fps_;
   double target_frame_ms_;
-  uint64_t frame_index_;
+  std::uint64_t frame_index_;
+  MainLoopCallbacks callbacks_;
   std::vector<FrameBudget> history_;
-  static constexpr size_t kHistorySize = 120; // 2s a 60fps
+  static constexpr std::size_t kHistorySize = 120;
 
-  UpdateResult DoUpdate(const InputState& input);
-  RenderResult DoRender(const UpdateResult& upd);
-  PresentResult DoPresent();
+  UpdateResult DoUpdate(const InputState& input) const;
+  RenderResult DoRender(const UpdateResult& update) const;
+  void DoPresent() const;
 };
 
-} // namespace platform
-} // namespace mu
+}  // namespace platform
+}  // namespace mu
 
-#endif // MU_PLATFORM_MAIN_LOOP_HPP
+#endif  // MU_PLATFORM_MAIN_LOOP_HPP
