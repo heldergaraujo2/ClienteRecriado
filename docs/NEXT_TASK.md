@@ -10,6 +10,13 @@ normal and ASan/UBSan runs. Evidence:
 `docs/evidence/ciclo18_linux_validation_20261016.log`. These are synthetic/Linux
 checks, not proof of real-asset interpretation or Windows/GPU rendering.
 
+**Muserver handoff:** read [`NETWORK.md`](NETWORK.md) before implementing server
+compatibility. No client networking module or verified wire protocol exists in
+this repository. Do not guess the original packet header, opcodes, transport,
+or cryptography. A shared authorized specification—or an explicit decision to
+define a new client/server protocol—must precede compatibility claims and joint
+implementation.
+
 1. **Preserve and reconcile the Windows/WSL working copy first.** Record
    `git status --short --branch`, inspect unstaged/staged diffs for
    `platform/windows/d3d11_bmd_preview.cpp` and its `.backup`, and save any local
@@ -105,11 +112,14 @@ animation, or appearance.
    batching, instancing, resource streaming/caching, culling, and GPU skinning
    when real measurements identify a bottleneck. Repeat equivalent tests and
    validate visual correctness and stability after each change.
-8. **Implement gameplay networking only with authorization.** Use authorized
-   protocol documentation/implementations and an authorized test server. Until
-   then, login, authentication, character creation, movement, inventory, combat,
-   persistence, and network compatibility remain `NOT IMPLEMENTED` /
-   `NOT EXECUTED`.
+8. **Implement gameplay networking only after the shared contract is agreed.**
+   Follow [`NETWORK.md`](NETWORK.md): cite an authorized protocol source, or
+   obtain explicit approval for a new versioned client/server protocol. Use an
+   authorized loopback test server and synthetic fixtures. Do not infer opcodes,
+   framing, transport, or crypto from generic MU conventions or the protected
+   executable. Until the contract and implementation exist, login,
+   authentication, character creation, movement, inventory, combat, persistence,
+   and network compatibility remain `NOT IMPLEMENTED` / `NOT EXECUTED`.
 
 ## Acceptance criteria for the graphics milestone
 

@@ -1,8 +1,22 @@
-# Test results — cycle 17 audit (2026-10-12)
+# Test results — latest status as of cycle 19 (2026-10-16)
 
 Results are classified as `PASS`, `FAIL`, `BLOCKED`, `NOT EXECUTED`, or
 `INCOMPLETE`. A probe, a parser acceptance, a sanitizer run, and a product
 compatibility test answer different questions and are reported separately.
+
+## Cycle 19 — Muserver handoff documentation (2026-10-16)
+
+This was a documentation-only change. No C++ source or server implementation
+changed; the cycle-18 Linux build and synthetic test results below remain the
+latest code validation. The reference clone was absent, so a reference HEAD
+could not be recorded at the start or end of this cycle.
+
+| Check | Result | Evidence / limitation |
+|---|---|---|
+| C++ build, unit tests, sanitizers | **NOT RUN in this docs-only cycle** | No code changed; latest results remain in the cycle-18 section below |
+| `python3 tools/check_docs_consistency.py` | **BLOCKED (exit 2)** | `/home/user/Cliente_ref/Data` is absent; see `evidence/ciclo19_muserver_handoff_20261016.log` |
+| Client/Muserver protocol or loopback test | **NOT EXECUTED** | No `src/mu/net` implementation or authorized test server is available |
+| Original-client network inspection | **NOT EXECUTED / OUT OF SCOPE** | The handoff intentionally does not infer protocol details from protected code or traffic |
 
 ## Cycle 18 — latest fixed-branch validation (2026-10-16)
 

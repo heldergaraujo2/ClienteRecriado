@@ -3,6 +3,24 @@
 Performance changes with measurements are in
 [`OPTIMIZATION_LOG.md`](OPTIMIZATION_LOG.md). This file covers everything else.
 
+## 2026-10-16 — Muserver interoperability handoff
+
+- Reworked `docs/NETWORK.md` into an evidence-labelled handoff for the separate
+  Muserver recreation. It distinguishes observed imports/file presence from
+  protocol assumptions and explicitly records that no client network module,
+  verified wire contract, or authorized server test exists.
+- Added a shared-specification and synthetic loopback-test sequence. No
+  transport, packet header, opcode, cipher, authentication message, or code was
+  invented; no protected client traffic or credentials were added.
+- Linked the handoff from the README and updated `CURRENT_STATE.md`,
+  `NEXT_TASK.md`, and `TEST_RESULTS.md` so the server agent has a visible entry
+  point and the actual compatibility gate.
+- `tools/check_docs_consistency.py` was rerun after the documentation edits but
+  is **BLOCKED (exit 2)** because the reference `Cliente_ref/Data` tree is
+  absent. Output: `docs/evidence/ciclo19_muserver_handoff_20261016.log`.
+- No C++ build/tests or Muserver integration test were run for this docs-only
+  change. The reference clone was absent, so its HEAD could not be checked.
+
 ## 2026-10-16 — validate latest BMD topology fixtures on Linux
 
 ### Validation

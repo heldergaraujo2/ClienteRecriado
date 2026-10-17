@@ -116,6 +116,7 @@ FPS or GPU benchmarks.
 | [docs/OPTIMIZATION_LOG.md](docs/OPTIMIZATION_LOG.md) | Optimisation hypotheses and measured outcomes |
 | [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md) / [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md) | Test design and results |
 | [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) | Visual and functional compatibility |
+| [docs/NETWORK.md](docs/NETWORK.md) | Network evidence and the Muserver interoperability handoff; no network implementation exists yet |
 | [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) / [docs/LICENSING.md](docs/LICENSING.md) | Dependencies and rights |
 | [docs/SECURITY.md](docs/SECURITY.md) | Security risks and mitigations |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architectural decisions |

@@ -1,8 +1,23 @@
-# Current state — cycle 17 audit (2026-10-12)
+# Current state — audit and handoff updated 2026-10-16
 
 This snapshot separates **probe**, structural validation, decoding, semantics,
 and verified rendering. The repository contains a C++17 asset library and
 inspection tools; **it is not yet a playable Windows client**.
+
+## Cycle 19 — Muserver interoperability handoff (2026-10-16)
+
+Added `docs/NETWORK.md` as the discoverable handoff for the separate Muserver
+recreation. It separates prior import-table/file observations from protocol
+hypotheses and unknowns, states that this repository has no `src/mu/net` code,
+and defines a safe joint-specification and loopback-test sequence. It does not
+invent opcodes, framing, transport, encryption, or authentication fields and
+makes no compatibility claim. No C++ or server code changed.
+
+The reference clone `../Cliente_ref` was absent at the start of this cycle, so
+its HEAD could not be recorded and no reference file was read or modified. The
+documentation consistency check was rerun after edits and remains BLOCKED
+because `/home/user/Cliente_ref/Data` is unavailable. No Muserver endpoint or
+network test was available; see `docs/evidence/ciclo19_muserver_handoff_20261016.log`.
 
 ## Cycle 18 — workspace reconciliation and Linux validation (2026-10-16)
 
