@@ -10,9 +10,13 @@ client**.
 
 Added `.github/workflows/windows-d3d11-bmd-preview.yml` to compile the existing
 D3D11 preview with MSVC x64 on a hosted Windows runner and upload
-`d3d11-bmd-preview-windows-x64`. The initial Windows build is pending; its
-result will be recorded in the cycle-21 validation section of `TEST_RESULTS.md`
-and `evidence/ciclo21_windows_preview_build_20261016.log`.
+`d3d11-bmd-preview-windows-x64`. The first Windows x64 build and artifact upload
+**PASS** in Actions run `38996411696` on commit `b3cc50401f4129730fba81f1f2c1321da8c59946`.
+The artifact is available at
+[the workflow run](https://github.com/heldergaraujo2/ClienteRecriado/actions/runs/38996411696)
+through 2026-11-16 UTC. Its metadata and validation limits are recorded in the
+cycle-21 `TEST_RESULTS.md` section and
+[`evidence/ciclo21_windows_preview_build_20261016.log`](evidence/ciclo21_windows_preview_build_20261016.log).
 
 This is a compiler/artifact pipeline for the existing tool, not a new renderer
 or client. It does not include model assets and does not prove that a D3D11

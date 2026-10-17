@@ -8,23 +8,30 @@ compatibility test answer different questions and are reported separately.
 
 This change adds a Windows x64 CI build/artifact workflow for the existing
 preview plus documentation. It does not edit C++ source, the parser, tests, or
-assets. The workflow was added on top of the cycle-20 branch; the first remote
-Windows run is pending.
+assets. Actions run `38996411696` on commit
+`b3cc50401f4129730fba81f1f2c1321da8c59946` completed successfully, including the
+MSVC build, PE x64 check, and artifact upload. The binary artifact is available
+from [the run](https://github.com/heldergaraujo2/ClienteRecriado/actions/runs/38996411696)
+until 2026-11-16 02:49:51 UTC. Sandbox egress prevented downloading the
+artifact archive and raw Actions logs locally; GitHub's run/job/artifact API
+reports success and supplies the artifact digest. Details:
+`evidence/ciclo21_windows_preview_build_20261016.log`.
 
 | Check | Result | Evidence / limitation |
 |---|---|---|
 | Linux `make` build with repository warning flags | **PASS** — exit 0, no warnings | `evidence/ciclo21_linux_validation_20261016.log`; output under `/tmp` |
 | Linux `make test` | **PASS** — 560 asset checks + 82 frame-loop checks, 0 failures | Same log; generated/unit fixtures only |
 | Linux `make test-san` | **PASS** — 560 asset checks + 82 frame-loop checks, 0 failures; no sanitizer report | Same log |
-| Windows x64 MSVC preview build and artifact upload | **NOT YET RUN** | Workflow: `.github/workflows/windows-d3d11-bmd-preview.yml`; artifact name `d3d11-bmd-preview-windows-x64`; pending push/run |
+| Windows x64 MSVC preview build, PE x64 check, artifact upload | **PASS** — all build and upload steps succeeded | Actions run `38996411696`; artifact `d3d11-bmd-preview-windows-x64`; SHA-256 digest and metadata in evidence log; artifact was not downloaded into this sandbox |
 | `python3 tools/check_docs_consistency.py` | **BLOCKED (exit 2)** | `/home/user/Cliente_ref/Data` is absent |
 | D3D11 device/window, real BMD geometry on GPU | **NOT EXECUTED** | A hosted compile job cannot prove device creation, window display, or real-asset rendering |
 | BMD UV/material semantics, associated texture decode/render | **BLOCKED / NOT IMPLEMENTED** | Existing preview is untextured; UV semantics and material/texture association are unverified |
 | End-user Windows/GPU validation with an authorized real model and its texture | **NOT EXECUTED** | Requires the user's Windows/GPU and verified model/texture pair; the CI artifact contains no assets |
 
-A successful CI build means only that MSVC produced a non-empty PE x64
-executable. It must not be described as validation of a D3D11 device/window,
-UVs, materials, texture binding, or rendering compatibility.
+The successful CI job proves compilation and PE x64 output only. A non-blocking
+GitHub Actions annotation warned that the selected actions target Node.js 20 and
+were forced to Node.js 24. Neither the build nor artifact validates a D3D11
+device/window, UVs, materials, texture binding, or rendering compatibility.
 
 ## Cycle 20 — callback-driven frame-loop foundation (2026-10-16)
 

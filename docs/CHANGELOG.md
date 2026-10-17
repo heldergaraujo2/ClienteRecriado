@@ -11,8 +11,10 @@ Performance changes with measurements are in
 - This does not add model assets or alter the D3D11 preview, BMD parser, or
   parser tests. The executable is still a plaintext-v0x0A, untextured geometry
   diagnostic; UV/material/texture semantics and real GPU rendering remain
-  unverified. Initial CI compilation is pending; see the cycle-21 test result
-  entry before using the artifact.
+  unverified. Windows x64 compilation, PE check, and artifact upload passed in
+  Actions run `38996411696` on commit `b3cc504`; the artifact expires
+  2026-11-16 UTC. The run is compile-only; see the cycle-21 test-result and
+  evidence entries for details and remaining GPU/semantic blockers.
 - Linux regression checks after the workflow/docs edits passed: warning-free
   `make`; `make test` and `make test-san` each passed 560 asset plus 82
   frame-loop checks. Log: `docs/evidence/ciclo21_linux_validation_20261016.log`.

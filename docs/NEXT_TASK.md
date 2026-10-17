@@ -10,9 +10,11 @@ update/render/present callbacks, but no application, screen manager, window,
 renderer, or gameplay callback is connected. Its timings are callback durations,
 not full-frame, GPU, or FPS measurements. These Linux tests do not validate
 real-asset interpretation or Windows/GPU rendering. A Windows x64 CI workflow
-has now been added for the existing D3D11 geometry preview; its first artifact
-build is pending. Even a successful runner build will be compile-only and does
-not satisfy the real Windows/GPU or UV/material/texture gates below.
+has now built and uploaded the existing D3D11 geometry-preview EXE in
+[Actions run 38996411696](https://github.com/heldergaraujo2/ClienteRecriado/actions/runs/38996411696).
+This proves compilation and PE x64 output only; it does not satisfy the real
+Windows/GPU or UV/material/texture gates below. The artifact expires
+2026-11-16 at 02:49 UTC.
 
 **Muserver handoff:** read [`NETWORK.md`](NETWORK.md) before implementing server
 compatibility. No client networking module or verified wire protocol exists in
